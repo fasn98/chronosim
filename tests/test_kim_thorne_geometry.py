@@ -71,6 +71,71 @@ def test_eq31_as_printed_differs_from_the_map_by_a_sign(beta, n, tau):
 
 
 @pytest.mark.parametrize("beta", BETAS)
+@pytest.mark.parametrize("n", (1, 2, 3))
+def test_throat_copies_have_negative_slope_as_in_fig_5(beta, n):
+    # Fig. 5 draws T_1, T_2, ... with negative slope in the X-T plane. Eq. 31 as printed
+    # has a positive slope for 0 < xi < 1, since its coefficient is positive.
+    beta = mp.mpf(beta)
+    xi = kt.doppler_xi(beta)
+    Ta, Xa = kt.to_covering(wh.copy_event((mp.mpf(-1), mp.mpf(0)), n, D, beta), D, xi)
+    Tb, Xb = kt.to_covering(wh.copy_event((mp.mpf(1), mp.mpf(0)), n, D, beta), D, xi)
+    assert (Tb - Ta) / (Xb - Xa) < 0
+    assert (1 + xi ** (2 * n)) / (1 - xi ** (2 * n)) > 0
+
+
+@pytest.mark.parametrize("beta", BETAS)
+@pytest.mark.parametrize("tau", ("-1", "0", "0.7"))
+def test_copy_zero_of_the_throat_is_at_the_declared_position(beta, tau):
+    # Text before eq. 31: T_0 is at X~ = -D / (1 - xi).
+    xi = kt.doppler_xi(mp.mpf(beta))
+    _, X = kt.to_covering((mp.mpf(tau), mp.mpf(0)), D, xi)
+    assert abs(X + D / (1 - xi)) < mp.mpf("1e-78")
+
+
+@pytest.mark.parametrize("beta", BETAS)
+def test_horizon_crossings_reproduce_the_spacings_of_fig_5(beta):
+    # tau = 0 lies on the horizon. Copy n crosses it at X~ = T~ = -xi^n D / (1 - xi),
+    # so neighbouring crossings are D, D xi, D xi^2 apart.
+    beta = mp.mpf(beta)
+    xi = kt.doppler_xi(beta)
+    crossing = [kt.to_covering(wh.copy_event((mp.mpf(0), mp.mpf(0)), n, D, beta), D, xi) for n in range(5)]
+    for n, (T, X) in enumerate(crossing):
+        assert abs(T - X) < mp.mpf("1e-77")
+        assert abs(X + xi ** n * D / (1 - xi)) < mp.mpf("1e-77")
+    for n in range(4):
+        assert abs(crossing[n + 1][1] - crossing[n][1] - D * xi ** n) < mp.mpf("1e-77")
+
+
+@pytest.mark.parametrize("sign", (1, -1))
+@pytest.mark.parametrize("n", (1, 2, 3))
+def test_position_and_crossings_do_not_distinguish_the_sign_of_eq31(sign, n):
+    # Written as (1 - xi^2n)(T~ + c) = sign (1 + xi^2n)(X~ + c), so that n = 0 is defined. Both
+    # signs give X~ = -c at n = 0 and the same horizon crossing. Only the slope tells them apart.
+    xi = kt.doppler_xi(mp.mpf("0.5"))
+    residual = lambda T, X, m: (
+        (1 - xi ** (2 * m)) * (T + xi ** m * D / (1 - xi))
+        - sign * (1 + xi ** (2 * m)) * (X + xi ** m * D / (1 - xi))
+    )
+    assert abs(residual(mp.mpf("0.3"), -D / (1 - xi), 0)) < mp.mpf("1e-78")
+    crossing = -xi ** n * D / (1 - xi)
+    assert abs(residual(crossing, crossing, n)) < mp.mpf("1e-78")
+
+
+@pytest.mark.parametrize("beta", BETAS)
+@pytest.mark.parametrize("N", NS)
+def test_eq35_differs_from_the_exact_lapse_by_first_order_terms(beta, N):
+    # V_N(x) - V_0(x') = zeta_N + xi^N (X + T) / 2 - (X' + T') / 2, from eqs. 29, 32 and 33.
+    # The article says only "very nearly the same"; this is the source of the linear error of eq. 38.
+    beta = mp.mpf(beta)
+    xi = kt.doppler_xi(beta)
+    x, xp = _pair("1e-4")
+    _, V = kt.null_coords(kt.to_covering(wh.copy_event(x, N, D, beta), D, xi))
+    _, Vp = kt.null_coords(kt.to_covering(xp, D, xi))
+    expected = kt.zeta(N, D, xi) + xi ** N * (x[1] + x[0]) / 2 - (xp[1] + xp[0]) / 2
+    assert abs(V - Vp - expected) < mp.mpf("1e-76")
+
+
+@pytest.mark.parametrize("beta", BETAS)
 @pytest.mark.parametrize("N", NS)
 def test_eq36_closed_form_is_the_sum(beta, N):
     xi = kt.doppler_xi(mp.mpf(beta))

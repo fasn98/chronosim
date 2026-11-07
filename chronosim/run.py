@@ -1,5 +1,5 @@
 """Phase 1: validate Li & Gott (1998) eq. 12 against the eq. 8 image sum.
-Phase 2 (in progress): Kim & Thorne (1991), arbiter of eq. 4a and item F1.
+Phase 2 (in progress): Kim & Thorne (1991), arbiters of eq. 4a and items F1 and F3.
 
     python -m chronosim.run            # writes outputs/
 """
@@ -13,6 +13,7 @@ from pathlib import Path
 import mpmath as mp
 
 from . import kim_thorne as kt
+from . import unruh
 from . import wormhole as wh
 from .config import DPS
 from .misner import closed_form_stress, hadamard_image, self_consistent_b
@@ -28,6 +29,13 @@ ARBITER_XI = ("0.5", "1.3", "2")
 F1_BETA = ("0.1", "0.5", "0.9")
 F1_N = (1, 2, 3, 5, 10)
 F1_EPS = ("1e-2", "1e-4", "1e-6", "1e-8")
+F3_BETA = ("0.1", "0.5", "0.9")
+F3_B = ("0.01", "0.1")
+F3_X = ("0.25", "0.5")
+F3_DELTA = ("1e-2", "1e-4", "1e-6")
+F3_RHO = ("1e-1", "1e-2", "1e-3")
+F3_RHO_DELTA = ("1e-4", "1e-6")
+SLOPE_DELTA = ("1e-3", "1e-4", "1e-5", "1e-6")
 
 
 def _num(s):
@@ -123,6 +131,67 @@ def f1_geometry():
     return rows, exact
 
 
+def unruh_arbiter():
+    """Rindler vacuum from each operator, against the value from the Unruh temperature."""
+    rows = []
+    F = wh.regularized_with_eq3(lambda P, Q: hadamard_image(0, P, Q, 1))
+    for xs in ARBITER_XI:
+        xi = mp.mpf(xs)
+        ref = unruh.rindler_density(xi).value
+        rows.append({
+            "xi": xs,
+            "ref_over_scale": ref * 1440 * mp.pi ** 2 * xi ** 4,
+            "with_half_over_ref": rindler_part([0, xi, 0, 0])[0][0] / ref,
+            "eq4a_over_ref": wh.eq4_stress(F, [0, xi, 0, 0])[0][0] / ref,
+        })
+    return rows
+
+
+def _f3_row(bs, bb, Xs, ds, rs):
+    """One F3 point. rho = rs * X, with T a distance delta before H_1 in lambda_1 units."""
+    D, b, X, delta = mp.mpf(1), mp.mpf(bb), mp.mpf(Xs), mp.mpf(ds)
+    xi = kt.doppler_xi(mp.mpf(bs))
+    rho = mp.mpf(rs) * X
+    T = X - delta + (rho ** 2 / (2 * X) + rho ** 2 * xi / (2 * (D - X))) / (1 - xi)
+    num = wh.stress_between_numeric(T, X, rho, D, b, bs, delta)
+    finer = wh.stress_between_numeric(T, X, rho, D, b, bs, delta, split_ratio="1e-11", step_ratio="1e-12")
+    S = kt.stress_between_kk(T, X, rho, D, b, xi, num["n_terms"]).value
+    comps = ("TT", "TX", "XX")
+    return {
+        "beta": bs, "b_over_D": bb, "X_over_D": Xs, "delta_over_D": ds, "rho_over_X": rs,
+        "eq67_kk": mp.nstr(S, 15),
+        "eq4a_TT_over_eq67": mp.nstr(num["eq4a"]["TT"].value / S, 15),
+        "with_half_TT_over_eq67": mp.nstr(num["with_half"]["TT"].value / S, 15),
+        "eq4a_worst_dev": mp.nstr(max(abs(num["eq4a"][c].value / S - 1) for c in comps), 3),
+        "with_half_worst_dev_from_half": mp.nstr(max(abs(num["with_half"][c].value / S - mp.mpf(1) / 2) for c in comps), 3),
+        "rest_over_eq67": mp.nstr(num["eq4a"]["rest"].value / abs(S), 3),
+        "fd_err": mp.nstr(abs(num["eq4a"]["TT"].value / finer["eq4a"]["TT"].value - 1), 3),
+        "n_terms": num["n_terms"],
+    }
+
+
+def f3_stress():
+    """T^mu^nu between the mouths from eq. 66, with both operators, against eq. 67."""
+    rows = [_f3_row(bs, bb, Xs, ds, "0") for bs in F3_BETA for bb in F3_B for Xs in F3_X for ds in F3_DELTA]
+    rows += [_f3_row("0.5", "0.01", "0.25", ds, rs) for rs in F3_RHO for ds in F3_RHO_DELTA]
+    return rows
+
+
+def f3_slope():
+    """log-log slope of |T^TT| against the distance to H_N on the axis, for each operator."""
+    D, b, X = mp.mpf(1), mp.mpf("0.01"), mp.mpf("0.25")
+    out = {}
+    for name in ("eq4a", "with_half"):
+        pts = [
+            (mp.log(mp.mpf(d)), mp.log(abs(wh.stress_between_numeric(X - mp.mpf(d), X, mp.mpf(0), D, b, "0.5", mp.mpf(d))[name]["TT"].value)))
+            for d in SLOPE_DELTA
+        ]
+        mx = sum(p[0] for p in pts) / len(pts)
+        my = sum(p[1] for p in pts) / len(pts)
+        out[name] = sum((p[0] - mx) * (p[1] - my) for p in pts) / sum((p[0] - mx) ** 2 for p in pts)
+    return out
+
+
 def figures(out: Path):
     import matplotlib
 
@@ -169,7 +238,7 @@ def figures(out: Path):
     plt.close(fig)
 
 
-def report(out: Path, rows, worst, slope, arb, f1_rows, f1_exact):
+def report(out: Path, rows, worst, slope, arb, f1_rows, f1_exact, unruh_rows, f3_rows, f3_slopes):
     h = reported_heuristics()
     lines = [
         "# chronosim · relatório de validação",
@@ -207,8 +276,8 @@ def report(out: Path, rows, worst, slope, arb, f1_rows, f1_exact):
         "",
         "## Fase 2 (em andamento): Kim & Thorne (1991)",
         "",
-        "Plano em `docs/phase2_plan.md`, transcrições em `docs/equation_transcription.md`. Até aqui: teste "
-        "árbitro do operador e item F1. F3, F4, F2, F5, F6 e F7 ainda não foram implementados.",
+        "Plano em `docs/phase2_plan.md`, transcrições em `docs/equation_transcription.md`. Até aqui: testes "
+        "árbitros do operador e itens F1 e F3. F4, F2, F5, F6 e F7 ainda não foram implementados.",
         "",
         "### Teste árbitro: eq. 4a de Kim & Thorne contra a eq. 11 de Li & Gott",
         "",
@@ -230,6 +299,23 @@ def report(out: Path, rows, worst, slope, arb, f1_rows, f1_exact):
         "eq. 9). A eq. 4a não tem o fator ½ da eq. 11, e nenhuma definição em volta dela o compensa. "
         "Inconsistência entre os dois artigos, nas convenções como impressas.",
         "",
+        "### Árbitro independente dos dois artigos: efeito Unruh",
+        "",
+        "Referência: ρ = −π²T⁴/30 com T = 1/(2πξ), ou seja, −3/(1440π²ξ⁴). A relação é a atribuída a Candelas & "
+        "Deutsch (1977), com volume e página confirmados no Crossref, mas **o texto do artigo não foi lido** "
+        "(acesso fechado). A densidade térmica π²T⁴/30 foi conferida por integração numérica da integral de Bose.",
+        "",
+        "| ξ | referência / escala | operador com ½ / referência | eq. 4a impressa / referência |",
+        "|---|---|---|---|",
+        *[
+            f"| {r['xi']} | {mp.nstr(r['ref_over_scale'], 20)} | {mp.nstr(r['with_half_over_ref'], 20)} | "
+            f"{mp.nstr(r['eq4a_over_ref'], 20)} |"
+            for r in unruh_rows
+        ],
+        "",
+        "**Resultado:** a versão com ½ concorda com o valor de Unruh, e a eq. 4a impressa dá o dobro. "
+        "É uma inconsistência de convenção entre a eq. 4a impressa e o valor de Unruh.",
+        "",
         "### F1: geometria do espaço de recobrimento",
         "",
         "Recobrimento construído por iteração do mapa de Poincaré das eqs. 25 e 28, sem usar as eqs. 29–38. "
@@ -242,14 +328,24 @@ def report(out: Path, rows, worst, slope, arb, f1_rows, f1_exact):
         f"| σ_N = ΔV·ΔU (eq. 34) | {mp.nstr(f1_exact['eq34'], 3)} |",
         f"| ΔU (eq. 37) | {mp.nstr(f1_exact['eq37'], 3)} |",
         "",
-        f"**Discrepância na eq. 31 (p. 3940).** A cópia T_n da garganta, obtida das eqs. 25, 28 e 29, satisfaz "
-        "a relação da eq. 31 com o sinal oposto do coeficiente impresso: a razão medida entre "
-        "(T̃+c)/(X̃+c) e (1+ξ²ⁿ)/(1−ξ²ⁿ) é −1, com desvio máximo de "
-        f"{mp.nstr(f1_exact['eq31'], 3)} (n = 1, 2, 3). As duas transcrições leem o sinal +. Nenhuma "
-        "fórmula usada adiante depende da eq. 31.",
+        "**Eq. 31 (p. 3940):** a eq. 31 como impressa é inconsistente com a Fig. 5 e com as eqs. 25, 28 e 29; a "
+        "versão com o coeficiente de sinal oposto é consistente com as três. Nenhum resultado posterior "
+        "depende desta equação.",
         "",
-        "Erro relativo da eq. 38 contra o intervalo exato. Ele cai linearmente com ε, como esperado da "
-        "aproximação da eq. 35:",
+        "- **Leitura:** coeficiente positivo (1+ξ²ⁿ)/(1−ξ²ⁿ), nas duas transcrições e na verificação humana.",
+        "- **Eqs. 25, 28 e 29:** a razão medida entre (T̃+c)/(X̃+c) e o coeficiente impresso é −1, com desvio "
+        f"máximo de {mp.nstr(f1_exact['eq31'], 3)} (n = 1, 2, 3).",
+        "- **Fig. 5:** as cópias n ≥ 1 são desenhadas com inclinação negativa, e a eq. 31 como impressa dá "
+        "inclinação positiva para 0 < ξ < 1.",
+        "- **Posição de T_0 e cruzamentos com o horizonte:** a construção reproduz X̃ = −D/(1−ξ) em n = 0, "
+        "X̃ = −ξⁿD/(1−ξ) nos cruzamentos e os espaçamentos D, Dξ, Dξ² da Fig. 5. **Estes dois fatos não "
+        "distinguem o sinal:** valem também para o coeficiente positivo, como um teste verifica. Só a "
+        "inclinação distingue.",
+        "",
+        "Erro relativo da eq. 38 contra o intervalo exato. Ele cai linearmente com ε. O texto apresenta a eq. 35 "
+        "como aproximação (\"very nearly the same\", p. 3941), justificada pela proximidade da garganta e do "
+        "horizonte, mas **não fala em ordem em ε**. A primeira ordem é resultado desta medição e da expressão "
+        "exata do erro, não uma afirmação do artigo.",
         "",
         "| β | N | ε = 1e-2 | ε = 1e-4 | ε = 1e-6 | ε = 1e-8 |",
         "|---|---|---|---|---|---|",
@@ -260,13 +356,48 @@ def report(out: Path, rows, worst, slope, arb, f1_rows, f1_exact):
             for bs in F1_BETA for N in F1_N
         ],
         "",
+        "### F3: ⟨T^μν⟩ entre as bocas",
+        "",
+        "Diferenças finitas aplicadas à eq. 66, com λ_N da eq. 61 e prefator lido literalmente, sem usar a eq. 67, "
+        "com os dois operadores em paralelo: a eq. 4a impressa (`eq4_stress`, separação em y) e a eq. 4a com o "
+        "fator ½ (`stress_tensor` da fase 1, separação em z). Δ é a distância a H_1, em unidades de λ_1. "
+        "D = 1. Tudo é COMPUTED, salvo a coluna da eq. 67, que é DERIVED. A tabela completa está em "
+        "`outputs/kim_thorne_f3.csv`.",
+        "",
+        "| β | b/D | X/D | ρ/X | Δ/D | sem ½ / eq. 67, T^TT | com ½ / eq. 67, T^TT | maior desvio sem ½ (TT, TX, XX) | demais componentes / eq. 67 |",
+        "|---|---|---|---|---|---|---|---|---|",
+        *[
+            f"| {r['beta']} | {r['b_over_D']} | {r['X_over_D']} | {r['rho_over_X']} | {r['delta_over_D']} | "
+            f"{r['eq4a_TT_over_eq67']} | {r['with_half_TT_over_eq67']} | {r['eq4a_worst_dev']} | {r['rest_over_eq67']} |"
+            for r in f3_rows if r["X_over_D"] == "0.25"
+        ],
+        "",
+        "- **Maior desvio do operador sem ½ em relação à eq. 67:** sobre o eixo, "
+        f"{max(mp.mpf(r['eq4a_worst_dev']) for r in f3_rows if r['rho_over_X'] == '0')} (β = 0,9, Δ/D = 1e-2); "
+        f"fora do eixo, {max(mp.mpf(r['eq4a_worst_dev']) for r in f3_rows if r['rho_over_X'] != '0')} (ρ/X = 0,1).",
+        f"- **Maior erro de diferenças finitas em T^TT:** {max(mp.mpf(r['fd_err']) for r in f3_rows)}.",
+        f"- **Inclinação de log|T^TT| contra log Δ, sobre o eixo (β = 0,5, b/D = 0,01, X/D = 0,25):** "
+        f"−3 com desvio de {mp.nstr(f3_slopes['eq4a'] + 3, 3)} sem ½ e {mp.nstr(f3_slopes['with_half'] + 3, 3)} com ½.",
+        "",
+        "**Resultado:** a versão sem ½ reproduz a eq. 67, e a versão com ½ dá metade dela. Os resultados impressos "
+        "ficam, portanto, 2 vezes acima do valor ancorado pelo árbitro de Unruh. Um fator constante não altera a "
+        "taxa de divergência, que é a conclusão qualitativa do artigo.",
+        "",
+        "O desvio residual tem a forma dos termos que o artigo despreza. Sobre o eixo, ele cai linearmente com Δ "
+        "em X/D = 0,25. Em X = D/2, T^TT e T^TX ficam no nível do erro numérico e só T^XX se desvia, "
+        "quadraticamente, porque a derivada primeira do prefator da eq. 66 se anula ali. Fora do eixo, o desvio "
+        "em kk cresce como (ρ/X)², e as demais componentes crescem como ρ/X, a correção fracionária que o texto "
+        "diz ignorar (p. 3945).",
+        "",
         "### O que esta parte estabelece e o que não estabelece",
         "",
         "- **Estabelece:** as eqs. 33, 34 e 37 são exatas para a geometria das eqs. 25 e 28, e a eq. 38 é "
         "uma aproximação cujo erro relativo é proporcional a ε/D, sobre o eixo de simetria.",
-        "- **Não estabelece:** nada ainda sobre ⟨T_μν⟩ de Kim & Thorne. A eq. 38 é só o ponto de partida dos "
-        "itens seguintes, e o caso fora do eixo (eqs. 46 e 61) não foi testado. O árbitro mostra o desacordo "
-        "entre as convenções impressas, mas não diz qual dos artigos o causa.",
+        "- **Estabelece também:** a eq. 67 decorre das eqs. 61 e 66 pelo operador da eq. 4a impressa, com os "
+        "desvios medidos acima, e a divergência é Δ⁻³.",
+        "- **Não estabelece:** que as eqs. 61 e 66 estejam certas: elas são entrada do cálculo, em óptica "
+        "geométrica. A garganta (eq. 51) ainda não foi testada. A ancoragem pelo valor de Unruh foi feita no "
+        "vácuo de Rindler, não no buraco de minhoca, e o texto de Candelas & Deutsch não foi lido.",
         "- **Disputa com Hawking:** Hawking (1992, p. 603 e seção VI) contesta a conclusão de Kim & Thorne. "
         "Ele argumenta que um eventual corte deveria ser em distância invariante, e não no tempo próprio, "
         "que depende do observador. Esta fase reproduz o cálculo de Kim & Thorne e não decide quem estava certo.",
@@ -303,7 +434,14 @@ def main(argv=None) -> int:
         w = csv.DictWriter(fh, fieldnames=list(f1_rows[0]))
         w.writeheader()
         w.writerows(f1_rows)
-    report(out, rows, worst, slope, arb, f1_rows, f1_exact)
+    unruh_rows = unruh_arbiter()
+    f3_rows = f3_stress()
+    with open(out / "kim_thorne_f3.csv", "w", newline="", encoding="utf-8") as fh:
+        w = csv.DictWriter(fh, fieldnames=list(f3_rows[0]))
+        w.writeheader()
+        w.writerows(f3_rows)
+    f3_slopes = f3_slope()
+    report(out, rows, worst, slope, arb, f1_rows, f1_exact, unruh_rows, f3_rows, f3_slopes)
 
     print(f"pior erro relativo à escala: {mp.nstr(worst, 3)} [COMPUTED]")
     print(f"inclinação perto do horizonte: {mp.nstr(slope, 15)} [COMPUTED] (eq. 12: -4)")
@@ -312,6 +450,10 @@ def main(argv=None) -> int:
     print(f"fase 2, F1: eq. 33 {mp.nstr(f1_exact['eq33'], 3)}, eq. 34 {mp.nstr(f1_exact['eq34'], 3)}, "
           f"eq. 37 {mp.nstr(f1_exact['eq37'], 3)} [COMPUTED]")
     print(f"fase 2, F1: eq. 31 como impressa difere por um sinal, desvio de -1: {mp.nstr(f1_exact['eq31'], 3)} [COMPUTED]")
+    print("fase 2, Unruh: com ½ / referência = "
+          f"{mp.nstr(unruh_rows[0]['with_half_over_ref'], 20)}; eq. 4a / referência = {mp.nstr(unruh_rows[0]['eq4a_over_ref'], 20)} (xi = 0.5)")
+    print(f"fase 2, F3: maior desvio sem ½ contra a eq. 67: {max(mp.mpf(r['eq4a_worst_dev']) for r in f3_rows)} [COMPUTED]")
+    print(f"fase 2, F3: inclinação -3 com desvio {mp.nstr(f3_slopes['eq4a'] + 3, 3)} [COMPUTED]")
     print("constantes HEURISTIC usadas:")
     for k, v in reported_heuristics().items():
         print(f"  {k} = {mp.nstr(v.value, 5)}  ({v.source})")

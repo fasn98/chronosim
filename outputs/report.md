@@ -34,7 +34,7 @@ Comparação entre a energia do vácuo **calculada** a partir da soma de imagens
 
 ## Fase 2 (em andamento): Kim & Thorne (1991)
 
-Plano em `docs/phase2_plan.md`, transcrições em `docs/equation_transcription.md`. Até aqui: teste árbitro do operador e item F1. F3, F4, F2, F5, F6 e F7 ainda não foram implementados.
+Plano em `docs/phase2_plan.md`, transcrições em `docs/equation_transcription.md`. Até aqui: testes árbitros do operador e itens F1 e F3. F4, F2, F5, F6 e F7 ainda não foram implementados.
 
 ### Teste árbitro: eq. 4a de Kim & Thorne contra a eq. 11 de Li & Gott
 
@@ -48,6 +48,18 @@ Operador das eqs. 4a e 4b de Kim & Thorne (p. 3933), como impressas, escrito sem
 
 **Resultado: dá o dobro.** Os dois artigos normalizam a função de Hadamard da mesma forma, 1/(4π²σ) com σ igual à metade do quadrado da separação (Kim & Thorne, eqs. 3, 17 e 20; Li & Gott, eq. 9). A eq. 4a não tem o fator ½ da eq. 11, e nenhuma definição em volta dela o compensa. Inconsistência entre os dois artigos, nas convenções como impressas.
 
+### Árbitro independente dos dois artigos: efeito Unruh
+
+Referência: ρ = −π²T⁴/30 com T = 1/(2πξ), ou seja, −3/(1440π²ξ⁴). A relação é a atribuída a Candelas & Deutsch (1977), com volume e página confirmados no Crossref, mas **o texto do artigo não foi lido** (acesso fechado). A densidade térmica π²T⁴/30 foi conferida por integração numérica da integral de Bose.
+
+| ξ | referência / escala | operador com ½ / referência | eq. 4a impressa / referência |
+|---|---|---|---|
+| 0.5 | -3.0 | 0.99999999999999999994 | 1.9999999999999999999 |
+| 1.3 | -3.0 | 0.99999999999999999999 | 2.0 |
+| 2 | -3.0 | 1.0 | 2.0 |
+
+**Resultado:** a versão com ½ concorda com o valor de Unruh, e a eq. 4a impressa dá o dobro. É uma inconsistência de convenção entre a eq. 4a impressa e o valor de Unruh.
+
 ### F1: geometria do espaço de recobrimento
 
 Recobrimento construído por iteração do mapa de Poincaré das eqs. 25 e 28, sem usar as eqs. 29–38. Pontos a uma distância ε da garganta, com D = 1. Todos os valores são COMPUTED.
@@ -59,9 +71,14 @@ Recobrimento construído por iteração do mapa de Poincaré das eqs. 25 e 28, s
 | σ_N = ΔV·ΔU (eq. 34) | 1.48e-70 |
 | ΔU (eq. 37) | 1.46e-70 |
 
-**Discrepância na eq. 31 (p. 3940).** A cópia T_n da garganta, obtida das eqs. 25, 28 e 29, satisfaz a relação da eq. 31 com o sinal oposto do coeficiente impresso: a razão medida entre (T̃+c)/(X̃+c) e (1+ξ²ⁿ)/(1−ξ²ⁿ) é −1, com desvio máximo de 7.38e-80 (n = 1, 2, 3). As duas transcrições leem o sinal +. Nenhuma fórmula usada adiante depende da eq. 31.
+**Eq. 31 (p. 3940):** a eq. 31 como impressa é inconsistente com a Fig. 5 e com as eqs. 25, 28 e 29; a versão com o coeficiente de sinal oposto é consistente com as três. Nenhum resultado posterior depende desta equação.
 
-Erro relativo da eq. 38 contra o intervalo exato. Ele cai linearmente com ε, como esperado da aproximação da eq. 35:
+- **Leitura:** coeficiente positivo (1+ξ²ⁿ)/(1−ξ²ⁿ), nas duas transcrições e na verificação humana.
+- **Eqs. 25, 28 e 29:** a razão medida entre (T̃+c)/(X̃+c) e o coeficiente impresso é −1, com desvio máximo de 7.38e-80 (n = 1, 2, 3).
+- **Fig. 5:** as cópias n ≥ 1 são desenhadas com inclinação negativa, e a eq. 31 como impressa dá inclinação positiva para 0 < ξ < 1.
+- **Posição de T_0 e cruzamentos com o horizonte:** a construção reproduz X̃ = −D/(1−ξ) em n = 0, X̃ = −ξⁿD/(1−ξ) nos cruzamentos e os espaçamentos D, Dξ, Dξ² da Fig. 5. **Estes dois fatos não distinguem o sinal:** valem também para o coeficiente positivo, como um teste verifica. Só a inclinação distingue.
+
+Erro relativo da eq. 38 contra o intervalo exato. Ele cai linearmente com ε. O texto apresenta a eq. 35 como aproximação ("very nearly the same", p. 3941), justificada pela proximidade da garganta e do horizonte, mas **não fala em ordem em ε**. A primeira ordem é resultado desta medição e da expressão exata do erro, não uma afirmação do artigo.
 
 | β | N | ε = 1e-2 | ε = 1e-4 | ε = 1e-6 | ε = 1e-8 |
 |---|---|---|---|---|---|
@@ -81,15 +98,58 @@ Erro relativo da eq. 38 contra o intervalo exato. Ele cai linearmente com ε, co
 | 0.9 | 5 | 0.002566 | 2.573e-5 | 2.573e-7 | 2.573e-9 |
 | 0.9 | 10 | 0.002562 | 2.569e-5 | 2.569e-7 | 2.569e-9 |
 
+### F3: ⟨T^μν⟩ entre as bocas
+
+Diferenças finitas aplicadas à eq. 66, com λ_N da eq. 61 e prefator lido literalmente, sem usar a eq. 67, com os dois operadores em paralelo: a eq. 4a impressa (`eq4_stress`, separação em y) e a eq. 4a com o fator ½ (`stress_tensor` da fase 1, separação em z). Δ é a distância a H_1, em unidades de λ_1. D = 1. Tudo é COMPUTED, salvo a coluna da eq. 67, que é DERIVED. A tabela completa está em `outputs/kim_thorne_f3.csv`.
+
+| β | b/D | X/D | ρ/X | Δ/D | sem ½ / eq. 67, T^TT | com ½ / eq. 67, T^TT | maior desvio sem ½ (TT, TX, XX) | demais componentes / eq. 67 |
+|---|---|---|---|---|---|---|---|---|
+| 0.1 | 0.01 | 0.25 | 0 | 1e-2 | 0.999988803671631 | 0.499994401835816 | 2.24e-5 | 0.000446 |
+| 0.1 | 0.01 | 0.25 | 0 | 1e-4 | 0.999999888036716 | 0.499999944018358 | 2.24e-7 | 4.46e-6 |
+| 0.1 | 0.01 | 0.25 | 0 | 1e-6 | 0.999999998880367 | 0.499999999440184 | 2.24e-9 | 4.46e-8 |
+| 0.1 | 0.1 | 0.25 | 0 | 1e-2 | 0.999988618229504 | 0.499994309114752 | 2.28e-5 | 0.000449 |
+| 0.1 | 0.1 | 0.25 | 0 | 1e-4 | 0.999999886182295 | 0.499999943091148 | 2.28e-7 | 4.49e-6 |
+| 0.1 | 0.1 | 0.25 | 0 | 1e-6 | 0.999999998861823 | 0.499999999430911 | 2.28e-9 | 4.49e-8 |
+| 0.5 | 0.01 | 0.25 | 0 | 1e-2 | 0.999672641338953 | 0.499836320669476 | 0.000655 | 0.00244 |
+| 0.5 | 0.01 | 0.25 | 0 | 1e-4 | 0.99999672641339 | 0.499998363206695 | 6.55e-6 | 2.44e-5 |
+| 0.5 | 0.01 | 0.25 | 0 | 1e-6 | 0.999999967264134 | 0.499999983632067 | 6.55e-8 | 2.44e-7 |
+| 0.5 | 0.1 | 0.25 | 0 | 1e-2 | 0.999668605561985 | 0.499834302780993 | 0.000663 | 0.00245 |
+| 0.5 | 0.1 | 0.25 | 0 | 1e-4 | 0.99999668605562 | 0.49999834302781 | 6.63e-6 | 2.45e-5 |
+| 0.5 | 0.1 | 0.25 | 0 | 1e-6 | 0.999999966860556 | 0.499999983430278 | 6.63e-8 | 2.45e-7 |
+| 0.9 | 0.01 | 0.25 | 0 | 1e-2 | 0.99798971268927 | 0.498994856344635 | 0.00402 | 0.00641 |
+| 0.9 | 0.01 | 0.25 | 0 | 1e-4 | 0.999979897126893 | 0.499989948563446 | 4.02e-5 | 6.41e-5 |
+| 0.9 | 0.01 | 0.25 | 0 | 1e-6 | 0.999999798971269 | 0.499999899485634 | 4.02e-7 | 6.41e-7 |
+| 0.9 | 0.1 | 0.25 | 0 | 1e-2 | 0.997979617743566 | 0.498989808871783 | 0.00404 | 0.00643 |
+| 0.9 | 0.1 | 0.25 | 0 | 1e-4 | 0.999979796177436 | 0.499989898088718 | 4.04e-5 | 6.43e-5 |
+| 0.9 | 0.1 | 0.25 | 0 | 1e-6 | 0.999999797961774 | 0.499999898980887 | 4.04e-7 | 6.43e-7 |
+| 0.5 | 0.01 | 0.25 | 1e-1 | 1e-4 | 0.998588374737475 | 0.499294187368738 | 0.00495 | 0.0455 |
+| 0.5 | 0.01 | 0.25 | 1e-1 | 1e-6 | 0.998591575493972 | 0.499295787746986 | 0.00495 | 0.0455 |
+| 0.5 | 0.01 | 0.25 | 1e-2 | 1e-4 | 0.999982638819002 | 0.499991319409501 | 4.63e-5 | 0.00455 |
+| 0.5 | 0.01 | 0.25 | 1e-2 | 1e-6 | 0.999985879030475 | 0.499992939515238 | 4.96e-5 | 0.00455 |
+| 0.5 | 0.01 | 0.25 | 1e-3 | 1e-4 | 0.999996585533217 | 0.499998292766609 | 6.23e-6 | 0.000455 |
+| 0.5 | 0.01 | 0.25 | 1e-3 | 1e-6 | 0.999999826384168 | 0.499999913192084 | 4.63e-7 | 0.000455 |
+
+- **Maior desvio do operador sem ½ em relação à eq. 67:** sobre o eixo, 0.00404 (β = 0,9, Δ/D = 1e-2); fora do eixo, 0.00495 (ρ/X = 0,1).
+- **Maior erro de diferenças finitas em T^TT:** 3.96e-20.
+- **Inclinação de log|T^TT| contra log Δ, sobre o eixo (β = 0,5, b/D = 0,01, X/D = 0,25):** −3 com desvio de -4.39e-6 sem ½ e -4.39e-6 com ½.
+
+**Resultado:** a versão sem ½ reproduz a eq. 67, e a versão com ½ dá metade dela. Os resultados impressos ficam, portanto, 2 vezes acima do valor ancorado pelo árbitro de Unruh. Um fator constante não altera a taxa de divergência, que é a conclusão qualitativa do artigo.
+
+O desvio residual tem a forma dos termos que o artigo despreza. Sobre o eixo, ele cai linearmente com Δ em X/D = 0,25. Em X = D/2, T^TT e T^TX ficam no nível do erro numérico e só T^XX se desvia, quadraticamente, porque a derivada primeira do prefator da eq. 66 se anula ali. Fora do eixo, o desvio em kk cresce como (ρ/X)², e as demais componentes crescem como ρ/X, a correção fracionária que o texto diz ignorar (p. 3945).
+
 ### O que esta parte estabelece e o que não estabelece
 
 - **Estabelece:** as eqs. 33, 34 e 37 são exatas para a geometria das eqs. 25 e 28, e a eq. 38 é uma aproximação cujo erro relativo é proporcional a ε/D, sobre o eixo de simetria.
-- **Não estabelece:** nada ainda sobre ⟨T_μν⟩ de Kim & Thorne. A eq. 38 é só o ponto de partida dos itens seguintes, e o caso fora do eixo (eqs. 46 e 61) não foi testado. O árbitro mostra o desacordo entre as convenções impressas, mas não diz qual dos artigos o causa.
+- **Estabelece também:** a eq. 67 decorre das eqs. 61 e 66 pelo operador da eq. 4a impressa, com os desvios medidos acima, e a divergência é Δ⁻³.
+- **Não estabelece:** que as eqs. 61 e 66 estejam certas: elas são entrada do cálculo, em óptica geométrica. A garganta (eq. 51) ainda não foi testada. A ancoragem pelo valor de Unruh foi feita no vácuo de Rindler, não no buraco de minhoca, e o texto de Candelas & Deutsch não foi lido.
 - **Disputa com Hawking:** Hawking (1992, p. 603 e seção VI) contesta a conclusão de Kim & Thorne. Ele argumenta que um eventual corte deveria ser em distância invariante, e não no tempo próprio, que depende do observador. Esta fase reproduz o cálculo de Kim & Thorne e não decide quem estava certo.
 
 ## Constantes numéricas escolhidas por nós (HEURISTIC)
 
+- `kt_series_tol` = 1.0e-30: the eqs. 66-67 series stops when (b xi / 2D)^N is below this
 - `dps` = 80: working precision in decimal digits (mpmath)
 - `delta` = 1.0e-10: point-splitting distance along z, units of length
 - `h` = 1.0e-11: finite-difference step (must be < delta), units of length
 - `n_terms` = 24: image pairs summed explicitly before the Kummer tail
+- `kt_split_ratio` = 1.0e-10: point-splitting distance / distance to the horizon, Kim & Thorne runs
+- `kt_step_ratio` = 1.0e-11: finite-difference step / distance to the horizon, Kim & Thorne runs

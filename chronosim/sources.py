@@ -67,6 +67,19 @@ KRW_1997 = Source(
     arxiv="gr-qc/9603012",
 )
 
+CANDELAS_DEUTSCH_1977 = Source(
+    key="Candelas & Deutsch (1977)",
+    citation=(
+        "Candelas, P. & Deutsch, D. (1977). On the vacuum stress induced by uniform acceleration or "
+        "supporting the ether. Proceedings of the Royal Society of London A 354, 79-99."
+    ),
+    doi="10.1098/rspa.1977.0057",
+    status=(
+        "Volume and pages confirmed in Crossref only. PENDING: the article is closed-access and was not "
+        "read, so no equation in it has been checked against the Unruh value used here."
+    ),
+)
+
 HISCOCK_KONKOWSKI_1982 = Source(
     key="Hiscock & Konkowski (1982)",
     citation=(
@@ -80,4 +93,4 @@ HISCOCK_KONKOWSKI_1982 = Source(
     ),
 )
 
-ALL = (LI_GOTT_1998, HAWKING_1992, KIM_THORNE_1991, MISNER_1967, KRW_1997, HISCOCK_KONKOWSKI_1982)
+ALL = (LI_GOTT_1998, HAWKING_1992, KIM_THORNE_1991, MISNER_1967, KRW_1997, CANDELAS_DEUTSCH_1977, HISCOCK_KONKOWSKI_1982)

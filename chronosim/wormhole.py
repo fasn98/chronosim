@@ -10,9 +10,9 @@ from __future__ import annotations
 import mpmath as mp
 
 from .config import DPS
-from .kim_thorne import hadamard_flat
-from .pointsplit import DELTA, STEP
-from .provenance import Origin, Quantity
+from .kim_thorne import doppler_xi, hadamard_between, hadamard_flat, series_terms
+from .pointsplit import DELTA, STEP, stress_tensor
+from .provenance import Origin, Quantity, heuristic
 from .sources import KIM_THORNE_1991
 
 METRIC = (-1, 1, 1, 1)
@@ -94,3 +94,40 @@ def exact_sigma_N(N, x, xp, D, beta) -> Quantity:
     with mp.workdps(DPS.value):
         value = exact_interval(N, x, xp, mp.mpf(D), mp.mpf(beta))
     return Quantity(value, Origin.COMPUTED, f"covering space built from {KIM_THORNE_1991.ref('eqs. 25, 28')}")
+
+
+SPLIT_RATIO = heuristic("kt_split_ratio", mp.mpf("1e-10"), "point-splitting distance / distance to the horizon, Kim & Thorne runs")
+STEP_RATIO = heuristic("kt_step_ratio", mp.mpf("1e-11"), "finite-difference step / distance to the horizon, Kim & Thorne runs")
+
+
+def stress_between_numeric(T, X, rho, D, b, beta, length, tol=None, split_ratio=None, step_ratio=None) -> dict:
+    """T^mu^nu between the mouths from eq. 66, without using eq. 67, with two operators.
+
+    ``eq4a`` is ``eq4_stress`` (eq. 4a as printed, split along y); ``with_half`` is
+    ``pointsplit.stress_tensor`` (the same operator with the factor 1/2, split along z).
+    ``length`` is the smallest length scale, the distance to the horizon, and sets
+    the split and the step. Contravariant components in (T, X) are returned as
+    TT, TX, XX, plus the largest remaining component.
+    """
+    split = (SPLIT_RATIO.value if split_ratio is None else mp.mpf(split_ratio)) * length
+    step = (STEP_RATIO.value if step_ratio is None else mp.mpf(step_ratio)) * length
+    with mp.workdps(DPS.value):
+        xi = doppler_xi(mp.mpf(beta))
+        n_terms = series_terms(D, b, xi, tol)
+        G = lambda P, Q: hadamard_between(P, Q, D, b, xi, n_terms)
+        point = [T, X, rho, mp.mpf(0)]
+        tensors = {
+            "eq4a": eq4_stress(G, point, delta=split, h=step),
+            "with_half": stress_tensor(G, point, delta=split, h=step),
+        }
+        out = {"n_terms": n_terms}
+        for name, L in tensors.items():
+            up = [[L[a][c] * METRIC[a] * METRIC[c] for c in range(4)] for a in range(4)]
+            rest = max(abs(up[a][c]) for a in range(4) for c in range(4) if a > 1 or c > 1)
+            out[name] = {
+                "TT": Quantity(up[0][0], Origin.COMPUTED, f"{KIM_THORNE_1991.ref('eq. 66')} + {name} operator"),
+                "TX": Quantity(up[0][1], Origin.COMPUTED, f"{KIM_THORNE_1991.ref('eq. 66')} + {name} operator"),
+                "XX": Quantity(up[1][1], Origin.COMPUTED, f"{KIM_THORNE_1991.ref('eq. 66')} + {name} operator"),
+                "rest": Quantity(rest, Origin.COMPUTED, f"{KIM_THORNE_1991.ref('eq. 66')} + {name} operator"),
+            }
+    return out
