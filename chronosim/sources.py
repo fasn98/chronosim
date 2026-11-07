@@ -1,0 +1,54 @@
+"""Bibliographic sources. Every CITED quantity or formula must point to one of these."""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+
+
+@dataclass(frozen=True)
+class Source:
+    key: str
+    citation: str
+    doi: str | None = None
+    arxiv: str | None = None
+
+    def ref(self, locator: str) -> str:
+        """A precise pointer, e.g. ``LI_GOTT_1998.ref("eq. 12")``."""
+        return f"{self.key}, {locator}"
+
+
+LI_GOTT_1998 = Source(
+    key="Li & Gott (1998)",
+    citation=(
+        "Li, L.-X. & Gott, J. R. (1998). Self-consistent vacuum for Misner space and the "
+        "chronology protection conjecture. Physical Review Letters 80, 2980-2983."
+    ),
+    doi="10.1103/PhysRevLett.80.2980",
+    arxiv="gr-qc/9711074",
+)
+
+HAWKING_1992 = Source(
+    key="Hawking (1992)",
+    citation="Hawking, S. W. (1992). Chronology protection conjecture. Physical Review D 46, 603-611.",
+    doi="10.1103/PhysRevD.46.603",
+)
+
+MISNER_1967 = Source(
+    key="Misner (1967)",
+    citation=(
+        "Misner, C. W. (1967). Taub-NUT space as a counterexample to almost anything. "
+        "In: Relativity Theory and Astrophysics I, Lectures in Applied Mathematics 8, 160-169."
+    ),
+)
+
+KRW_1997 = Source(
+    key="Kay, Radzikowski & Wald (1997)",
+    citation=(
+        "Kay, B. S., Radzikowski, M. J. & Wald, R. M. (1997). Quantum field theory on spacetimes "
+        "with a compactly generated Cauchy horizon. Communications in Mathematical Physics 183, 533-556."
+    ),
+    doi="10.1007/s002200050042",
+    arxiv="gr-qc/9603012",
+)
+
+ALL = (LI_GOTT_1998, HAWKING_1992, MISNER_1967, KRW_1997)
