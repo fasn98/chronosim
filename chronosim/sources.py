@@ -36,6 +36,17 @@ HAWKING_1992 = Source(
     key="Hawking (1992)",
     citation="Hawking, S. W. (1992). Chronology protection conjecture. Physical Review D 46, 603-611.",
     doi="10.1103/PhysRevD.46.603",
+    status="Read from a PDF whose title, volume and first page were checked in the PDF itself.",
+)
+
+KIM_THORNE_1991 = Source(
+    key="Kim & Thorne (1991)",
+    citation=(
+        "Kim, S.-W. & Thorne, K. S. (1991). Do vacuum fluctuations prevent the creation of closed "
+        "timelike curves? Physical Review D 43, 3929-3947."
+    ),
+    doi="10.1103/PhysRevD.43.3929",
+    status="Read from a scan of the published version. Transcriptions: docs/equation_transcription.md.",
 )
 
 MISNER_1967 = Source(
@@ -69,4 +80,4 @@ HISCOCK_KONKOWSKI_1982 = Source(
     ),
 )
 
-ALL = (LI_GOTT_1998, HAWKING_1992, MISNER_1967, KRW_1997, HISCOCK_KONKOWSKI_1982)
+ALL = (LI_GOTT_1998, HAWKING_1992, KIM_THORNE_1991, MISNER_1967, KRW_1997, HISCOCK_KONKOWSKI_1982)
