@@ -132,3 +132,15 @@ def test_dimensions_of_eq51_and_eq52(variant):
     c = kt.stress_throat(LAM * T, theta, phi, LAM * D, LAM * B, XI, 3, variant)
     assert abs(c[0][0].value / a[0][0].value * LAM ** 4 - 1) < TOL
     assert abs(c[2][2].value / a[2][2].value * LAM ** 4 - 1) < TOL
+
+
+def test_eq52_chain_rule_identity():
+    # rho_hat = d/drho with rho = sqrt(Y^2 + Z^2) (eq. 39): d/drho = (Y d/dY + Z d/dZ) / sqrt(Y^2 + Z^2).
+    # Checked on f(Y, Z) = g(rho) with g = sin. The printed denominator sqrt(X^2 + Y^2) fails it.
+    mp.mp.dps = 50
+    X, Y, Z = mp.mpf("-1"), mp.mpf("0.4"), mp.mpf("0.25")
+    rho = mp.sqrt(Y ** 2 + Z ** 2)
+    f = lambda y, z: mp.sin(mp.sqrt(y ** 2 + z ** 2))
+    numerator = Y * mp.diff(lambda y: f(y, Z), Y) + Z * mp.diff(lambda z: f(Y, z), Z)
+    assert abs(numerator / mp.sqrt(Y ** 2 + Z ** 2) - mp.cos(rho)) < mp.mpf("1e-40")
+    assert abs(numerator / mp.sqrt(X ** 2 + Y ** 2) - mp.cos(rho)) > mp.mpf("0.1")

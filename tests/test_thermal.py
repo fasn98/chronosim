@@ -33,9 +33,19 @@ def test_pressure_is_a_third_of_the_density_and_the_trace_vanishes(name):
 
 
 def test_density_has_dimension_length_to_minus_4():
-    # The split scales with beta, so the ratio is exact up to rounding. That floor is about
-    # 1e-80 / (h / beta)^2 = 1e-58 for the second differences. Measured 2.5e-61.
-    assert abs(thermal.thermal_stress(3)["with_half"]["rho"].value / thermal.thermal_stress(1)["with_half"]["rho"].value / 81 - 1) < mp.mpf("1e-59")
+    # The split scales with beta, so the ratio is exact up to rounding. This tolerance was set
+    # after a failure (1e-70 was a guess; measured 2.5e-61), so it is justified a priori here:
+    # each pair F_n ~ 1 / (pi^2 n^2 beta^2) is computed to relative precision eps, and a second
+    # difference divides that rounding by h^2. Summed over n, the absolute noise is about
+    # eps sum_n F_n / h^2 = eps / (6 beta^2 h^2), against rho = pi^2 / (30 beta^4), so the
+    # relative floor is eps (beta / h)^2 * 5 / pi^2, twice that for a ratio of two runs.
+    with mp.workdps(80):
+        eps = mp.mpf(2) ** (1 - mp.mp.prec)  # unit roundoff at 80 digits, evaluated here and not lazily
+    beta_over_h = 1 / thermal.THERMAL_STEP_RATIO.value
+    floor = 2 * eps * beta_over_h ** 2 * 5 / mp.pi ** 2
+    tolerance = mp.mpf("1e-58")
+    assert tolerance > 3 * floor  # floor is about 2e-59; the first tolerance, 1e-59, was below it
+    assert abs(thermal.thermal_stress(3)["with_half"]["rho"].value / thermal.thermal_stress(1)["with_half"]["rho"].value / 81 - 1) < tolerance
 
 
 def test_terms_decay_as_n_to_minus_4_and_the_tail_is_needed():

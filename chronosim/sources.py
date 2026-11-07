@@ -80,6 +80,28 @@ CANDELAS_DEUTSCH_1977 = Source(
     ),
 )
 
+KLINKHAMMER_1992 = Source(
+    key="Klinkhammer (1992)",
+    citation=(
+        "Klinkhammer, G. (1992). Multiply connected spacetimes and closed timelike curves in "
+        "semiclassical gravity. PhD thesis, California Institute of Technology."
+    ),
+    status=(
+        "Read from the Caltech thesis repository (thesis.caltech.edu/6633). Eqs. 3.3, 3.7, 3.8 read as "
+        "images, single reading."
+    ),
+)
+
+VISSER_1993 = Source(
+    key="Visser (1993)",
+    citation=(
+        "Visser, M. Hawking's chronology protection conjecture: singularity structure of the quantum "
+        "stress-energy tensor. arXiv:hep-th/9303023."
+    ),
+    arxiv="hep-th/9303023",
+    status="Read from the arXiv text. Journal version not checked.",
+)
+
 BIRRELL_DAVIES_1982 = Source(
     key="Birrell & Davies (1982)",
     citation="Birrell, N. D. & Davies, P. C. W. (1982). Quantum Fields in Curved Space. Cambridge University Press.",
@@ -102,4 +124,4 @@ HISCOCK_KONKOWSKI_1982 = Source(
     ),
 )
 
-ALL = (LI_GOTT_1998, HAWKING_1992, KIM_THORNE_1991, MISNER_1967, KRW_1997, CANDELAS_DEUTSCH_1977, BIRRELL_DAVIES_1982, HISCOCK_KONKOWSKI_1982)
+ALL = (LI_GOTT_1998, HAWKING_1992, KIM_THORNE_1991, MISNER_1967, KRW_1997, CANDELAS_DEUTSCH_1977, KLINKHAMMER_1992, VISSER_1993, BIRRELL_DAVIES_1982, HISCOCK_KONKOWSKI_1982)

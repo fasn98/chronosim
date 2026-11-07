@@ -1,5 +1,5 @@
 """Phase 1: validate Li & Gott (1998) eq. 12 against the eq. 8 image sum.
-Phase 2 (in progress): Kim & Thorne (1991), arbiters of eq. 4a and items F1, F3 and F4.
+Phase 2 (in progress): Kim & Thorne (1991), arbiters of eq. 4a and items F1 to F7.
 
     python -m chronosim.run            # writes outputs/
 """
@@ -12,6 +12,7 @@ from pathlib import Path
 
 import mpmath as mp
 
+from . import estimates
 from . import kim_thorne as kt
 from . import thermal
 from . import unruh
@@ -44,6 +45,14 @@ F4_BETA = ("0.1", "0.5", "0.9")
 F4_B = ("0.01", "0.1")
 F4_THETA = ("0.2", "0.7", "1.3")
 F4_DELTA = ("1e-2", "1e-4", "1e-6")
+F2_B = ("1e-2", "1e-4", "1e-6")
+F2_N = (1, 2, 3, 5)
+F5_BETA = ("0.1", "0.5", "0.9")
+F5_N = (1, 2, 5, 20)
+F6_UNITS = {"D": "1000", "b": "10", "X": "250"}  # Planck units, l_P = m_P = 1
+F6_DT54 = ("1", "0.1", "0.01")
+F6_THICKNESS = ("1e-2", "1e-4", "1e-6")
+FIG_DELTA = ("1e-2", "3e-3", "1e-3", "3e-4", "1e-4", "3e-5", "1e-5")
 
 
 def _num(s):
@@ -296,6 +305,137 @@ def f4_slope():
     return out
 
 
+def f2_optics():
+    """Ray-transfer amplitudes against eqs. 47 and 64 (via eq. 24), and the exact lapse against eq. 57."""
+    D, X = mp.mpf(1), mp.mpf("0.25")
+    xi = kt.doppler_xi(mp.mpf("0.5"))
+    rows = []
+    for bb in F2_B:
+        b = mp.mpf(bb)
+        rows.append({
+            "b_over_D": bb,
+            "throat": [wh.ray_amplitude_throat(N, D, b).value / kt.psi_throat(N, D, b) - 1 for N in F2_N],
+            "between": [wh.ray_amplitude_between(N, X, D, b).value
+                        / (kt.vleck_between(N, X, D, b, xi) / kt.zeta_between(N, X, D, xi)) - 1 for N in F2_N],
+        })
+    lapse = max(abs(wh.exact_lapse_on_horizon(N, X, D, bs) / kt.zeta_between(N, X, D, kt.doppler_xi(mp.mpf(bs))) - 1)
+                for bs in F5_BETA for N in F2_N)
+    return rows, lapse
+
+
+def f5_hypersurfaces():
+    """Roots of the collapsed lambda_N against eqs. 43 and 62, and N -> infinity against eqs. 44a and 63."""
+    D, b, X = mp.mpf(1), mp.mpf("0.01"), mp.mpf("0.25")
+    out = {"eq43": mp.mpf(0), "eq62": mp.mpf(0), "eq44a": [], "eq63": []}
+    for bs in F5_BETA:
+        xi = kt.doppler_xi(mp.mpf(bs))
+        for th in ("0.2", "1.3"):
+            theta = mp.mpf(th)
+            for N in F5_N:
+                out["eq43"] = max(out["eq43"], abs(wh.root_HN_throat(N, theta, b, bs).value / kt.time_HN_throat(N, theta, b, xi) - 1))
+        for rs in ("1e-2", "1e-1"):
+            rho = mp.mpf(rs) * X
+            for N in F5_N:
+                T = kt.time_HN_between(N, X, rho, D, xi)
+                out["eq62"] = max(out["eq62"], abs((wh.root_HN_between(N, X, rho, D, bs).value - T) / (T - X)))
+        theta, rho = mp.mpf("0.7"), mp.mpf("0.1") * X
+        out["eq44a"].append((bs, abs(wh.root_HN_throat(60, theta, b, bs).value / kt.time_Hminus_throat(theta, b) - 1)))
+        out["eq63"].append((bs, abs((wh.root_HN_between(60, X, rho, D, bs).value - kt.time_Hminus_between(X, rho)) / (rho ** 2 / (2 * X)))))
+    return out
+
+
+def f6_momentum():
+    """Quadratures of eqs. 51 and 67 against eqs. 53, 54, 68 and 69, in Planck units."""
+    D, b, X = (mp.mpf(F6_UNITS[k]) for k in ("D", "b", "X"))
+    bs = "0.5"
+    xi = kt.doppler_xi(mp.mpf(bs))
+    out = {}
+    out["eq69"] = max(
+        abs(wh.momentum_per_area_numeric(N, X, mp.mpf(rs) * X, D, b, b_s).value
+            / kt.momentum_per_area_N(N, X, D, b, kt.doppler_xi(mp.mpf(b_s))).value - 1)
+        for b_s in F5_BETA for N in (1, 3) for rs in ("0", "1e-3", "1e-2")
+    )
+    numeric = wh.momentum_plane_numeric(mp.mpf(1), X, D, b, bs, orders=[1, 2]).value
+    printed = sum((b / (2 * D)) ** N * (1 + 4 * xi ** N + xi ** (2 * N)) / (1 - xi ** N) ** 2 for N in (1, 2)) / (-6 * mp.pi)
+    out["eq68"] = numeric / printed - 1
+    single = -(b / (2 * D)) * (1 + 4 * xi + xi ** 2) / (1 - xi) ** 2 / (6 * mp.pi)
+    out["eq54"] = [
+        (dt, wh.momentum_throat_numeric(mp.mpf(dt), D, b, bs, lambda th: kt.time_Hminus_throat(th, b), orders=[1]).value
+         / (single / mp.mpf(dt)) - 1)
+        for dt in F6_DT54
+    ]
+    values = [
+        wh.momentum_throat_numeric(mp.mpf(1), D, b, bs, lambda th: kt.time_HN_throat(1, th, b, xi), orders=[1], thickness=t).value
+        for t in F6_THICKNESS
+    ]
+    out["eq53_ratio"] = [(t, v / kt.momentum_throat_N(1, mp.mpf(1), mp.mpf(t) * b, D, b, xi).value) for t, v in zip(F6_THICKNESS, values)]
+    coefficient = kt.momentum_throat_N(1, mp.mpf(1), b / mp.e, D, b, xi).value  # ln(b/a) = 1
+    out["eq53_slope"] = (values[2] - values[1]) / (mp.log(mp.mpf(F6_THICKNESS[1])) - mp.log(mp.mpf(F6_THICKNESS[2]))) / coefficient - 1
+    return out
+
+
+def f7_estimates():
+    """Side-by-side arithmetic of the order-of-magnitude estimates."""
+    return [
+        ("l_P / D (D = 1 m)", "l_P / D", estimates.PRINTED_LP_OVER_D, estimates.lp_over_D()),
+        ("(δL/L)_max, eq. 13, N − 1 = 0", "l_P / D", estimates.PRINTED_MAX_STRAIN, estimates.max_strain()),
+        ("densidade de Planck m_P/l_P³", "m_P / l_P³", estimates.PRINTED_PLANCK_DENSITY_HAWKING, estimates.planck_density()),
+        ("T⁰⁰_max, eq. 14", "(l_P/D)(m_P/l_P³)", estimates.PRINTED_MAX_DENSITY, estimates.max_density()),
+        ("Δt do corte de Hawking (δg^VP = 1, eq. 9c)", "l_P² / D, em l_P", estimates.PRINTED_HAWKING_DT, estimates.hawking_cutoff_dt()),
+    ]
+
+
+def figures_phase2(out: Path):
+    """Phase 2 figures: the divergence with both operators, and the two proposed cutoffs."""
+    import matplotlib
+
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    import numpy as np
+
+    blue, orange, ink, muted = "#2a78d6", "#eb6834", "#0b0b0b", "#52514e"
+    D, b, X = mp.mpf(1), mp.mpf("0.01"), mp.mpf("0.25")
+    xi = kt.doppler_xi(mp.mpf("0.5"))
+
+    # 3. Divergence near H_1 between the mouths, on the axis.
+    fig, ax = plt.subplots(figsize=(6.4, 4.6), constrained_layout=True)
+    deltas = [mp.mpf(d) for d in FIG_DELTA]
+    nums = [wh.stress_between_numeric(X - d, X, mp.mpf(0), D, b, "0.5", d) for d in deltas]
+    grid = np.logspace(-5, -2, 200)
+    n_terms = nums[0]["n_terms"]
+    curve = [float(abs(kt.stress_between_kk(X - mp.mpf(g), X, mp.mpf(0), D, b, xi, n_terms).value)) for g in grid]
+    ax.loglog(grid, curve, color=muted, lw=1.2, ls="--", label="eq. 67 impressa (DERIVED)")
+    ax.loglog([float(d) for d in deltas], [float(abs(n["eq4a"]["TT"].value)) for n in nums], "o", color=blue, ms=8, mfc="none", mew=2,
+              label="eq. 4a impressa, sem ½ (COMPUTED)")
+    ax.loglog([float(d) for d in deltas], [float(abs(n["with_half"]["TT"].value)) for n in nums], "s", color=orange, ms=8, mfc="none", mew=2,
+              label="com ½, convenção do árbitro térmico (COMPUTED)")
+    ax.set_xlabel("Δ  (distância a H₁, unidades de D)", color=ink)
+    ax.set_ylabel("|T^TT|", color=ink)
+    ax.set_title("Kim & Thorne: divergência Δ⁻³; os dois operadores diferem por 2", color=ink, fontsize=10)
+    ax.legend(fontsize=8, frameon=False)
+    ax.grid(alpha=0.25, which="both")
+    fig.savefig(out / "fig3_kt_divergence.png", dpi=130)
+    plt.close(fig)
+
+    # 4. Metric perturbation, eq. 9c with N - 1 = 0 and D = 1 m, and the two cutoffs.
+    fig, ax = plt.subplots(figsize=(6.4, 4.6), constrained_layout=True)
+    lpD = float(estimates.lp_over_D().value)
+    dt = np.logspace(-40, 3, 300)
+    ax.loglog(dt, lpD / dt, color=blue, lw=2, label="δg^VP ~ (l_P/D)(l_P/Δt), eq. 9c")
+    ax.axvline(1, color=ink, lw=1.2, ls="--")
+    ax.text(0.3, 1e-15, "corte de Kim & Thorne\nΔt ~ l_P", color=ink, fontsize=8, ha="right")
+    ax.axvline(float(estimates.hawking_cutoff_dt().value), color=ink, lw=1.2, ls=":")
+    ax.text(3e-35, 1e-30, "corte de Hawking\nDΔt ~ l_P²", color=ink, fontsize=8)
+    ax.axhline(1, color=muted, lw=0.8)
+    ax.set_xlabel("Δt / l_P  (tempo próprio até H₁)", color=ink)
+    ax.set_ylabel("δg^VP  (ordem de grandeza)", color=ink)
+    ax.set_title("D = 1 m: δg^VP ~ 10⁻³⁵ no corte de Kim & Thorne, ~ 1 no de Hawking", color=ink, fontsize=10)
+    ax.legend(fontsize=8, frameon=False, loc="upper right")
+    ax.grid(alpha=0.25, which="both")
+    fig.savefig(out / "fig4_kt_cutoffs.png", dpi=130)
+    plt.close(fig)
+
+
 def figures(out: Path):
     import matplotlib
 
@@ -342,7 +482,7 @@ def figures(out: Path):
     plt.close(fig)
 
 
-def report(out: Path, rows, worst, slope, arb, f1_rows, f1_exact, unruh_rows, f3_rows, f3_slopes, thermal_rows, mode_rows, f4_rows, f4_slopes):
+def report(out: Path, rows, worst, slope, arb, f1_rows, f1_exact, unruh_rows, f3_rows, f3_slopes, thermal_rows, mode_rows, f4_rows, f4_slopes, f2, f5, f6, f7):
     h = reported_heuristics()
     lines = [
         "# chronosim · relatório de validação",
@@ -381,7 +521,8 @@ def report(out: Path, rows, worst, slope, arb, f1_rows, f1_exact, unruh_rows, f3
         "## Fase 2 (em andamento): Kim & Thorne (1991)",
         "",
         "Plano em `docs/phase2_plan.md`, transcrições em `docs/equation_transcription.md`. Até aqui: testes "
-        "árbitros do operador e itens F1, F3 e F4. F2, F5, F6 e F7 ainda não foram implementados.",
+        "árbitros do operador e itens F1 a F7. Figuras: `fig3_kt_divergence.png` e `fig4_kt_cutoffs.png`. "
+        "Checagem de literatura do fator 2: `docs/literature_check_factor2.md`.",
         "",
         "### Árbitro principal: estado térmico no espaço de Minkowski",
         "",
@@ -523,6 +664,11 @@ def report(out: Path, rows, worst, slope, arb, f1_rows, f1_exact, unruh_rows, f3
         "e os valores impressos ficam 2 vezes acima dos obtidos com a convenção que reproduz o árbitro térmico. A "
         "taxa de divergência (Δ⁻³) e a troca de sinal na hipersuperfície não dependem desse fator.",
         "",
+        "**Literatura** (`docs/literature_check_factor2.md`): não foi encontrada errata nem quem tenha apontado o "
+        "fator. Klinkhammer (1992, tese, eqs. 3.3 e 3.8) e Visser (hep-th/9303023, eqs. 10 e 34) usam o operador "
+        "com ½ e chegam à metade da eq. 67 (identidade verificada em `tests/test_literature_factor2.py`), mas "
+        "declaram concordância com Kim & Thorne sem comentar o fator.",
+        "",
         "O desvio residual tem a forma dos termos que o artigo despreza. Sobre o eixo, ele cai linearmente com Δ "
         "em X/D = 0,25. Em X = D/2, T^TT e T^TX ficam no nível do erro numérico e só T^XX se desvia, "
         "quadraticamente, porque a derivada primeira do prefator da eq. 66 se anula ali. Fora do eixo, o desvio "
@@ -534,8 +680,7 @@ def report(out: Path, rows, worst, slope, arb, f1_rows, f1_exact, unruh_rows, f3
         "Diferenças finitas aplicadas à eq. 50, com λ_N da eq. 46, sem usar a eq. 51, com os dois operadores em "
         "paralelo, em pontos da eq. 42 a uma distância Δ antes de H_1, em unidades de λ_1. A comparação usa as "
         "16 componentes do tensor, e o desvio é relativo à maior componente da eq. 51. Para a eq. 52, roda a "
-        "leitura literal √(X²+Y²) e a variante √(Y²+Z²), o ρ da eq. 39. **A eq. 52 está aguardando conferência "
-        "humana.** Tudo é COMPUTED, salvo as colunas da eq. 51, que são DERIVED. A tabela completa está em "
+        "forma impressa √(X²+Y²) e a forma √(Y²+Z²), o ρ da eq. 39. Tudo é COMPUTED, salvo as colunas da eq. 51, que são DERIVED. A tabela completa está em "
         "`outputs/kim_thorne_f4.csv`.",
         "",
         "| β | b/D | θ | φ | Δ/b | sem ½ / eq. 51, T^TT | com ½ / eq. 51, T^TT | desvio com √(Y²+Z²) | desvio com √(X²+Y²) |",
@@ -561,28 +706,92 @@ def report(out: Path, rows, worst, slope, arb, f1_rows, f1_exact, unruh_rows, f3
         "e os valores impressos ficam 2 vezes acima dos obtidos com a convenção que reproduz o árbitro térmico. A "
         "taxa de divergência (Δ⁻³) e a troca de sinal na hipersuperfície não dependem desse fator.",
         "",
-        "**Eq. 52:** só a variante √(Y²+Z²) reproduz a eq. 51. Com a leitura literal √(X²+Y²), o vetor ρ̂ não é "
-        "unitário fora de θ = 0 (na garganta, sua componente transversal é cos(θ/2)), e o texto o chama de "
-        "\"unit transverse vector\" (p. 3943). O desvio cresce com θ e não cai com Δ.",
+        "**Eq. 52 (conferida):** a eq. 52 como impressa tem radicando X²+Y²; isso é inconsistente com a igualdade "
+        "ρ̂ = ∂/∂ρ da própria equação, com a definição de ρ (eq. 39), com a descrição de ρ̂ como vetor unitário "
+        "(p. 3943) e com a eq. 51, que só é reproduzida com √(Y²+Z²). O cálculo usa √(Y²+Z²). Com a forma "
+        "impressa, a componente transversal de ρ̂ na garganta, para φ = 0, é cos(θ/2), e o desvio cresce com θ "
+        "sem cair com Δ.",
         "",
         "O desvio com √(Y²+Z²) cai linearmente com Δ/b. Ele é o termo com a segunda derivada de λ_N nas direções "
         "transversais, que a eq. 51 não contém: a expressão analítica desse termo reproduz o resíduo em YY, YZ e "
         "ZZ, e as demais componentes ficam no nível do erro numérico. Por isso T^TT coincide com a eq. 51 nos 15 "
         "dígitos da tabela.",
         "",
+        "### F2: desfocalização por óptica geométrica",
+        "",
+        "A garganta é tratada como a lente fina divergente de distância focal b/2 que o texto descreve (p. 3942), e "
+        "a amplitude de uma fonte pontual é 1/B, com B o elemento da matriz de transferência. Isso usa a imagem "
+        "do artigo, mas não as eqs. 47, 48 e 64. A ligação com Δ_N^(1/2) é a eq. 24. COMPUTED.",
+        "",
+        "| b/D | garganta, ψ/eq. 47 − 1 (N = 1, 2, 3, 5) | entre as bocas, X/D = 0,25, ψ/(eq. 64/ζ_N) − 1 (N = 1, 2, 3, 5) |",
+        "|---|---|---|",
+        *[
+            f"| {r['b_over_D']} | {', '.join(mp.nstr(v, 4) for v in r['throat'])} | {', '.join(mp.nstr(v, 4) for v in r['between'])} |"
+            for r in f2[0]
+        ],
+        "",
+        f"As eqs. 47, 48 e 64 são o termo dominante em b/D: a correção é linear em b/D e cresce com N. A eq. 57 "
+        f"coincide com o lapso exato de V obtido do espaço de recobrimento sobre o horizonte, com desvio máximo de "
+        f"{mp.nstr(f2[1], 3)}.",
+        "",
+        "### F5: hipersuperfícies polarizadas e horizonte de Cauchy",
+        "",
+        f"Raiz numérica de λ_N(x, x) = 0 (eqs. 46 e 61): coincide com a eq. 43 até {mp.nstr(f5['eq43'], 3)} e com a eq. 62 "
+        f"até {mp.nstr(f5['eq62'], 3)} (relativo à distância de H_N a T = X). O limite N → ∞, avaliado em N = 60, se "
+        "aproxima das eqs. 44a e 63 como ξ^N:",
+        "",
+        "| β | desvio de N = 60 contra a eq. 44a | desvio contra a eq. 63 |",
+        "|---|---|---|",
+        *[f"| {bs} | {mp.nstr(v, 3)} | {mp.nstr(w2, 3)} |" for (bs, v), (_, w2) in zip(f5["eq44a"], f5["eq63"])],
+        "",
+        "### F6: quadrimomento",
+        "",
+        "Quadratura numérica das eqs. 51 e 67 (validadas em F3 e F4) nos domínios escritos no artigo, em unidades "
+        f"de Planck (l_P = m_P = 1), com D = {F6_UNITS['D']}, b = {F6_UNITS['b']}, X = {F6_UNITS['X']} e β = 0,5. Por integrar "
+        "as eqs. 51 e 67 impressas, estes resultados carregam a convenção sem ½; com ½, cada um cai à metade. "
+        "COMPUTED.",
+        "",
+        f"- **Eq. 69:** desvio máximo de {mp.nstr(f6['eq69'], 3)} em β = 0,1, 0,5, 0,9, N = 1 e 3 e ρ/X = 0, 1e-3, 1e-2; independe de ρ, "
+        "como o texto afirma.",
+        f"- **Eq. 68** (N = 1 e 2, ΔT = l_P): desvio de {mp.nstr(f6['eq68'], 3)}.",
+        "- **Eq. 54** (N = 1): a integral numérica se aproxima da eq. 54 quando ΔT/b diminui: "
+        + "; ".join(f"ΔT/b = {mp.nstr(mp.mpf(dt) / mp.mpf(F6_UNITS['b']), 2)}: desvio {mp.nstr(v, 4)}" for dt, v in f6["eq54"])
+        + ". A eq. 54 é o termo dominante; o termo em tan θ (cortado em a/b = 1e-6) e o fator cos θ somam a correção.",
+        "- **Eq. 53** (N = 1, ΔT = l_P): o coeficiente de ln(b/a) da integral numérica difere do da eq. 53 por "
+        f"{mp.nstr(f6['eq53_slope'], 3)}. A razão total fica abaixo de 1 pelo termo finito, que a eq. 53 não inclui: "
+        + "; ".join(f"a/b = {t}: {mp.nstr(v, 6)}" for t, v in f6["eq53_ratio"]) + ".",
+        "",
+        "### F7: conferência de aritmética de estimativas de ordem de grandeza",
+        "",
+        "**Isto confere só a aritmética entre os valores de entrada impressos e os números impressos, não se as "
+        "estimativas estão corretas.** Entradas: l_P ~ 10⁻³³ cm (p. 3930), m_P ~ 10⁻⁵ g (p. 3943), D = 1 m (p. 3935).",
+        "",
+        "| Grandeza | Fórmula | Valor impresso | Recalculado |",
+        "|---|---|---|---|",
+        *[f"| {name} | {formula} | {mp.nstr(printed.value, 3)} ({printed.source}) | {mp.nstr(value.value, 3)} |"
+          for name, formula, printed, value in f7],
+        "",
+        "A densidade máxima impressa depois da eq. 14 é 10⁴⁹ g/cm³; com a fórmula da eq. 14 e as entradas impressas, "
+        "o valor recalculado é 10⁵⁹ g/cm³. As demais quantidades conferem. A densidade de Planck de 10⁹⁴ g/cm³ que "
+        "Hawking imprime (1992, p. 603) coincide com m_P/l_P³ a partir das entradas de Kim & Thorne.",
+        "",
         "### O que esta parte estabelece e o que não estabelece",
         "",
         "- **Estabelece:** as eqs. 33, 34 e 37 são exatas para a geometria das eqs. 25 e 28, e a eq. 38 é "
         "uma aproximação cujo erro relativo é proporcional a ε/D, sobre o eixo de simetria.",
         "- **Estabelece também:** as eqs. 67 e 51 decorrem das eqs. 61 e 66 e das eqs. 46 e 50 pelo operador da "
-        "eq. 4a impressa, com os desvios medidos acima, e a divergência é Δ⁻³.",
+        "eq. 4a impressa, com os desvios medidos acima, e a divergência é Δ⁻³. As eqs. 43, 44a, 62, 63 e 69 "
+        "decorrem das expressões de partida; as eqs. 47, 48, 53, 54, 64 e 68 são os termos dominantes dos cálculos "
+        "numéricos correspondentes.",
         "- **Não estabelece:** que as eqs. 46, 50, 61 e 66 estejam certas: elas são entrada do cálculo, em óptica "
         "geométrica. A ancoragem pelos árbitros foi feita no estado térmico e no vácuo de Rindler, não no "
         "buraco de minhoca. O que os árbitros mostram é qual convenção reproduz esses valores. A leitura da eq. 52 "
         "aguarda conferência humana.",
         "- **Disputa com Hawking:** Hawking (1992, p. 603 e seção VI) contesta a conclusão de Kim & Thorne. "
         "Ele argumenta que um eventual corte deveria ser em distância invariante, e não no tempo próprio, "
-        "que depende do observador. Esta fase reproduz o cálculo de Kim & Thorne e não decide quem estava certo.",
+        "que depende do observador. A `fig4_kt_cutoffs.png` mostra os dois cortes lado a lado. Esta fase "
+        "reproduz o cálculo de Kim & Thorne e não decide quem estava certo.",
+        "- **F7** confere aritmética de estimativas de ordem de grandeza; não testa as estimativas.",
         "",
         "## Constantes numéricas escolhidas por nós (HEURISTIC)",
         "",
@@ -631,7 +840,13 @@ def main(argv=None) -> int:
         w.writeheader()
         w.writerows(f4_rows)
     f4_slopes = f4_slope()
-    report(out, rows, worst, slope, arb, f1_rows, f1_exact, unruh_rows, f3_rows, f3_slopes, thermal_rows, mode_rows, f4_rows, f4_slopes)
+    f2 = f2_optics()
+    f5 = f5_hypersurfaces()
+    f6 = f6_momentum()
+    f7 = f7_estimates()
+    if not args.no_figures:
+        figures_phase2(out)
+    report(out, rows, worst, slope, arb, f1_rows, f1_exact, unruh_rows, f3_rows, f3_slopes, thermal_rows, mode_rows, f4_rows, f4_slopes, f2, f5, f6, f7)
 
     print(f"pior erro relativo à escala: {mp.nstr(worst, 3)} [COMPUTED]")
     print(f"inclinação perto do horizonte: {mp.nstr(slope, 15)} [COMPUTED] (eq. 12: -4)")
@@ -650,6 +865,11 @@ def main(argv=None) -> int:
     print(f"fase 2, F4: maior desvio sem ½ contra a eq. 51, com sqrt(Y^2+Z^2): {max(mp.mpf(r['eq4a_dev_transverse']) for r in f4_rows)}; "
           f"com sqrt(X^2+Y^2): {max(mp.mpf(r['eq4a_dev_literal']) for r in f4_rows)} [COMPUTED]")
     print(f"fase 2, F4: inclinação -3 com desvio {mp.nstr(f4_slopes['eq4a'] + 3, 3)} [COMPUTED]")
+    print(f"fase 2, F2: garganta, b/D = 1e-6, N = 5: {mp.nstr(f2[0][-1]['throat'][-1], 3)}; eq. 57 contra o lapso exato: {mp.nstr(f2[1], 3)}")
+    print(f"fase 2, F5: eq. 43 {mp.nstr(f5['eq43'], 3)}, eq. 62 {mp.nstr(f5['eq62'], 3)} [COMPUTED]")
+    print(f"fase 2, F6: eq. 69 {mp.nstr(f6['eq69'], 3)}, eq. 68 {mp.nstr(f6['eq68'], 3)}, eq. 53 (ln) {mp.nstr(f6['eq53_slope'], 3)}, "
+          f"eq. 54 em ΔT/b = 1e-3: {mp.nstr(f6['eq54'][-1][1], 3)} [COMPUTED]")
+    print(f"fase 2, F7: T00_max impresso 1e49 g/cm^3, recalculado {mp.nstr(f7[3][3].value, 3)} g/cm^3 (ordem de grandeza)")
     print("constantes HEURISTIC usadas:")
     for k, v in reported_heuristics().items():
         print(f"  {k} = {mp.nstr(v.value, 5)}  ({v.source})")

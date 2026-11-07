@@ -103,10 +103,13 @@ def hadamard_between(x, xp, D, b, xi, n_terms):
     )
 
 
-def stress_between_kk(T, X, rho, D, b, xi, n_terms) -> Quantity:
-    """Coefficient of k^mu k^nu in T^mu^nu between the mouths, eq. 67, as printed."""
+def stress_between_kk(T, X, rho, D, b, xi, n_terms, orders=None) -> Quantity:
+    """Coefficient of k^mu k^nu in T^mu^nu between the mouths, eq. 67, as printed.
+
+    ``orders`` restricts the sum to the given N (default 1..n_terms).
+    """
     total = mp.mpf(0)
-    for N in range(1, n_terms + 1):
+    for N in (range(1, n_terms + 1) if orders is None else orders):
         a = xi ** N
         denominator = (X - T) * (1 - a) + rho ** 2 / (2 * X) + rho ** 2 / (2 * (D - X)) * a
         total += (b * xi / (2 * D)) ** N * (1 + 4 * a + a ** 2) / denominator ** 3
@@ -155,18 +158,22 @@ def hypersurface_time_throat(N, theta, b, xi):
     return (1 + a) / (1 - a) * b * (1 - mp.cos(theta))
 
 
-def stress_throat(T, theta, phi, D, b, xi, n_terms, variant) -> list:
-    """T^mu^nu on the throat, eq. 51, as a 4x4 list of DERIVED quantities, with k from eq. 52."""
+def stress_throat(T, theta, phi, D, b, xi, n_terms, variant, orders=None, rows=range(4)) -> list:
+    """T^mu^nu on the throat, eq. 51, as a 4x4 list of DERIVED quantities, with k from eq. 52.
+
+    ``orders`` restricts the sum to the given N (default 1..n_terms); ``rows`` limits the
+    rows computed (the others stay zero).
+    """
     point = throat_point(T, theta, phi, b)
     k = [mp.mpf(1), mp.mpf(1), mp.mpf(0), mp.mpf(0)]
     rh = rho_hat(point[1], point[2], point[3], variant)
     tan = mp.tan(theta)
     out = [[mp.mpf(0)] * 4 for _ in range(4)]
-    for N in range(1, n_terms + 1):
+    for N in (range(1, n_terms + 1) if orders is None else orders):
         a = xi ** N
         weight = -xi / (6 * mp.pi ** 2 * D) * (b * xi / (2 * D)) ** (N - 1)
         denominator = (b * (1 - mp.cos(theta)) * (1 + a) - T * (1 - a)) ** 3
-        for m in range(4):
+        for m in rows:
             for n in range(4):
                 out[m][n] += weight * (
                     (1 + 4 * a + a ** 2) * k[m] * k[n]
@@ -175,3 +182,96 @@ def stress_throat(T, theta, phi, D, b, xi, n_terms, variant) -> list:
                 ) / denominator
     src = KIM_THORNE_1991.ref(f"eq. 51 with eq. 52 ({variant})")
     return [[Quantity(out[m][n], Origin.DERIVED, src) for n in range(4)] for m in range(4)]
+
+
+def klinkhammer_kk_on_axis(delta_t, X, D, b, xi, n_terms) -> Quantity:
+    """Coefficient of k_a k_b from Klinkhammer (1992) eq. 3.8, specialized to this wormhole on the axis.
+
+    Inputs from Kim & Thorne: Delta_n^(1/2) / zeta_n = D / [X (D - X)] (b / 2D)^n (their eq. 64 over
+    zeta_n), and e^h = 1 / xi (their eq. 33). delta_t is the observer's proper time to H_n, X - T on the axis.
+    """
+    eh = 1 / xi
+    total = mp.mpf(0)
+    for n in range(1, n_terms + 1):
+        amplitude = D / (X * (D - X)) * (b / (2 * D)) ** n
+        total += amplitude * (1 + 4 * eh ** n + eh ** (2 * n)) / (eh ** n - 1) ** 3
+    from .sources import KLINKHAMMER_1992
+
+    return Quantity(-total / (12 * mp.pi ** 2 * delta_t ** 3), Origin.DERIVED,
+                    f"{KLINKHAMMER_1992.ref('eq. 3.8')} with {KIM_THORNE_1991.ref('eqs. 33, 64')}")
+
+
+# F2: geometric-optics amplitudes (eqs. 24, 47, 48, 57, 64)
+
+
+def psi_throat(N, D, b):
+    """psi_N = (1 / D) (b / 2D)^(N-1), eq. 47."""
+    return (b / (2 * D)) ** (N - 1) / D
+
+
+def vleck_throat(N, D, b, xi):
+    """Delta_N^(1/2) = (zeta_N / D) (b / 2D)^(N-1), eq. 48, with zeta_N of eq. 36."""
+    return zeta(N, D, xi) / D * (b / (2 * D)) ** (N - 1)
+
+
+def zeta_between(N, X, D, xi):
+    """zeta_N = D - X + sum_(n=1)^(N-1) D xi^n + X xi^N, eq. 57, closed form."""
+    return (1 - xi ** N) / (1 - xi) * D - (1 - xi ** N) * X
+
+
+def zeta_between_sum(N, X, D, xi):
+    """The sum form of eq. 57."""
+    return D - X + sum(D * xi ** n for n in range(1, N)) + X * xi ** N
+
+
+def vleck_between(N, X, D, b, xi):
+    """Delta_N^(1/2) = zeta_N D / [X (D - X)] (b / 2D)^N, eq. 64."""
+    return zeta_between(N, X, D, xi) * D / (X * (D - X)) * (b / (2 * D)) ** N
+
+
+# F5: polarized hypersurfaces and the Cauchy horizon (eqs. 43, 44a, 62, 63)
+
+
+def time_HN_throat(N, theta, b, xi):
+    """T_HN(theta) = [(1 + xi^N) / (1 - xi^N)] b (1 - cos theta), eq. 43."""
+    return hypersurface_time_throat(N, theta, b, xi)
+
+
+def time_Hminus_throat(theta, b):
+    """T_H- = b (1 - cos theta), eq. 44a."""
+    return b * (1 - mp.cos(theta))
+
+
+def time_HN_between(N, X, rho, D, xi):
+    """T_HN = X + rho^2 / [2X (D - X)] (D / (1 - xi^N) - X), eq. 62."""
+    return X + rho ** 2 / (2 * X * (D - X)) * (D / (1 - xi ** N) - X)
+
+
+def time_Hminus_between(X, rho):
+    """T_H- = X + rho^2 / (2X), eq. 63."""
+    return X + rho ** 2 / (2 * X)
+
+
+# F6: four-momentum (eqs. 53, 54, 68, 69), natural units l_P = m_P = 1
+
+
+def momentum_throat_N(N, delta_T, a, D, b, xi) -> Quantity:
+    """k^mu coefficient of P^mu_N through the throat up to delta_T before H_N, eq. 53."""
+    x = xi ** N
+    value = -2 * b / (3 * mp.pi) / delta_T ** 2 * mp.log(b / a) * (b * xi / (2 * D)) ** N * (1 + 2 * x) / (1 - x) ** 3
+    return Quantity(value, Origin.DERIVED, KIM_THORNE_1991.ref("eq. 53"))
+
+
+def momentum_horizon(delta_T, D, b, xi, n_terms) -> Quantity:
+    """k^mu coefficient of P^mu_- up to delta_T before H_-, eqs. 54 and 68 (the same expression)."""
+    total = sum(
+        (b / (2 * D)) ** N * (1 + 4 * xi ** N + xi ** (2 * N)) / (1 - xi ** N) ** 2 for N in range(1, n_terms + 1)
+    )
+    return Quantity(-total / (6 * mp.pi * delta_T), Origin.DERIVED, KIM_THORNE_1991.ref("eqs. 54, 68"))
+
+
+def momentum_per_area_N(N, X, D, b, xi) -> Quantity:
+    """k^mu coefficient of (dP/dA)_N up to one Planck time before H_N, eq. 69."""
+    x = xi ** N
+    value = -D / (12 * mp.pi ** 2 * X * (D - X)) * (b * xi / (2 * D)) ** N * (1 + 4 * x + x ** 2) / (1 - x) ** 3
+    return Quantity(value, Origin.DERIVED, KIM_THORNE_1991.ref("eq. 69"))

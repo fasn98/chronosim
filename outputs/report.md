@@ -34,7 +34,7 @@ Comparação entre a energia do vácuo **calculada** a partir da soma de imagens
 
 ## Fase 2 (em andamento): Kim & Thorne (1991)
 
-Plano em `docs/phase2_plan.md`, transcrições em `docs/equation_transcription.md`. Até aqui: testes árbitros do operador e itens F1, F3 e F4. F2, F5, F6 e F7 ainda não foram implementados.
+Plano em `docs/phase2_plan.md`, transcrições em `docs/equation_transcription.md`. Até aqui: testes árbitros do operador e itens F1 a F7. Figuras: `fig3_kt_divergence.png` e `fig4_kt_cutoffs.png`. Checagem de literatura do fator 2: `docs/literature_check_factor2.md`.
 
 ### Árbitro principal: estado térmico no espaço de Minkowski
 
@@ -162,11 +162,13 @@ Diferenças finitas aplicadas à eq. 66, com λ_N da eq. 61 e prefator lido lite
 
 **Resultado:** Os resultados impressos de Kim & Thorne (eq. 67) são reproduzidos pelo operador da eq. 4a como impresso, sem o fator ½. Portanto o fator é carregado de forma consistente até o resultado final, e os valores impressos ficam 2 vezes acima dos obtidos com a convenção que reproduz o árbitro térmico. A taxa de divergência (Δ⁻³) e a troca de sinal na hipersuperfície não dependem desse fator.
 
+**Literatura** (`docs/literature_check_factor2.md`): não foi encontrada errata nem quem tenha apontado o fator. Klinkhammer (1992, tese, eqs. 3.3 e 3.8) e Visser (hep-th/9303023, eqs. 10 e 34) usam o operador com ½ e chegam à metade da eq. 67 (identidade verificada em `tests/test_literature_factor2.py`), mas declaram concordância com Kim & Thorne sem comentar o fator.
+
 O desvio residual tem a forma dos termos que o artigo despreza. Sobre o eixo, ele cai linearmente com Δ em X/D = 0,25. Em X = D/2, T^TT e T^TX ficam no nível do erro numérico e só T^XX se desvia, quadraticamente, porque a derivada primeira do prefator da eq. 66 se anula ali. Fora do eixo, o desvio em kk cresce como (ρ/X)², e as demais componentes crescem como ρ/X, a correção fracionária que o texto diz ignorar (p. 3945).
 
 ### F4: ⟨T^μν⟩ na garganta
 
-Diferenças finitas aplicadas à eq. 50, com λ_N da eq. 46, sem usar a eq. 51, com os dois operadores em paralelo, em pontos da eq. 42 a uma distância Δ antes de H_1, em unidades de λ_1. A comparação usa as 16 componentes do tensor, e o desvio é relativo à maior componente da eq. 51. Para a eq. 52, roda a leitura literal √(X²+Y²) e a variante √(Y²+Z²), o ρ da eq. 39. **A eq. 52 está aguardando conferência humana.** Tudo é COMPUTED, salvo as colunas da eq. 51, que são DERIVED. A tabela completa está em `outputs/kim_thorne_f4.csv`.
+Diferenças finitas aplicadas à eq. 50, com λ_N da eq. 46, sem usar a eq. 51, com os dois operadores em paralelo, em pontos da eq. 42 a uma distância Δ antes de H_1, em unidades de λ_1. A comparação usa as 16 componentes do tensor, e o desvio é relativo à maior componente da eq. 51. Para a eq. 52, roda a forma impressa √(X²+Y²) e a forma √(Y²+Z²), o ρ da eq. 39. Tudo é COMPUTED, salvo as colunas da eq. 51, que são DERIVED. A tabela completa está em `outputs/kim_thorne_f4.csv`.
 
 | β | b/D | θ | φ | Δ/b | sem ½ / eq. 51, T^TT | com ½ / eq. 51, T^TT | desvio com √(Y²+Z²) | desvio com √(X²+Y²) |
 |---|---|---|---|---|---|---|---|---|
@@ -196,16 +198,62 @@ Diferenças finitas aplicadas à eq. 50, com λ_N da eq. 46, sem usar a eq. 51, 
 
 **Resultado:** Os resultados impressos de Kim & Thorne (eq. 51) são reproduzidos pelo operador da eq. 4a como impresso, sem o fator ½. Portanto o fator é carregado de forma consistente até o resultado final, e os valores impressos ficam 2 vezes acima dos obtidos com a convenção que reproduz o árbitro térmico. A taxa de divergência (Δ⁻³) e a troca de sinal na hipersuperfície não dependem desse fator.
 
-**Eq. 52:** só a variante √(Y²+Z²) reproduz a eq. 51. Com a leitura literal √(X²+Y²), o vetor ρ̂ não é unitário fora de θ = 0 (na garganta, sua componente transversal é cos(θ/2)), e o texto o chama de "unit transverse vector" (p. 3943). O desvio cresce com θ e não cai com Δ.
+**Eq. 52 (conferida):** a eq. 52 como impressa tem radicando X²+Y²; isso é inconsistente com a igualdade ρ̂ = ∂/∂ρ da própria equação, com a definição de ρ (eq. 39), com a descrição de ρ̂ como vetor unitário (p. 3943) e com a eq. 51, que só é reproduzida com √(Y²+Z²). O cálculo usa √(Y²+Z²). Com a forma impressa, a componente transversal de ρ̂ na garganta, para φ = 0, é cos(θ/2), e o desvio cresce com θ sem cair com Δ.
 
 O desvio com √(Y²+Z²) cai linearmente com Δ/b. Ele é o termo com a segunda derivada de λ_N nas direções transversais, que a eq. 51 não contém: a expressão analítica desse termo reproduz o resíduo em YY, YZ e ZZ, e as demais componentes ficam no nível do erro numérico. Por isso T^TT coincide com a eq. 51 nos 15 dígitos da tabela.
+
+### F2: desfocalização por óptica geométrica
+
+A garganta é tratada como a lente fina divergente de distância focal b/2 que o texto descreve (p. 3942), e a amplitude de uma fonte pontual é 1/B, com B o elemento da matriz de transferência. Isso usa a imagem do artigo, mas não as eqs. 47, 48 e 64. A ligação com Δ_N^(1/2) é a eq. 24. COMPUTED.
+
+| b/D | garganta, ψ/eq. 47 − 1 (N = 1, 2, 3, 5) | entre as bocas, X/D = 0,25, ψ/(eq. 64/ζ_N) − 1 (N = 1, 2, 3, 5) |
+|---|---|---|
+| 1e-2 | 0.0, -0.009901, -0.01968, -0.03895 | -0.02597, -0.03562, -0.04514, -0.06391 |
+| 1e-4 | 0.0, -9.999e-5, -0.0002, -0.0003999 | -0.0002666, -0.0003666, -0.0004665, -0.0006664 |
+| 1e-6 | 0.0, -1.0e-6, -2.0e-6, -4.0e-6 | -2.667e-6, -3.667e-6, -4.667e-6, -6.667e-6 |
+
+As eqs. 47, 48 e 64 são o termo dominante em b/D: a correção é linear em b/D e cresce com N. A eq. 57 coincide com o lapso exato de V obtido do espaço de recobrimento sobre o horizonte, com desvio máximo de 4.22e-81.
+
+### F5: hipersuperfícies polarizadas e horizonte de Cauchy
+
+Raiz numérica de λ_N(x, x) = 0 (eqs. 46 e 61): coincide com a eq. 43 até 1.05e-80 e com a eq. 62 até 1.81e-77 (relativo à distância de H_N a T = X). O limite N → ∞, avaliado em N = 60, se aproxima das eqs. 44a e 63 como ξ^N:
+
+| β | desvio de N = 60 contra a eq. 44a | desvio contra a eq. 63 |
+|---|---|---|
+| 0.1 | 0.00487 | 0.00325 |
+| 0.5 | 9.71e-15 | 6.48e-15 |
+| 0.9 | 8.68e-39 | 5.79e-39 |
+
+### F6: quadrimomento
+
+Quadratura numérica das eqs. 51 e 67 (validadas em F3 e F4) nos domínios escritos no artigo, em unidades de Planck (l_P = m_P = 1), com D = 1000, b = 10, X = 250 e β = 0,5. Por integrar as eqs. 51 e 67 impressas, estes resultados carregam a convenção sem ½; com ½, cada um cai à metade. COMPUTED.
+
+- **Eq. 69:** desvio máximo de 1.99e-8 em β = 0,1, 0,5, 0,9, N = 1 e 3 e ρ/X = 0, 1e-3, 1e-2; independe de ρ, como o texto afirma.
+- **Eq. 68** (N = 1 e 2, ΔT = l_P): desvio de -5.34e-11.
+- **Eq. 54** (N = 1): a integral numérica se aproxima da eq. 54 quando ΔT/b diminui: ΔT/b = 0.1: desvio 0.6318; ΔT/b = 0.01: desvio 0.07867; ΔT/b = 0.001: desvio 0.009066. A eq. 54 é o termo dominante; o termo em tan θ (cortado em a/b = 1e-6) e o fator cos θ somam a correção.
+- **Eq. 53** (N = 1, ΔT = l_P): o coeficiente de ln(b/a) da integral numérica difere do da eq. 53 por -1.25e-9. A razão total fica abaixo de 1 pelo termo finito, que a eq. 53 não inclui: a/b = 1e-2: 0.983216; a/b = 1e-4: 0.991602; a/b = 1e-6: 0.994401.
+
+### F7: conferência de aritmética de estimativas de ordem de grandeza
+
+**Isto confere só a aritmética entre os valores de entrada impressos e os números impressos, não se as estimativas estão corretas.** Entradas: l_P ~ 10⁻³³ cm (p. 3930), m_P ~ 10⁻⁵ g (p. 3943), D = 1 m (p. 3935).
+
+| Grandeza | Fórmula | Valor impresso | Recalculado |
+|---|---|---|---|
+| l_P / D (D = 1 m) | l_P / D | 1.0e-35 (Kim & Thorne (1991), p. 3935, after eq. 14) | 1.0e-35 |
+| (δL/L)_max, eq. 13, N − 1 = 0 | l_P / D | 1.0e-35 (Kim & Thorne (1991), p. 3935, after eq. 13) | 1.0e-35 |
+| densidade de Planck m_P/l_P³ | m_P / l_P³ | 1.0e+94 (Hawking (1992), p. 603: 10^94 g/cc) | 1.0e+94 |
+| T⁰⁰_max, eq. 14 | (l_P/D)(m_P/l_P³) | 1.0e+49 (Kim & Thorne (1991), p. 3935, after eq. 14) | 1.0e+59 |
+| Δt do corte de Hawking (δg^VP = 1, eq. 9c) | l_P² / D, em l_P | 1.0e-35 (Kim & Thorne (1991), p. 3937: Delta t ~ 10^-35 l_P) | 1.0e-35 |
+
+A densidade máxima impressa depois da eq. 14 é 10⁴⁹ g/cm³; com a fórmula da eq. 14 e as entradas impressas, o valor recalculado é 10⁵⁹ g/cm³. As demais quantidades conferem. A densidade de Planck de 10⁹⁴ g/cm³ que Hawking imprime (1992, p. 603) coincide com m_P/l_P³ a partir das entradas de Kim & Thorne.
 
 ### O que esta parte estabelece e o que não estabelece
 
 - **Estabelece:** as eqs. 33, 34 e 37 são exatas para a geometria das eqs. 25 e 28, e a eq. 38 é uma aproximação cujo erro relativo é proporcional a ε/D, sobre o eixo de simetria.
-- **Estabelece também:** as eqs. 67 e 51 decorrem das eqs. 61 e 66 e das eqs. 46 e 50 pelo operador da eq. 4a impressa, com os desvios medidos acima, e a divergência é Δ⁻³.
+- **Estabelece também:** as eqs. 67 e 51 decorrem das eqs. 61 e 66 e das eqs. 46 e 50 pelo operador da eq. 4a impressa, com os desvios medidos acima, e a divergência é Δ⁻³. As eqs. 43, 44a, 62, 63 e 69 decorrem das expressões de partida; as eqs. 47, 48, 53, 54, 64 e 68 são os termos dominantes dos cálculos numéricos correspondentes.
 - **Não estabelece:** que as eqs. 46, 50, 61 e 66 estejam certas: elas são entrada do cálculo, em óptica geométrica. A ancoragem pelos árbitros foi feita no estado térmico e no vácuo de Rindler, não no buraco de minhoca. O que os árbitros mostram é qual convenção reproduz esses valores. A leitura da eq. 52 aguarda conferência humana.
-- **Disputa com Hawking:** Hawking (1992, p. 603 e seção VI) contesta a conclusão de Kim & Thorne. Ele argumenta que um eventual corte deveria ser em distância invariante, e não no tempo próprio, que depende do observador. Esta fase reproduz o cálculo de Kim & Thorne e não decide quem estava certo.
+- **Disputa com Hawking:** Hawking (1992, p. 603 e seção VI) contesta a conclusão de Kim & Thorne. Ele argumenta que um eventual corte deveria ser em distância invariante, e não no tempo próprio, que depende do observador. A `fig4_kt_cutoffs.png` mostra os dois cortes lado a lado. Esta fase reproduz o cálculo de Kim & Thorne e não decide quem estava certo.
+- **F7** confere aritmética de estimativas de ordem de grandeza; não testa as estimativas.
 
 ## Constantes numéricas escolhidas por nós (HEURISTIC)
 
@@ -216,6 +264,8 @@ O desvio com √(Y²+Z²) cai linearmente com Δ/b. Ele é o termo com a segunda
 - `n_terms` = 24: image pairs summed explicitly before the Kummer tail
 - `kt_split_ratio` = 1.0e-10: point-splitting distance / distance to the horizon, Kim & Thorne runs
 - `kt_step_ratio` = 1.0e-11: finite-difference step / distance to the horizon, Kim & Thorne runs
+- `kt_quad_dps` = 15: working precision of the F6 integrals
+- `kt_throat_thickness` = 1.0e-6: a / b, angular cutoff tan(theta) < b / a for eqs. 53-54
 - `thermal_n_terms` = 24: imaginary-time image pairs summed explicitly before the Kummer tail
 - `thermal_split_ratio` = 1.0e-10: point-splitting distance / beta in the thermal arbiter
 - `thermal_step_ratio` = 1.0e-11: finite-difference step / beta in the thermal arbiter
