@@ -357,7 +357,7 @@ def f6_momentum():
     )
     numeric = wh.momentum_plane_numeric(mp.mpf(1), X, D, b, bs, orders=[1, 2]).value
     out["eq68"] = numeric / kt.momentum_horizon(mp.mpf(1), D, b, xi, 2).value - 1
-    single = kt.momentum_horizon(mp.mpf(1), D, b, xi, 1).value
+    single = kt.momentum_horizon(mp.mpf(1), D, b, xi, 1, orders=[1]).value
     out["eq54"] = [
         (dt, wh.momentum_throat_numeric(mp.mpf(dt), D, b, bs, lambda th: kt.time_Hminus_throat(th, b), orders=[1]).value
          / (single / mp.mpf(dt)) - 1)
@@ -660,8 +660,8 @@ def report(out: Path, rows, worst, slope, arb, f1_rows, f1_exact, unruh_rows, f3
         ],
         "",
         (lambda on, off: "- **Maior desvio do operador sem ½ em relação à eq. 67:** sobre o eixo, "
-         f"{on['eq4a_worst_dev']} (β = {_br(on['beta'])}, Δ/D = {on['delta_over_D']}); fora do eixo, "
-         f"{off['eq4a_worst_dev']} (ρ/X = {_br(off['rho_over_X'])}, Δ/D = {off['delta_over_D']}).")(
+         f"{_br(on['eq4a_worst_dev'])} (β = {_br(on['beta'])}, Δ/D = {on['delta_over_D']}); fora do eixo, "
+         f"{_br(off['eq4a_worst_dev'])} (ρ/X = {_br(off['rho_over_X'])}, Δ/D = {off['delta_over_D']}).")(
             max((r for r in f3_rows if r["rho_over_X"] == "0"), key=lambda r: mp.mpf(r["eq4a_worst_dev"])),
             max((r for r in f3_rows if r["rho_over_X"] != "0"), key=lambda r: mp.mpf(r["eq4a_worst_dev"]))),
         f"- **Maior erro de diferenças finitas em T^TT:** {max(mp.mpf(r['fd_err']) for r in f3_rows)}.",
@@ -774,11 +774,16 @@ def report(out: Path, rows, worst, slope, arb, f1_rows, f1_exact, unruh_rows, f3
         "### F7: conferência de aritmética de estimativas de ordem de grandeza",
         "",
         "**Isto confere só a aritmética entre os valores de entrada impressos e os números impressos, não se as "
-        "estimativas estão corretas.** Entradas: l_P ~ 10⁻³³ cm (p. 3930), m_P ~ 10⁻⁵ g (p. 3943), D = 1 m (p. 3935).",
+        "estimativas estão corretas.** Entradas: l_P/D ~ 10⁻³⁵ com D = 1 m (p. 3935), de onde vem l_P ~ 10⁻³³ cm, "
+        "e m_P ~ 10⁻⁵ g (p. 3943).",
         "",
-        "**Conferência humana das leituras:** o valor impresso 10⁴⁹ g/cm³ e a eq. 14 (p. 3935) e m_P ~ 10⁻⁵ g "
-        "(p. 3943) foram conferidos. l_P ~ 10⁻³³ cm não foi conferido na p. 3930; está implicado pela razão "
-        "l_P/D ~ 10⁻³⁵ com D = 1 m declarada na p. 3935.",
+        "**Conferência humana das leituras:**",
+        "",
+        "- **T⁰⁰_max:** o valor impresso 10⁴⁹ g/cm³ foi conferido na p. 3935.",
+        "- **Eq. 14:** a forma (l_P/D)(m_P/l_P³) foi conferida na p. 3935.",
+        "- **m_P:** o valor 10⁻⁵ g foi conferido na p. 3943.",
+        "- **l_P:** o valor 10⁻³³ cm não foi conferido na p. 3930. Ele é derivado da razão l_P/D ~ 10⁻³⁵ com "
+        "D = 1 m, conferida na p. 3935.",
         "",
         "| Grandeza | Fórmula | Valor impresso | Recalculado |",
         "|---|---|---|---|",

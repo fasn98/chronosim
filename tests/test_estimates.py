@@ -33,4 +33,5 @@ def test_origins_and_labels():
     for q in (e.lp_over_D(), e.max_density(), e.hawking_cutoff_dt()):
         assert q.origin is Origin.DERIVED
         assert "order of magnitude" in q.source
-    assert e.PLANCK_LENGTH_CM.origin is Origin.CITED
+    assert e.PLANCK_LENGTH_CM.origin is Origin.DERIVED  # derived from the checked ratio l_P/D, p. 3935
+    assert "p. 3930" in e.PLANCK_LENGTH_CM.source and "não conferido" in e.PLANCK_LENGTH_CM.source

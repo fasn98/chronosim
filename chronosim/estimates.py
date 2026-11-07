@@ -15,12 +15,18 @@ from .sources import HAWKING_1992, KIM_THORNE_1991
 OOM = "order of magnitude"
 
 # Inputs printed in the articles (CITED).
-PLANCK_LENGTH_CM = Quantity(mp.mpf("1e-33"), Origin.CITED, KIM_THORNE_1991.ref("p. 3930: l_P ~ 10^-33 cm, not checked visually; implied by l_P/D ~ 10^-35 with D = 1 m, p. 3935"), "cm")
 PLANCK_MASS_G = Quantity(mp.mpf("1e-5"), Origin.CITED, KIM_THORNE_1991.ref("p. 3943: m_P ~ 10^-5 g"), "g")
 SEPARATION_CM = Quantity(mp.mpf(100), Origin.CITED, KIM_THORNE_1991.ref("p. 3935: D ~ 1 m"), "cm")
 
 # Numbers printed in the articles, to compare with.
 PRINTED_LP_OVER_D = Quantity(mp.mpf("1e-35"), Origin.CITED, KIM_THORNE_1991.ref("p. 3935, after eq. 14"))
+
+# l_P is not taken from p. 3930, whose value was not checked; it is derived from the checked ratio.
+PLANCK_LENGTH_CM = Quantity(
+    PRINTED_LP_OVER_D.value * SEPARATION_CM.value, Origin.DERIVED,
+    "derivado de l_P/D ~ 10⁻³⁵ com D = 1 m (Kim & Thorne 1991, p. 3935, conferido por leitura humana); "
+    "valor da p. 3930 não conferido", "cm",
+)
 PRINTED_MAX_STRAIN = Quantity(mp.mpf("1e-35"), Origin.CITED, KIM_THORNE_1991.ref("p. 3935, after eq. 13"))
 PRINTED_MAX_DENSITY = Quantity(mp.mpf("1e49"), Origin.CITED, KIM_THORNE_1991.ref("p. 3935, after eq. 14"), "g/cm^3")
 PRINTED_HAWKING_DT = Quantity(mp.mpf("1e-35"), Origin.CITED, KIM_THORNE_1991.ref("p. 3937: Delta t ~ 10^-35 l_P"), "l_P")

@@ -302,14 +302,17 @@ def momentum_throat_N(N, delta_T, a, D, b, xi) -> Quantity:
     return Quantity(value, Origin.DERIVED, KIM_THORNE_1991.ref("eq. 53"))
 
 
-def momentum_horizon(delta_T, D, b, xi, n_terms) -> Quantity:
-    """k^mu coefficient of P^mu_- up to delta_T before H_-, eqs. 54 and 68 (the same expression)."""
-    total = sum(
-        (b / (2 * D)) ** N * (1 + 4 * xi ** N + xi ** (2 * N)) / (1 - xi ** N) ** 2 for N in _require_terms(n_terms)
-    )
-    origin = Origin.DERIVED if n_terms == 1 else Origin.COMPUTED  # n_terms is the caller's explicit count of printed terms
+def momentum_horizon(delta_T, D, b, xi, n_terms, orders=None) -> Quantity:
+    """k^mu coefficient of P^mu_- up to delta_T before H_-, eqs. 54 and 68 (the same expression).
+
+    Same rule as ``stress_between_kk``: a sum over 1..n_terms is COMPUTED even with one term;
+    only one term chosen explicitly through ``orders`` is DERIVED.
+    """
+    terms = _require_terms(n_terms, orders)
+    total = sum((b / (2 * D)) ** N * (1 + 4 * xi ** N + xi ** (2 * N)) / (1 - xi ** N) ** 2 for N in terms)
+    origin = _series_origin(None if orders is None else terms, n_terms)
     return Quantity(-total / (6 * mp.pi * delta_T), origin, KIM_THORNE_1991.ref("eqs. 54, 68")
-                    + ("" if origin is Origin.DERIVED else f", sum truncated at N = {n_terms}"))
+                    + ("" if origin is Origin.DERIVED else f", sum truncated at N = {max(terms)}"))
 
 
 def momentum_per_area_N(N, X, D, b, xi) -> Quantity:

@@ -58,4 +58,15 @@ def test_a_sum_over_1_to_n_terms_is_computed_even_with_one_term():
 def test_unruh_reference_is_heuristic_with_its_caveat():
     q = unruh.rindler_density(mp.mpf(1))
     assert q.origin is Origin.HEURISTIC
-    assert "artigo não lido" in q.source
+    assert "article not read" in q.source
+
+
+@pytest.mark.parametrize("n_terms", [1, 3])
+def test_momentum_horizon_and_stress_between_kk_follow_the_same_origin_rule(n_terms):
+    # A sum over 1..n_terms is COMPUTED even with one term; one explicit term through orders is DERIVED.
+    sum_kk = kt.stress_between_kk(mp.mpf("0.2"), X, mp.mpf(0), D, B, XI, n_terms)
+    sum_p = kt.momentum_horizon(mp.mpf(1), D, B, XI, n_terms)
+    assert sum_kk.origin is sum_p.origin is Origin.COMPUTED
+    one_kk = kt.stress_between_kk(mp.mpf("0.2"), X, mp.mpf(0), D, B, XI, n_terms, [1])
+    one_p = kt.momentum_horizon(mp.mpf(1), D, B, XI, n_terms, [1])
+    assert one_kk.origin is one_p.origin is Origin.DERIVED

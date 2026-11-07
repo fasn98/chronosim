@@ -41,4 +41,4 @@ def rindler_density(xi) -> Quantity:
     with mp.workdps(DPS.value):
         value = -thermal_density_closed(unruh_temperature(mp.mpf(xi)))
     return Quantity(value, Origin.HEURISTIC,
-                    "relação vácuo de Rindler = −térmico citada de " + CANDELAS_DEUTSCH_1977.ref("artigo não lido"))
+                    "relation 'Rindler vacuum = minus thermal' cited from " + CANDELAS_DEUTSCH_1977.ref("article not read"))
