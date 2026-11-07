@@ -59,6 +59,22 @@ def hadamard_minkowski(X, Xp):
     return 1 / (2 * mp.pi ** 2 * (-dt ** 2 + dx ** 2 + dy ** 2 + dz ** 2))
 
 
+def boost(rapidity, X):
+    """Boost in the (t, x) plane, eta -> eta + rapidity. This is the Misner identification."""
+    t, x, y, z = X
+    c, s = mp.cosh(rapidity), mp.sinh(rapidity)
+    return [t * c + x * s, t * s + x * c, y, z]
+
+
+def hadamard_minkowski_image(n: int, X, Xp, b):
+    """n-th image of the Minkowski vacuum, G_M(X, Lambda^n X'), with Lambda the boost of rapidity b.
+
+    Summing this over n gives the Minkowski vacuum with images. The n = 0 term is
+    what the regularization subtracts. G_M is Li & Gott eq. 9.
+    """
+    return hadamard_minkowski(X, boost(n * b, Xp))
+
+
 def stress_prefactor(xi, b):
     """C = [(2 pi / b)^4 - 1] / (1440 pi^2 xi^4), the scalar factor of eq. 12."""
     with mp.workdps(DPS.value):
