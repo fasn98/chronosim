@@ -35,6 +35,8 @@ def hadamard_image_pair(n, P, Q, beta):
 
 def hadamard_regularized(P, Q, beta, n_max):
     """Sum over the image pairs up to n_max, without tail."""
+    if n_max < 1:
+        raise ValueError("n_max must be at least 1: the sum would be 0")
     return sum(hadamard_image_pair(n, P, Q, beta) for n in range(1, n_max + 1))
 
 
@@ -70,6 +72,8 @@ def thermal_stress(T, X=None, n_terms=None, split_ratio=None, step_ratio=None) -
     The Kummer tail assumes that, and ``decay_spread`` checks it. All outputs are COMPUTED.
     """
     n_terms = N_TERMS.value if n_terms is None else n_terms
+    if n_terms < 2:
+        raise ValueError("n_terms must be at least 2: the tail and its decay diagnostic need two explicit pairs")
     with mp.workdps(DPS.value):
         T = mp.mpf(T)
         beta = 1 / T

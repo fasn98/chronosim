@@ -33,7 +33,12 @@ def thermal_density_integral(T) -> Quantity:
 
 
 def rindler_density(xi) -> Quantity:
-    """rho = -pi^2 T^4 / 30 at the local Unruh temperature."""
+    """rho = -pi^2 T^4 / 30 at the local Unruh temperature.
+
+    HEURISTIC: the relation "Rindler vacuum = minus thermal" is cited from Candelas & Deutsch
+    (1977) without the article having been read. The thermal arbiter is the main one.
+    """
     with mp.workdps(DPS.value):
         value = -thermal_density_closed(unruh_temperature(mp.mpf(xi)))
-    return Quantity(value, Origin.DERIVED, CANDELAS_DEUTSCH_1977.ref("relation attributed to it; article not read"))
+    return Quantity(value, Origin.HEURISTIC,
+                    "relação vácuo de Rindler = −térmico citada de " + CANDELAS_DEUTSCH_1977.ref("artigo não lido"))

@@ -34,7 +34,7 @@ Comparação entre a energia do vácuo **calculada** a partir da soma de imagens
 
 ## Fase 2: Kim & Thorne (1991)
 
-Plano em `docs/phase2_plan.md`, transcrições em `docs/equation_transcription.md`. Até aqui: testes árbitros do operador e itens F1 a F7. Figuras: `fig3_kt_divergence.png` e `fig4_kt_cutoffs.png`. Checagem de literatura do fator 2: `docs/literature_check_factor2.md`.
+Plano em `docs/phase2_plan.md`, transcrições em `docs/equation_transcription.md`. Conteúdo: testes árbitros do operador e itens F1 a F7. Figuras: `fig3_kt_divergence.png` e `fig4_kt_cutoffs.png`. Checagem de literatura do fator 2: `docs/literature_check_factor2.md`.
 
 ### Árbitro principal: estado térmico no espaço de Minkowski
 
@@ -77,7 +77,7 @@ Operador das eqs. 4a e 4b de Kim & Thorne (p. 3933), como impressas, escrito sem
 
 ### Árbitro secundário: efeito Unruh
 
-Referência: ρ = −π²T⁴/30 com T = 1/(2πξ), ou seja, −3/(1440π²ξ⁴). **Ressalva:** a relação "vácuo de Rindler = −térmico" não foi lida em Candelas & Deutsch (1977). Volume e página foram confirmados só no Crossref, e o artigo tem acesso fechado.
+Referência: ρ = −π²T⁴/30 com T = 1/(2πξ), ou seja, −3/(1440π²ξ⁴). **Origem HEURISTIC:** a relação "vácuo de Rindler = −térmico" é citada de Candelas & Deutsch (1977), artigo não lido (volume e página confirmados só no Crossref; acesso fechado). O árbitro térmico continua sendo o principal.
 
 | ξ | referência / escala | operador com ½ / referência | eq. 4a impressa / referência |
 |---|---|---|---|
@@ -156,7 +156,7 @@ Diferenças finitas aplicadas à eq. 66, com λ_N da eq. 61 e prefator lido lite
 | 0.5 | 0.01 | 0.25 | 1e-3 | 1e-4 | 0.999996585533217 | 0.499998292766609 | 6.23e-6 | 0.000455 |
 | 0.5 | 0.01 | 0.25 | 1e-3 | 1e-6 | 0.999999826384168 | 0.499999913192084 | 4.63e-7 | 0.000455 |
 
-- **Maior desvio do operador sem ½ em relação à eq. 67:** sobre o eixo, 0.00404 (β = 0.9, Δ/D = 1e-2); fora do eixo, 0.00495 (ρ/X = 1e-1, Δ/D = 1e-4).
+- **Maior desvio do operador sem ½ em relação à eq. 67:** sobre o eixo, 0.00404 (β = 0,9, Δ/D = 1e-2); fora do eixo, 0.00495 (ρ/X = 0,1, Δ/D = 1e-4).
 - **Maior erro de diferenças finitas em T^TT:** 3.96e-20.
 - **Inclinação de log|T^TT| contra log Δ, sobre o eixo (β = 0,5, b/D = 0,01, X/D = 0,25):** −3 com desvio de -4.39e-6 sem ½ e -4.39e-6 com ½.
 
@@ -236,6 +236,8 @@ Quadratura numérica das eqs. 51 e 67 (validadas em F3 e F4) nos domínios escri
 ### F7: conferência de aritmética de estimativas de ordem de grandeza
 
 **Isto confere só a aritmética entre os valores de entrada impressos e os números impressos, não se as estimativas estão corretas.** Entradas: l_P ~ 10⁻³³ cm (p. 3930), m_P ~ 10⁻⁵ g (p. 3943), D = 1 m (p. 3935).
+
+**Aguardando conferência humana:** as leituras de l_P ~ 10⁻³³ cm (p. 3930), m_P ~ 10⁻⁵ g (p. 3943) e do valor impresso 10⁴⁹ g/cm³ (p. 3935). A comparação abaixo depende dessas três leituras.
 
 | Grandeza | Fórmula | Valor impresso | Recalculado |
 |---|---|---|---|

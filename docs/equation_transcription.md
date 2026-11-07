@@ -80,6 +80,16 @@ Notação: `Xt` e `Tt` são X̃ e T̃, `==` é o sinal de identidade impresso, e
 
 **Eq. 52 (p. 3943), terceira leitura, independente e humana (2026-11-07).** Fabio confirmou que o denominador está impresso como √(X²+Y²), com numerador (Y ∂/∂Y + Z ∂/∂Z).
 
+## Números impressos usados em F7
+
+**Aguardando conferência humana.** As três leituras abaixo sustentam a comparação 10⁴⁹ contra 10⁵⁹ g/cm³ (reviewer, I6).
+
+| Número | Pág. | Leituras |
+|---|---|---|
+| l_P ~ 10⁻³³ cm | 3930 | passada 1 (agente principal) |
+| m_P ~ 10⁻⁵ g | 3943 | passada 1 (agente principal) |
+| T⁰⁰_max ~ 10⁴⁹ g/cm³ | 3935 | passada 1 (com zoom) e passada 2 (subagente, citação literal) |
+
 ## Eq. 52
 
 A eq. 52 como impressa tem radicando X²+Y²; isso é inconsistente com a igualdade ρ̂ = ∂/∂ρ da própria equação, com a definição de ρ (eq. 39), com a descrição de ρ̂ como vetor unitário (p. 3943) e com a eq. 51, que só é reproduzida com √(Y²+Z²). O cálculo usa √(Y²+Z²).

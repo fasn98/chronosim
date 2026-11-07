@@ -435,6 +435,13 @@ def figures_phase2(out: Path):
     plt.close(fig)
 
 
+def _br(text):
+    """Decimal comma for numbers written into the Portuguese report, e.g. 0.9 -> 0,9 and 1e-1 -> 0,1."""
+    value = mp.mpf(text)
+    plain = mp.nstr(value, 6) if value >= mp.mpf("1e-3") else text
+    return plain.replace(".", ",")
+
+
 def figures(out: Path):
     import matplotlib
 
@@ -519,7 +526,7 @@ def report(out: Path, rows, worst, slope, arb, f1_rows, f1_exact, unruh_rows, f3
         "",
         "## Fase 2: Kim & Thorne (1991)",
         "",
-        "Plano em `docs/phase2_plan.md`, transcrições em `docs/equation_transcription.md`. Até aqui: testes "
+        "Plano em `docs/phase2_plan.md`, transcrições em `docs/equation_transcription.md`. Conteúdo: testes "
         "árbitros do operador e itens F1 a F7. Figuras: `fig3_kt_divergence.png` e `fig4_kt_cutoffs.png`. "
         "Checagem de literatura do fator 2: `docs/literature_check_factor2.md`.",
         "",
@@ -580,9 +587,9 @@ def report(out: Path, rows, worst, slope, arb, f1_rows, f1_exact, unruh_rows, f3
         "",
         "### Árbitro secundário: efeito Unruh",
         "",
-        "Referência: ρ = −π²T⁴/30 com T = 1/(2πξ), ou seja, −3/(1440π²ξ⁴). **Ressalva:** a relação \"vácuo de "
-        "Rindler = −térmico\" não foi lida em Candelas & Deutsch (1977). Volume e página foram confirmados só no "
-        "Crossref, e o artigo tem acesso fechado.",
+        "Referência: ρ = −π²T⁴/30 com T = 1/(2πξ), ou seja, −3/(1440π²ξ⁴). **Origem HEURISTIC:** a relação "
+        "\"vácuo de Rindler = −térmico\" é citada de Candelas & Deutsch (1977), artigo não lido (volume e página "
+        "confirmados só no Crossref; acesso fechado). O árbitro térmico continua sendo o principal.",
         "",
         "| ξ | referência / escala | operador com ½ / referência | eq. 4a impressa / referência |",
         "|---|---|---|---|",
@@ -653,8 +660,8 @@ def report(out: Path, rows, worst, slope, arb, f1_rows, f1_exact, unruh_rows, f3
         ],
         "",
         (lambda on, off: "- **Maior desvio do operador sem ½ em relação à eq. 67:** sobre o eixo, "
-         f"{on['eq4a_worst_dev']} (β = {on['beta']}, Δ/D = {on['delta_over_D']}); fora do eixo, "
-         f"{off['eq4a_worst_dev']} (ρ/X = {off['rho_over_X']}, Δ/D = {off['delta_over_D']}).")(
+         f"{on['eq4a_worst_dev']} (β = {_br(on['beta'])}, Δ/D = {on['delta_over_D']}); fora do eixo, "
+         f"{off['eq4a_worst_dev']} (ρ/X = {_br(off['rho_over_X'])}, Δ/D = {off['delta_over_D']}).")(
             max((r for r in f3_rows if r["rho_over_X"] == "0"), key=lambda r: mp.mpf(r["eq4a_worst_dev"])),
             max((r for r in f3_rows if r["rho_over_X"] != "0"), key=lambda r: mp.mpf(r["eq4a_worst_dev"]))),
         f"- **Maior erro de diferenças finitas em T^TT:** {max(mp.mpf(r['fd_err']) for r in f3_rows)}.",
@@ -768,6 +775,9 @@ def report(out: Path, rows, worst, slope, arb, f1_rows, f1_exact, unruh_rows, f3
         "",
         "**Isto confere só a aritmética entre os valores de entrada impressos e os números impressos, não se as "
         "estimativas estão corretas.** Entradas: l_P ~ 10⁻³³ cm (p. 3930), m_P ~ 10⁻⁵ g (p. 3943), D = 1 m (p. 3935).",
+        "",
+        "**Aguardando conferência humana:** as leituras de l_P ~ 10⁻³³ cm (p. 3930), m_P ~ 10⁻⁵ g (p. 3943) e do valor "
+        "impresso 10⁴⁹ g/cm³ (p. 3935). A comparação abaixo depende dessas três leituras.",
         "",
         "| Grandeza | Fórmula | Valor impresso | Recalculado |",
         "|---|---|---|---|",

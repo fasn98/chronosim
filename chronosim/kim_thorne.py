@@ -22,7 +22,9 @@ def hadamard_flat(sigma0):
 
 
 def doppler_xi(beta):
-    """xi = [(1 - beta) / (1 + beta)]^(1/2), eq. 30."""
+    """xi = [(1 - beta) / (1 + beta)]^(1/2), eq. 30. Defined here only for 0 < beta < 1."""
+    if not 0 < beta < 1:
+        raise ValueError("beta must satisfy 0 < beta < 1 (mouth 2 moving toward mouth 1, slower than light)")
     return mp.sqrt((1 - beta) / (1 + beta))
 
 
@@ -51,8 +53,28 @@ def throat_copy_residual(event_tilde, n, D, xi):
     return (T + c) - (1 + xi ** (2 * n)) / (1 - xi ** (2 * n)) * (X + c)
 
 
+def _require_order(N):
+    if N < 1:
+        raise ValueError("the order N must be at least 1; N < 1 would be an empty sum")
+
+
+def _require_terms(n_terms, orders=None):
+    """Refuse every case that would silently return an empty sum."""
+    if orders is not None:
+        orders = list(orders)
+        if not orders:
+            raise ValueError("orders is empty: the sum would be 0")
+        for N in orders:
+            _require_order(N)
+        return orders
+    if n_terms < 1:
+        raise ValueError("n_terms must be at least 1: the sum would be 0")
+    return list(range(1, n_terms + 1))
+
+
 def zeta(N, D, xi):
     """Total affine parameter lapse zeta_N = D (1 - xi^N) / (1 - xi), eq. 36."""
+    _require_order(N)
     return D * (1 - xi ** N) / (1 - xi)
 
 
@@ -70,9 +92,10 @@ def sigma_N(N, x, xp, D, beta) -> Quantity:
 
 
 def _series_origin(orders, n_terms):
-    """DERIVED for a single printed term; COMPUTED for a sum truncated at kt_series_tol (an image sum)."""
-    count = n_terms if orders is None else len(list(orders))
-    return Origin.DERIVED if count == 1 else Origin.COMPUTED
+    """DERIVED only for one printed term chosen explicitly through ``orders``. A sum over
+    1..n_terms is a series truncated at kt_series_tol (an image sum), so it is COMPUTED even
+    when n_terms happens to be 1."""
+    return Origin.DERIVED if orders is not None and len(orders) == 1 else Origin.COMPUTED
 
 
 SERIES_TOL = heuristic("kt_series_tol", mp.mpf("1e-30"), "the eqs. 66-67 series stops when (b xi / 2D)^N is below this")
@@ -81,7 +104,10 @@ SERIES_TOL = heuristic("kt_series_tol", mp.mpf("1e-30"), "the eqs. 66-67 series 
 def series_terms(D, b, xi, tol=None):
     """Number of terms N with (b xi / 2D)^N above the tolerance."""
     tol = SERIES_TOL.value if tol is None else mp.mpf(tol)
-    return int(mp.ceil(mp.log(tol) / mp.log(b * xi / (2 * D))))
+    ratio = b * xi / (2 * D)
+    if not 0 < ratio < 1:
+        raise ValueError("b xi / 2D must lie in (0, 1); otherwise the series of eqs. 50-51 and 66-67 does not converge")
+    return int(mp.ceil(mp.log(tol) / mp.log(ratio)))
 
 
 def lambda_between(N, x, xp, D, xi):
@@ -105,7 +131,7 @@ def hadamard_between(x, xp, D, b, xi, n_terms):
     return sum(
         prefactor * (b * xi / (2 * D)) ** N
         * (1 / lambda_between(N, x, xp, D, xi) + 1 / lambda_between(N, xp, x, D, xi))
-        for N in range(1, n_terms + 1)
+        for N in _require_terms(n_terms)
     )
 
 
@@ -114,8 +140,10 @@ def stress_between_kk(T, X, rho, D, b, xi, n_terms, orders=None) -> Quantity:
 
     ``orders`` restricts the sum to the given N (default 1..n_terms).
     """
+    terms = _require_terms(n_terms, orders)
+    orders = None if orders is None else terms
     total = mp.mpf(0)
-    for N in (range(1, n_terms + 1) if orders is None else orders):
+    for N in terms:
         a = xi ** N
         denominator = (X - T) * (1 - a) + rho ** 2 / (2 * X) + rho ** 2 / (2 * (D - X)) * a
         total += (b * xi / (2 * D)) ** N * (1 + 4 * a + a ** 2) / denominator ** 3
@@ -138,7 +166,7 @@ def hadamard_throat(x, xp, D, b, xi, n_terms):
     return sum(
         prefactor * (b * xi / (2 * D)) ** (N - 1)
         * (1 / lambda_throat(N, x, xp, b, xi) + 1 / lambda_throat(N, xp, x, b, xi))
-        for N in range(1, n_terms + 1)
+        for N in _require_terms(n_terms)
     )
 
 
@@ -176,8 +204,10 @@ def stress_throat(T, theta, phi, D, b, xi, n_terms, variant, orders=None, rows=r
     k = [mp.mpf(1), mp.mpf(1), mp.mpf(0), mp.mpf(0)]
     rh = rho_hat(point[1], point[2], point[3], variant)
     tan = mp.tan(theta)
+    terms = _require_terms(n_terms, orders)
+    orders = None if orders is None else terms
     out = [[mp.mpf(0)] * 4 for _ in range(4)]
-    for N in (range(1, n_terms + 1) if orders is None else orders):
+    for N in terms:
         a = xi ** N
         weight = -xi / (6 * mp.pi ** 2 * D) * (b * xi / (2 * D)) ** (N - 1)
         denominator = (b * (1 - mp.cos(theta)) * (1 + a) - T * (1 - a)) ** 3
@@ -201,15 +231,13 @@ def klinkhammer_kk_on_axis(delta_t, X, D, b, xi, n_terms) -> Quantity:
     """
     eh = 1 / xi
     total = mp.mpf(0)
-    for n in range(1, n_terms + 1):
+    for n in _require_terms(n_terms):
         amplitude = D / (X * (D - X)) * (b / (2 * D)) ** n
         total += amplitude * (1 + 4 * eh ** n + eh ** (2 * n)) / (eh ** n - 1) ** 3
     from .sources import KLINKHAMMER_1992
 
-    origin = _series_origin(None, n_terms)
-    return Quantity(-total / (12 * mp.pi ** 2 * delta_t ** 3), origin,
-                    f"{KLINKHAMMER_1992.ref('eq. 3.8')} with {KIM_THORNE_1991.ref('eqs. 33, 64')}"
-                    + ("" if origin is Origin.DERIVED else ", series truncated at kt_series_tol"))
+    return Quantity(-total / (12 * mp.pi ** 2 * delta_t ** 3), Origin.COMPUTED,
+                    f"{KLINKHAMMER_1992.ref('eq. 3.8')} with {KIM_THORNE_1991.ref('eqs. 33, 64')}, series truncated at n_terms")
 
 
 # F2: geometric-optics amplitudes (eqs. 24, 47, 48, 57, 64)
@@ -232,6 +260,7 @@ def zeta_between(N, X, D, xi):
 
 def zeta_between_sum(N, X, D, xi):
     """The sum form of eq. 57."""
+    _require_order(N)
     return D - X + sum(D * xi ** n for n in range(1, N)) + X * xi ** N
 
 
@@ -276,9 +305,9 @@ def momentum_throat_N(N, delta_T, a, D, b, xi) -> Quantity:
 def momentum_horizon(delta_T, D, b, xi, n_terms) -> Quantity:
     """k^mu coefficient of P^mu_- up to delta_T before H_-, eqs. 54 and 68 (the same expression)."""
     total = sum(
-        (b / (2 * D)) ** N * (1 + 4 * xi ** N + xi ** (2 * N)) / (1 - xi ** N) ** 2 for N in range(1, n_terms + 1)
+        (b / (2 * D)) ** N * (1 + 4 * xi ** N + xi ** (2 * N)) / (1 - xi ** N) ** 2 for N in _require_terms(n_terms)
     )
-    origin = _series_origin(None, n_terms)
+    origin = Origin.DERIVED if n_terms == 1 else Origin.COMPUTED  # n_terms is the caller's explicit count of printed terms
     return Quantity(-total / (6 * mp.pi * delta_T), origin, KIM_THORNE_1991.ref("eqs. 54, 68")
                     + ("" if origin is Origin.DERIVED else f", sum truncated at N = {n_terms}"))
 
