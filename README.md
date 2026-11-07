@@ -10,7 +10,7 @@ A relatividade geral permite espaços-tempo com **curvas fechadas tipo tempo** (
 
 O espaço de **Misner** é o exemplo mais simples para testar isso. É o espaço de Minkowski em que os pontos são identificados por um boost de rapidez *b*. Na região R (x > |t|), em coordenadas de Rindler (ξ, η), a identificação η ~ η + nb cria curvas fechadas tipo tempo, e o horizonte da cronologia fica em ξ → 0.
 
-## Fase 1 (esta versão)
+## Fase 1
 
 Para um campo escalar conformemente acoplado, Li & Gott (1998) escrevem a função de Hadamard como uma **soma de imagens** (eq. 8), regularizam subtraindo o vácuo de Minkowski (eq. 10) e obtêm por point-splitting (eq. 11) uma **fórmula fechada** (eq. 12):
 
@@ -33,6 +33,24 @@ O `chronosim` calcula a soma de imagens e o point-splitting **numericamente**, s
 
 As figuras ficam em `outputs/`: a divergência no horizonte (`fig1_horizon_divergence.png`) e o anulamento em b = 2π (`fig2_self_consistent_b.png`).
 
+## Fase 2 (parcial): vácuo de Minkowski com imagens
+
+**A comparação com Hiscock & Konkowski (1982) está pendente:** o artigo ainda não foi lido, e nenhuma fórmula dele foi usada. O que existe é a soma numérica G = Σ_{n≠0} G_M(X, Λⁿ X′), com Λ o boost de rapidez b, e o mesmo point-splitting da fase 1. O termo n = 0 é o que a regularização subtrai.
+
+| Teste (`python -m chronosim.run`) | Resultado [origem] |
+|---|---|
+| Erro de diferenças finitas, 15 pontos (ξ ∈ {0,5; 1; 2}, b ∈ {1; 3; 2π; 10; 30}), δ = 1e-10 contra δ = 1e-11 | maior diferença **1,16e-19** relativa a \|ρ\| [COMPUTED] |
+| Inclinação de log\|ρ\| contra log ξ, b = 1, ξ de 10⁻³ a 1 | **−4**, com desvio de 3,8e-15 [COMPUTED] |
+| Lei de decaimento: −ln(r)/b no último termo somado | difere de 1 por no máximo **1,5e-22** [COMPUTED] |
+| ξ⁴ρ em b = 1 / 3 / 2π / 10 / 30 | 0,32877572757039 / 3,85235836e-3 / 9,62050744e-5 / 2,30092722e-6 / 4,74062718e-15 [COMPUTED] |
+
+Os termos **não** decaem como n⁻⁴: isso só vale aproximadamente enquanto nb ≪ 1. Por isso a soma para por tolerância e usa uma cauda geométrica com a razão medida, em vez da cauda de Kummer da fase 1. Em b = 2π, este vácuo não se anula. Para b pequeno, ele quase coincide com a eq. 12 de Li & Gott: a diferença é real e fica muito acima do erro numérico. Em b ≈ 1–3 ela segue D ≈ 79·b⁻⁴·exp(−4π²/b), um ajuste observado, sem derivação nem fonte.
+
+- ✅ **Estabelece:** o valor numérico de ⟨T_ab⟩ para essa soma de imagens, com convergência de segunda ordem, ρ = 3p sem traço, escala ξ⁻⁴ e decaimento exponencial dos termos.
+- ❌ **Não estabelece:** que o resultado reproduz Hiscock & Konkowski. Também não estabelece a forma de D(b), nem nada sobre viagens no tempo.
+
+As tabelas completas estão em `outputs/report.md` e `outputs/minkowski_images.csv`. As figuras desta fase ficam para quando a fórmula do artigo estiver disponível.
+
 ## Proveniência por construção
 
 Todo número de saída é um `Quantity` com uma origem:
@@ -46,7 +64,7 @@ Todo número de saída é um `Quantity` com uma origem:
 
 A origem só pode **piorar** numa computação. Não existe caminho de código que promova um valor `COMPUTED` a `DERIVED`. Nenhuma grandeza é `MEASURED`: este é um projeto puramente teórico e não há medição envolvida.
 
-**Constantes `HEURISTIC`, reportadas em toda execução:** precisão de trabalho (80 dígitos), distância de point-splitting δ = 1e-10, passo de diferenças finitas h = 1e-11 e número de pares de imagens somados explicitamente (24).
+**Constantes `HEURISTIC`, reportadas em toda execução:** precisão de trabalho (80 dígitos), distância de point-splitting δ = 1e-10, passo de diferenças finitas h = 1e-11, número de pares de imagens somados explicitamente na fase 1 (24) e tolerância de parada da soma da fase 2 (1e-25).
 
 **Guarda anti-fabricação:** um teste percorre a árvore sintática de todos os módulos e **falha o build** se algum deles puder alcançar um gerador de números aleatórios.
 
@@ -70,14 +88,14 @@ git clone https://github.com/fasn98/chronosim.git
 cd chronosim
 python3 -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
-python -m pytest            # 24 testes, ~12 s
+python -m pytest            # 42 testes, ~30 s
 python -m chronosim.run     # validação completa, figuras e relatório em outputs/ (~1 min)
 ```
 
 ## Roteiro
 
 1. ✅ **Misner, vácuo de Li-Gott:** soma de imagens contra a forma fechada.
-2. **Misner, vácuo de Minkowski com imagens (Hiscock & Konkowski, 1982):** o cálculo original da divergência, com as fórmulas transcritas linha a linha do artigo.
+2. 🟡 **Misner, vácuo de Minkowski com imagens (Hiscock & Konkowski, 1982):** soma numérica pronta. Falta a transcrição das fórmulas do artigo, a comparação e as figuras.
 3. **Máquina do tempo de buraco de minhoca:** as estimativas de Kim & Thorne (1991) e a resposta de Hawking (1992), lado a lado.
 4. **Princípio de Novikov:** bolas de bilhar em buracos de minhoca com curvas fechadas tipo tempo (Echeverria, Klinkhammer & Thorne, 1991). Mecânica clássica e busca de soluções autoconsistentes.
 
