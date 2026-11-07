@@ -1,6 +1,6 @@
 # Fase 2 · plano: Kim & Thorne (1991)
 
-**Estado: aprovado, com ajustes. Em implementação, nesta ordem: F1, F3, F4 (núcleo, com parada para revisão ao fim de cada um), depois F2, F5, F6, e por último F7. Feitos até aqui: testes árbitros (Li & Gott e Unruh), F1 e F3.**
+**Estado: aprovado, com ajustes. Em implementação, nesta ordem: F1, F3, F4 (núcleo, com parada para revisão ao fim de cada um), depois F2, F5, F6, e por último F7. Feitos até aqui: árbitro térmico (principal), Unruh (secundário), comparação com Li & Gott, F1, F3 e F4.**
 
 Fonte: Kim, S.-W. & Thorne, K. S. (1991), *Phys. Rev. D* 43, 3929–3947, DOI 10.1103/PhysRevD.43.3929. Volume, data e páginas conferidos no PDF (`papers/KIMprd91.pdf`, 19 páginas, lido inteiro). O PDF é um scan sem texto extraível: as equações foram lidas como imagem, e as eqs. 14, 51, 53, 54, 67, 68 e 69 foram conferidas de novo com zoom.
 
@@ -40,7 +40,7 @@ Estes pontos vêm de uma conferência feita **à mão**, ainda sem execução ne
 
 **Resolvido por um teste árbitro, com resultado em `outputs/report.md`.** O operador das eqs. 4a e 4b de Kim & Thorne (p. 3933), como impressas e escritas sem usar o código da fase 1, aplicado ao vácuo de Rindler, dá o dobro do valor validado com a eq. 11 de Li & Gott (arXiv gr-qc/9711074, p. 2).
 
-Os dois artigos normalizam a função de Hadamard da mesma forma, e nenhuma definição em volta da eq. 4a compensa a diferença (ver `docs/equation_transcription.md`). Fica relatado como inconsistência entre os dois artigos. Um segundo árbitro, independente dos dois, compara com o valor de Unruh: a versão com ½ concorda, e a eq. 4a impressa dá o dobro. É uma inconsistência de convenção entre a eq. 4a impressa e o valor de Unruh. **Decisão:** F3 e F4 calculam com os dois operadores em paralelo, comparam cada um com as eqs. 67 e 51 impressas, e a fase 1 não muda.
+Os dois artigos normalizam a função de Hadamard da mesma forma, e nenhuma definição em volta da eq. 4a compensa a diferença (ver `docs/equation_transcription.md`). Fica relatado como inconsistência entre os dois artigos. O árbitro principal é um estado térmico em Minkowski, sem depender de artigo fechado, e o secundário é o valor de Unruh: nos dois, a versão com ½ concorda, e a eq. 4a impressa dá o dobro. É uma inconsistência de convenção entre a eq. 4a impressa e esses valores. **Decisão:** F3 e F4 calculam com os dois operadores em paralelo, comparam cada um com as eqs. 67 e 51 impressas, e a fase 1 não muda.
 
 Correção: a versão anterior deste plano dizia que a eq. 1 tem "os dois ordenamentos". Como impressa, ela traz os dois termos na mesma ordem.
 
@@ -60,7 +60,7 @@ Nota para F7: Hawking imprime 10⁹⁴ g/cc como densidade de Planck (p. 603), o
 
 ### 6. Radicando da eq. 52
 
-A eq. 52 imprime √(X²+Y²) no denominador de ρ̂, enquanto a eq. 39 define ρ = √(Y²+Z²). F4 usa ρ̂ e relata este ponto. As duas transcrições leem o mesmo.
+A eq. 52 imprime √(X²+Y²) no denominador de ρ̂, enquanto a eq. 39 define ρ = √(Y²+Z²). As duas transcrições leem o mesmo, e o ponto aguarda conferência humana. F4 roda as duas formas: só √(Y²+Z²) reproduz a eq. 51.
 
 ### 5. Referência interna no texto
 

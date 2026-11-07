@@ -7,7 +7,7 @@ O PDF (`papers/KIMprd91.pdf`) é um scan sem texto extraível, então cada equa�
 
 As duas passadas vêm do mesmo tipo de modelo, então são separadas, mas não equivalem a dois revisores humanos. Erros de leitura comuns aos dois não seriam detectados aqui, e é por isso que as derivações (F3, F4) também servem de checagem.
 
-**Escopo atual:** equações dos testes árbitros, de F1 e de F3. As demais entram aqui antes do item que as usa.
+**Escopo atual:** equações dos testes árbitros, de F1, de F3 e de F4. As demais entram aqui antes do item que as usa.
 
 Notação: `Xt` e `Tt` são X̃ e T̃, `==` é o sinal de identidade impresso, e `phi^` é φ̂.
 
@@ -33,16 +33,21 @@ Notação: `Xt` e `Tt` são X̃ e T̃, `==` é o sinal de identidade impresso, e
 | 36 | 3941 | `zeta_N = sum_(n=0)^(N-1) D xi^n = ((1-xi^N)/(1-xi)) D` | idem | sim |
 | 37 | 3941 | `U_N(x) - U_0(x') = (X-T) xi^(-N) - (X'-T')` | idem | sim |
 | 38 | 3941 | `sigma_N = zeta_N[(X-T) xi^(-N) - (X'-T')]` | idem | sim |
+| 39 | 3941 | `rho == sqrt(Y^2+Z^2), rho' == sqrt(Y'^2+Z'^2)` | idem | sim |
+| 42 | 3941 | `rho = b sin(theta), X + b = b cos(theta)` | idem | sim |
+| 46 | 3942 | `lambda_N(x,x') == 2(b - sqrt(b^2-rho^2)) + X - T - (X'-T') xi^N` | idem | sim |
+| 50 | 3942 | `G^(1)_reg = sum_(N=1)^inf (xi/(4 pi^2 D)) (b xi/(2D))^(N-1) (1/lambda_N(x,x') + 1/lambda_N(x',x))` | idem | sim |
+| 51 | 3943 | `T^(mu nu) = (-xi/(6 pi^2 D)) sum_(N=1)^inf (b xi/(2D))^(N-1) [(1+4 xi^N+xi^(2N)) k^mu k^nu + (2+4 xi^N) tan(theta)(k^mu rhohat^nu + rhohat^mu k^nu) + 4 tan^2(theta) rhohat^mu rhohat^nu] / [b(1-cos(theta))(1+xi^N) - T(1-xi^N)]^3` | idem | sim |
 | 52 | 3943 | `rhohat = d/drho = (1/sqrt(X^2+Y^2)) (Y d/dY + Z d/dZ); k = (d/dX + d/dT)` | idem; marcou o radicando como legível, a confirmar | sim |
 | 61 | 3944 | `lambda_N(x,x') = (X-T) - (X'-T') xi^N + rho^2/(2X) + (rho'^2/(2(D-X'))) xi^N` | idem | sim |
 | 66 | 3945 | `G^(1)_reg = sum_(N=1)^inf (D/(4 pi^2 X (D-X))) (b xi/(2D))^N (1/lambda_N(x,x') + 1/lambda_N(x',x))` | idem | sim |
 | 67 | 3945 | `T^(mu nu) = (-D k^mu k^nu/(6 pi^2 X (D-X))) sum_(N=1)^inf (b xi/(2D))^N (1 + 4 xi^N + xi^(2N)) / {(X-T)(1-xi^N) + (rho^2/2X) + [rho^2/2(D-X)] xi^N}^3` | idem | sim |
 
-**Resultado:** as 24 equações conferem. Os recortes das eqs. 17, 25a, 28, 29, 38, 61 e 67 erraram o alvo na primeira tentativa e foram refeitos nas duas passadas antes de contar como lidos.
+**Resultado:** as 29 equações conferem. Os recortes das eqs. 17, 25a, 28, 29, 38, 50, 61 e 67 erraram o alvo na primeira tentativa e foram refeitos nas duas passadas antes de contar como lidos.
 
-**Eq. 52:** o radicando impresso é X²+Y², enquanto a eq. 39 define ρ = √(Y²+Z²). Este ponto entra em F4, que usa ρ̂; F3 não depende dele.
+**Eq. 52: aguardando conferência humana.** O radicando lido nas duas passadas é X²+Y², enquanto a eq. 39 define ρ = √(Y²+Z²). F4 roda as duas formas: só √(Y²+Z²) reproduz a eq. 51 (ver `outputs/report.md`). O código mantém as duas, sem escolher uma como "a" eq. 52.
 
-**Derivação como checagem da transcrição:** as eqs. 61 e 66, aplicadas ao operador da eq. 4a, fecham na eq. 67 (ver `outputs/report.md`, F3). Isso confere as leituras dessas três equações e a da eq. 4b.
+**Derivação como checagem da transcrição:** as eqs. 61 e 66, aplicadas ao operador da eq. 4a, fecham na eq. 67, e as eqs. 46 e 50 fecham na eq. 51 (ver `outputs/report.md`, F3 e F4). Isso confere as leituras dessas seis equações e a da eq. 4b.
 
 ## Verificações humanas
 
@@ -65,7 +70,7 @@ Os dois últimos fatos são verificados a partir da construção, mas valem para
 
 ## Dimensão
 
-`tests/test_kim_thorne_geometry.py` tem um teste de análise dimensional para cada fórmula implementada (eqs. 3, 17, 29, 30, 31, 32, 33, 36, 37, 38 e o operador da eq. 4): com c = G = ħ = 1, todo comprimento escala com λ, e a fórmula precisa escalar com a potência de λ da sua dimensão. As eqs. 61, 66 e 67 têm os seus em `tests/test_kim_thorne_f3.py`.
+`tests/test_kim_thorne_geometry.py` tem um teste de análise dimensional para cada fórmula implementada (eqs. 3, 17, 29, 30, 31, 32, 33, 36, 37, 38 e o operador da eq. 4): com c = G = ħ = 1, todo comprimento escala com λ, e a fórmula precisa escalar com a potência de λ da sua dimensão. As eqs. 61, 66 e 67 têm os seus em `tests/test_kim_thorne_f3.py`, e as eqs. 46, 50, 51 e 52 em `tests/test_kim_thorne_f4.py`.
 
 ## Definições em volta do fator ½ (árbitro)
 
