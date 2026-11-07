@@ -1,6 +1,6 @@
 # Fase 2 · plano: Kim & Thorne (1991)
 
-**Estado: aprovado, com ajustes. Em implementação, nesta ordem: F1, F3, F4 (núcleo, com parada para revisão ao fim de cada um), depois F2, F5, F6, e por último F7. Feitos até aqui: árbitro térmico (principal), Unruh (secundário), comparação com Li & Gott, F1, F3 e F4.**
+**Estado: aprovado, com ajustes. Em implementação, nesta ordem: F1, F3, F4 (núcleo, com parada para revisão ao fim de cada um), depois F2, F5, F6, e por último F7. Feitos: árbitro térmico (principal), Unruh (secundário), comparação com Li & Gott, checagem de literatura do fator 2, F1 a F7 e as figuras. Falta só a revisão do squad (scalpel e reviewer) antes de qualquer merge.**
 
 Fonte: Kim, S.-W. & Thorne, K. S. (1991), *Phys. Rev. D* 43, 3929–3947, DOI 10.1103/PhysRevD.43.3929. Volume, data e páginas conferidos no PDF (`papers/KIMprd91.pdf`, 19 páginas, lido inteiro). O PDF é um scan sem texto extraível: as equações foram lidas como imagem, e as eqs. 14, 51, 53, 54, 67, 68 e 69 foram conferidas de novo com zoom.
 
@@ -60,7 +60,7 @@ Nota para F7: Hawking imprime 10⁹⁴ g/cc como densidade de Planck (p. 603), o
 
 ### 6. Radicando da eq. 52
 
-A eq. 52 imprime √(X²+Y²) no denominador de ρ̂, enquanto a eq. 39 define ρ = √(Y²+Z²). As duas transcrições leem o mesmo, e o ponto aguarda conferência humana. F4 roda as duas formas: só √(Y²+Z²) reproduz a eq. 51.
+A eq. 52 imprime √(X²+Y²) no denominador de ρ̂, enquanto a eq. 39 define ρ = √(Y²+Z²). Conferida por leitura humana. F4 roda as duas formas: só √(Y²+Z²) reproduz a eq. 51, e o cálculo usa essa forma.
 
 ### 5. Referência interna no texto
 

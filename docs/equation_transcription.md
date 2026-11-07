@@ -7,7 +7,7 @@ O PDF (`papers/KIMprd91.pdf`) é um scan sem texto extraível, então cada equa�
 
 As duas passadas vêm do mesmo tipo de modelo, então são separadas, mas não equivalem a dois revisores humanos. Erros de leitura comuns aos dois não seriam detectados aqui, e é por isso que as derivações (F3, F4) também servem de checagem.
 
-**Escopo atual:** equações dos testes árbitros, de F1, de F3 e de F4. As demais entram aqui antes do item que as usa.
+**Escopo:** todas as equações usadas na fase 2 (árbitros e F1 a F7).
 
 Notação: `Xt` e `Tt` são X̃ e T̃, `==` é o sinal de identidade impresso, e `phi^` é φ̂.
 
@@ -38,14 +38,37 @@ Notação: `Xt` e `Tt` são X̃ e T̃, `==` é o sinal de identidade impresso, e
 | 46 | 3942 | `lambda_N(x,x') == 2(b - sqrt(b^2-rho^2)) + X - T - (X'-T') xi^N` | idem | sim |
 | 50 | 3942 | `G^(1)_reg = sum_(N=1)^inf (xi/(4 pi^2 D)) (b xi/(2D))^(N-1) (1/lambda_N(x,x') + 1/lambda_N(x',x))` | idem | sim |
 | 51 | 3943 | `T^(mu nu) = (-xi/(6 pi^2 D)) sum_(N=1)^inf (b xi/(2D))^(N-1) [(1+4 xi^N+xi^(2N)) k^mu k^nu + (2+4 xi^N) tan(theta)(k^mu rhohat^nu + rhohat^mu k^nu) + 4 tan^2(theta) rhohat^mu rhohat^nu] / [b(1-cos(theta))(1+xi^N) - T(1-xi^N)]^3` | idem | sim |
+| 9a | 3934 | `T^(mu nu) ~ (b/D)^(N or (N-1)) (l_P/D) (m_P/(Delta t)^3)` | idem | sim |
+| 9b | 3934 | `R_(mu rho nu sigma) ~ G T_(mu nu) ~ (b/D)^(N or (N-1)) (l_P/D) (l_P/(Delta t)^3)` | idem | sim |
+| 9c | 3934 | `delta L / L ≃ delta g^VP_(mu nu) ~ (b/D)^(N or (N-1)) (l_P/D) (l_P/Delta t)` | idem | sim |
+| 10 | 3935 | `delta R^QG >~ l_P/(Delta t)^3, delta g^QG >~ l_P/Delta t` | idem | sim |
+| 11 | 3935 | `delta g^QG / delta g^VP >~ (D/l_P) (D/b)^(N or (N-1))` | idem | sim |
+| 12 | 3935 | `T^00 ~ -(b/D)^(N or (N-1)) (l_P/D) (m_P/(Delta t)^3)` | idem | sim |
+| 13 | 3935 | `(delta L/L)_max ~ (delta g^VP)_max ~ (b/D)^(N or (N-1)) (l_P/D)` | idem | sim |
+| 14 | 3935 | `T^00_max ~ (l_P/D)(m_P/(Delta t)^3)_(Delta t = l_P) = (l_P/D)(m_P/l_P^3)` | idem | sim |
+| 15a | 3936 | `Delta M_1 ~ (1/G)(b^2/D)` | idem | sim |
+| 15b | 3936 | `Delta M_- ~ (b/D) m_P` | idem | sim |
+| 24 | 3939 | `Delta_N^(1/2) = zeta_N psi_N` | idem | sim |
+| 43 | 3941 | `T_HN(theta) == ((1+xi^N)/(1-xi^N)) b (1 - cos theta), 0 <= theta < pi/2` | idem | sim |
+| 44a | 3941 | `T_H- = lim T_HN = b (1 - cos theta), 0 <= theta < pi/2` | idem | sim |
+| 47 | 3942 | `psi_N = (1/D) (b/(2D))^(N-1)` | idem | sim |
+| 48 | 3942 | `Delta_N^(1/2) = (zeta_N/D) (b/(2D))^(N-1)` | idem | sim |
+| 53 | 3943 | `P^mu_N == int int int T^(mu nu) n_nu b^2 sin theta = (-2b/(3 pi)) (l_P/Delta T)^2 ln(b/a) (b xi/(2D))^N (1+2 xi^N)/(1-xi^N)^3 k^mu` | idem | sim |
+| 54 | 3943 | `P^mu_- == ... = (-m_P/(6 pi)) (l_P/Delta T) sum_N (b/(2D))^N (1+4 xi^N+xi^(2N))/(1-xi^N)^2 k^mu` | idem | sim |
+| 57 | 3944 | `zeta_N = D - X + sum_(n=1)^(N-1) D xi^n + X xi^N = ((1-xi^N)/(1-xi)) D - (1-xi^N) X` | idem | sim |
+| 62 | 3944 | `T_HN == X + rho^2/(2X(D-X)) (D/(1-xi^N) - X)` | idem | sim |
+| 63 | 3944 | `T_H- == X + rho^2/(2X)` | idem | sim |
+| 64 | 3945 | `Delta_N^(1/2) = (zeta_N D/(X(D-X))) (b/(2D))^N` | idem | sim |
+| 68 | 3945 | `P^mu_- == int_0^inf int_(-inf)^(T_H- - Delta T) T^(mu X) dT 2 pi rho drho = (-m_P/(6 pi)) (l_P/Delta T) sum_N (b/(2D))^N (1+4 xi^N+xi^(2N))/(1-xi^N)^2 k^mu` | idem | sim |
+| 69 | 3946 | `(dP^mu/dA)_N == int_(-inf)^(t_HN - l_P) T^(mu X) dT = (-D/(12 pi^2 X(D-X))) (b xi/(2D))^N (1+4 xi^N+xi^(2N))/(1-xi^N)^3 k^mu` | idem; a passada 2 nota que o limite superior é impresso com t minúsculo | sim |
 | 52 | 3943 | `rhohat = d/drho = (1/sqrt(X^2+Y^2)) (Y d/dY + Z d/dZ); k = (d/dX + d/dT)` | idem; marcou o radicando como legível, a confirmar | sim |
 | 61 | 3944 | `lambda_N(x,x') = (X-T) - (X'-T') xi^N + rho^2/(2X) + (rho'^2/(2(D-X'))) xi^N` | idem | sim |
 | 66 | 3945 | `G^(1)_reg = sum_(N=1)^inf (D/(4 pi^2 X (D-X))) (b xi/(2D))^N (1/lambda_N(x,x') + 1/lambda_N(x',x))` | idem | sim |
 | 67 | 3945 | `T^(mu nu) = (-D k^mu k^nu/(6 pi^2 X (D-X))) sum_(N=1)^inf (b xi/(2D))^N (1 + 4 xi^N + xi^(2N)) / {(X-T)(1-xi^N) + (rho^2/2X) + [rho^2/2(D-X)] xi^N}^3` | idem | sim |
 
-**Resultado:** as 29 equações conferem. Os recortes das eqs. 17, 25a, 28, 29, 38, 50, 61 e 67 erraram o alvo na primeira tentativa e foram refeitos nas duas passadas antes de contar como lidos.
+**Resultado:** as 52 equações conferem. Os recortes das eqs. 12 (expoente), 13, 15b, 17, 24, 25a, 28, 29, 38, 43, 50, 57, 61, 62 e 67 erraram o alvo na primeira tentativa e foram refeitos nas duas passadas antes de contar como lidos.
 
-**Eq. 52: aguardando conferência humana.** O radicando lido nas duas passadas é X²+Y², enquanto a eq. 39 define ρ = √(Y²+Z²). F4 roda as duas formas: só √(Y²+Z²) reproduz a eq. 51 (ver `outputs/report.md`). O código mantém as duas, sem escolher uma como "a" eq. 52.
+**Eq. 52: conferida.** Ver a seção "Verificações humanas". O código mantém as duas formas do denominador para a comparação de F4, e o cálculo usa √(Y²+Z²).
 
 **Derivação como checagem da transcrição:** as eqs. 61 e 66, aplicadas ao operador da eq. 4a, fecham na eq. 67, e as eqs. 46 e 50 fecham na eq. 51 (ver `outputs/report.md`, F3 e F4). Isso confere as leituras dessas seis equações e a da eq. 4b.
 
@@ -54,6 +77,18 @@ Notação: `Xt` e `Tt` são X̃ e T̃, `==` é o sinal de identidade impresso, e
 **Terceira leitura, independente e humana (2026-11-06).** Fabio conferiu visualmente no PDF as eqs. 1, 3, 4a e 4b, e as quatro conferem com as transcrições: a eq. 4a não tem o fator ½; a eq. 4b tem os coeficientes 2/3, −1/3 e −1/6; a eq. 3 subtrai 1/(4π²σ₀), com σ₀ igual à metade do quadrado da separação; a eq. 1 imprime os dois termos na mesma ordem.
 
 **Eq. 31 (p. 3940, 2026-11-06).** Fabio confirmou que a eq. 31 está impressa com coeficiente positivo (1+ξ²ⁿ)/(1−ξ²ⁿ).
+
+**Eq. 52 (p. 3943), terceira leitura, independente e humana (2026-11-07).** Fabio confirmou que o denominador está impresso como √(X²+Y²), com numerador (Y ∂/∂Y + Z ∂/∂Z).
+
+## Eq. 52
+
+A eq. 52 como impressa tem radicando X²+Y²; isso é inconsistente com a igualdade ρ̂ = ∂/∂ρ da própria equação, com a definição de ρ (eq. 39), com a descrição de ρ̂ como vetor unitário (p. 3943) e com a eq. 51, que só é reproduzida com √(Y²+Z²). O cálculo usa √(Y²+Z²).
+
+| Evidência | Origem |
+|---|---|
+| ρ̂ = ∂/∂ρ com ρ = √(Y²+Z²) (eq. 39): a regra da cadeia dá ∂/∂ρ = (Y ∂/∂Y + Z ∂/∂Z)/√(Y²+Z²) | a própria equação; teste numérico em `tests/test_kim_thorne_f4.py` |
+| "unit transverse vector" (p. 3943); com √(X²+Y²), a componente transversal na garganta é cos(θ/2) | o texto |
+| só √(Y²+Z²) reproduz a eq. 51; com √(X²+Y²), o desvio chega a 0,58 e não cai com Δ | F4 |
 
 ## Eq. 31
 
