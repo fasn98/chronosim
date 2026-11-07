@@ -70,6 +70,7 @@ A origem só pode **piorar** numa computação. Não existe caminho de código q
 | Li & Gott (1998) | Transcrito da versão arXiv gr-qc/9711074. A comparação com a versão publicada (PRL 80, 2980) está **PENDENTE** por falta de acesso. |
 | Kim & Thorne (1991) | Lido na versão publicada, em scan. Transcrições duplas em `docs/equation_transcription.md`. |
 | Hawking (1992) | Lido; título, volume e página conferidos no próprio PDF. |
+| Candelas & Deutsch (1977) | Volume e página confirmados só no Crossref. **PENDENTE:** o texto não foi lido (acesso fechado), e nenhuma equação dele foi conferida. |
 | Hiscock & Konkowski (1982) | **PENDENTE:** o artigo não está disponível em versão aberta. A fase 4 fica bloqueada até o PDF ser obtido, e nenhuma fórmula dele é reconstruída de memória. |
 
 PDFs de artigos ficam em `papers/`, que não entra no repositório.
@@ -81,14 +82,14 @@ git clone https://github.com/fasn98/chronosim.git
 cd chronosim
 python3 -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
-python -m pytest            # 170 testes, ~10 s
+python -m pytest            # 239 testes, ~20 s
 python -m chronosim.run     # validação completa, figuras e relatório em outputs/ (~1 min)
 ```
 
 ## Roteiro
 
 1. ✅ **Misner, vácuo de Li-Gott:** soma de imagens contra a forma fechada.
-2. **Máquina do tempo de buraco de minhoca (Kim & Thorne, 1991):** o tensor ⟨T_ab⟩ perto do horizonte de Cauchy e a estimativa de onde a gravidade quântica passa a dominar. 🟡 Em andamento: teste árbitro e F1 prontos, resultados em `outputs/report.md`. Plano: `docs/phase2_plan.md`.
+2. **Máquina do tempo de buraco de minhoca (Kim & Thorne, 1991):** o tensor ⟨T_ab⟩ perto do horizonte de Cauchy e a estimativa de onde a gravidade quântica passa a dominar. 🟡 Em andamento: testes árbitros, F1 e F3 prontos, resultados em `outputs/report.md`. Plano: `docs/phase2_plan.md`.
 3. **Bolas de bilhar (Echeverria, Klinkhammer & Thorne, 1991):** mecânica clássica em buracos de minhoca com curvas fechadas tipo tempo e busca de soluções autoconsistentes.
 4. 🔒 **Misner, vácuo de Minkowski com imagens (Hiscock & Konkowski, 1982):** bloqueada até o PDF do artigo ser obtido.
 
