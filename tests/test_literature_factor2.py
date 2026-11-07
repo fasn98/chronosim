@@ -48,6 +48,10 @@ def test_klinkhammer_operator_equals_the_operator_with_one_half_on_the_thermal_s
     H = stress_tensor(F, X)
     for a in range(4):
         assert abs(K[a][a] / H[a][a] - 1) < mp.mpf("1e-18")  # measured at most 4.0e-20
+    for a in range(4):
+        for c in range(4):
+            if a != c:
+                assert abs(K[a][c]) < mp.mpf("1e-30") * abs(H[0][0])  # measured 0
 
 
 def test_klinkhammer_eq38_is_half_of_kim_thorne_eq67_and_matches_the_operator_with_one_half():
@@ -59,4 +63,4 @@ def test_klinkhammer_eq38_is_half_of_kim_thorne_eq67_and_matches_the_operator_wi
     klinkhammer = kt.klinkhammer_kk_on_axis(delta, X, D, b, xi, n).value
     kim_thorne = kt.stress_between_kk(X - delta, X, mp.mpf(0), D, b, xi, n).value
     assert abs(klinkhammer / kim_thorne - mp.mpf(1) / 2) < mp.mpf("1e-70")  # an algebraic identity
-    assert abs(num["with_half"]["TT"].value / klinkhammer - 1) < mp.mpf("1e-6")  # the delta / X correction, 6.5e-8 measured in F3
+    assert abs(num["with_half"]["TT"].value / klinkhammer - 1) < mp.mpf("1e-7")  # the delta / X correction, measured 3.3e-8

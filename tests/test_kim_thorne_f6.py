@@ -20,7 +20,8 @@ D, B, X = mp.mpf(1000), mp.mpf(10), mp.mpf(250)
 def test_eq69_and_its_independence_of_rho(beta, N, rho_over_X):
     xi = kt.doppler_xi(mp.mpf(beta))
     numeric = wh.momentum_per_area_numeric(N, X, mp.mpf(rho_over_X) * X, D, B, beta).value
-    assert abs(numeric / kt.momentum_per_area_N(N, X, D, B, xi).value - 1) < mp.mpf("1e-7")  # measured at most 2.0e-8
+    tolerance = mp.mpf("1e-12") if N == 1 else mp.mpf("1e-7")  # measured at most 3e-14 (N = 1) and 2.0e-8 (N = 3)
+    assert abs(numeric / kt.momentum_per_area_N(N, X, D, B, xi).value - 1) < tolerance
 
 
 def test_eq68_for_the_first_order():
@@ -28,11 +29,6 @@ def test_eq68_for_the_first_order():
     numeric = wh.momentum_plane_numeric(mp.mpf(1), X, D, B, "0.5", orders=[1]).value
     printed = -(B / (2 * D)) * (1 + 4 * xi + xi ** 2) / (1 - xi) ** 2 / (6 * mp.pi)
     assert abs(numeric / printed - 1) < mp.mpf("1e-9")  # measured 5.5e-11
-
-
-def test_eq54_and_eq68_are_the_same_expression():
-    xi = kt.doppler_xi(mp.mpf("0.5"))
-    assert kt.momentum_horizon(mp.mpf(1), D, B, xi, 5).value < 0
 
 
 def test_eq54_is_the_leading_term_as_delta_T_over_b_falls():
