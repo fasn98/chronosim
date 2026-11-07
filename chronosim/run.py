@@ -776,17 +776,22 @@ def report(out: Path, rows, worst, slope, arb, f1_rows, f1_exact, unruh_rows, f3
         "**Isto confere só a aritmética entre os valores de entrada impressos e os números impressos, não se as "
         "estimativas estão corretas.** Entradas: l_P ~ 10⁻³³ cm (p. 3930), m_P ~ 10⁻⁵ g (p. 3943), D = 1 m (p. 3935).",
         "",
-        "**Aguardando conferência humana:** as leituras de l_P ~ 10⁻³³ cm (p. 3930), m_P ~ 10⁻⁵ g (p. 3943) e do valor "
-        "impresso 10⁴⁹ g/cm³ (p. 3935). A comparação abaixo depende dessas três leituras.",
+        "**Conferência humana das leituras:** o valor impresso 10⁴⁹ g/cm³ e a eq. 14 (p. 3935) e m_P ~ 10⁻⁵ g "
+        "(p. 3943) foram conferidos. l_P ~ 10⁻³³ cm não foi conferido na p. 3930; está implicado pela razão "
+        "l_P/D ~ 10⁻³⁵ com D = 1 m declarada na p. 3935.",
         "",
         "| Grandeza | Fórmula | Valor impresso | Recalculado |",
         "|---|---|---|---|",
         *[f"| {name} | {formula} | {mp.nstr(printed.value, 3)} ({printed.source}) | {mp.nstr(value.value, 3)} |"
           for name, formula, printed, value in f7],
         "",
-        "A densidade máxima impressa depois da eq. 14 é 10⁴⁹ g/cm³; com a fórmula da eq. 14 e as entradas impressas, "
-        "o valor recalculado é 10⁵⁹ g/cm³. As demais quantidades conferem. A densidade de Planck de 10⁹⁴ g/cm³ que "
-        "Hawking imprime (1992, p. 603) coincide com m_P/l_P³ a partir das entradas de Kim & Thorne.",
+        "O texto após a eq. 14 (p. 3935) declara T⁰⁰_max como l_P/D ~ 10⁻³⁵ vezes a densidade de Planck m_P/l_P³ e "
+        "dá o valor ~10⁴⁹ g/cm³. Com as entradas declaradas no próprio artigo (m_P ~ 10⁻⁵ g, l_P/D ~ 10⁻³⁵, D = 1 m), "
+        "essa expressão dá ~10⁵⁹ g/cm³. O valor impresso é inconsistente com a expressão e as entradas que o "
+        "acompanham. Trata-se de estimativa de ordem de grandeza; nenhuma conclusão do artigo depende dela.",
+        "",
+        "As demais quantidades conferem. A densidade de Planck de 10⁹⁴ g/cm³ que Hawking imprime (1992, p. 603) "
+        "coincide com m_P/l_P³ a partir das entradas de Kim & Thorne.",
         "",
         "### O que esta parte estabelece e o que não estabelece",
         "",

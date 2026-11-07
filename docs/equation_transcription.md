@@ -82,13 +82,15 @@ Notação: `Xt` e `Tt` são X̃ e T̃, `==` é o sinal de identidade impresso, e
 
 ## Números impressos usados em F7
 
-**Aguardando conferência humana.** As três leituras abaixo sustentam a comparação 10⁴⁹ contra 10⁵⁹ g/cm³ (reviewer, I6).
+Verificação humana (Fabio, 2026-11-07), em resposta ao achado I6 do reviewer.
 
-| Número | Pág. | Leituras |
-|---|---|---|
-| l_P ~ 10⁻³³ cm | 3930 | passada 1 (agente principal) |
-| m_P ~ 10⁻⁵ g | 3943 | passada 1 (agente principal) |
-| T⁰⁰_max ~ 10⁴⁹ g/cm³ | 3935 | passada 1 (com zoom) e passada 2 (subagente, citação literal) |
+| Número | Pág. | Leituras | Status |
+|---|---|---|---|
+| T⁰⁰_max ~ 10⁴⁹ g/cm³, e a eq. 14 como (l_P/D)(m_P/(Δt)³) com Δt = l_P, igual a (l_P/D)(m_P/l_P³) | 3935 | passada 1 (com zoom), passada 2 (subagente, citação literal) e leitura humana: "is l_P/D ~ 10⁻³⁵ of the Planck density m_P/l_P³; i.e., it is T⁰⁰_max ~ 10⁴⁹ g/cm³"; o expoente 49 é legível sem ambiguidade | conferido |
+| m_P ~ 10⁻⁵ g, no texto após a eq. 54 | 3943 | passada 1 e leitura humana | conferido |
+| l_P ~ 10⁻³³ cm | 3930 | passada 1 | não conferido na p. 3930; implicado pela razão l_P/D ~ 10⁻³⁵ com D = 1 m declarada na p. 3935 |
+
+O texto após a eq. 14 (p. 3935) declara T⁰⁰_max como l_P/D ~ 10⁻³⁵ vezes a densidade de Planck m_P/l_P³ e dá o valor ~10⁴⁹ g/cm³. Com as entradas declaradas no próprio artigo (m_P ~ 10⁻⁵ g, l_P/D ~ 10⁻³⁵, D = 1 m), essa expressão dá ~10⁵⁹ g/cm³. O valor impresso é inconsistente com a expressão e as entradas que o acompanham. Trata-se de estimativa de ordem de grandeza; nenhuma conclusão do artigo depende dela.
 
 ## Eq. 52
 

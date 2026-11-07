@@ -15,7 +15,7 @@ from .sources import HAWKING_1992, KIM_THORNE_1991
 OOM = "order of magnitude"
 
 # Inputs printed in the articles (CITED).
-PLANCK_LENGTH_CM = Quantity(mp.mpf("1e-33"), Origin.CITED, KIM_THORNE_1991.ref("p. 3930: l_P ~ 10^-33 cm"), "cm")
+PLANCK_LENGTH_CM = Quantity(mp.mpf("1e-33"), Origin.CITED, KIM_THORNE_1991.ref("p. 3930: l_P ~ 10^-33 cm, not checked visually; implied by l_P/D ~ 10^-35 with D = 1 m, p. 3935"), "cm")
 PLANCK_MASS_G = Quantity(mp.mpf("1e-5"), Origin.CITED, KIM_THORNE_1991.ref("p. 3943: m_P ~ 10^-5 g"), "g")
 SEPARATION_CM = Quantity(mp.mpf(100), Origin.CITED, KIM_THORNE_1991.ref("p. 3935: D ~ 1 m"), "cm")
 
