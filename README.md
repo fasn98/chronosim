@@ -63,6 +63,15 @@ A origem só pode **piorar** numa computação. Não existe caminho de código q
 - ❌ **Não estabelece:** que viagens no tempo sejam possíveis ou impossíveis. O cálculo é **semiclássico**: campo quântico num espaço-tempo fixo, sem reação gravitacional. Kay, Radzikowski & Wald (1997) provaram que, num horizonte de Cauchy gerado compactamente, a função de dois pontos não pode ser Hadamard. Ou seja, a própria teoria semiclássica deixa de valer ali, e a resposta depende de uma teoria de gravidade quântica.
 - **Escopo:** um único campo (escalar sem massa, acoplamento conforme), em espaço plano, só na região R.
 
+## Estado das fontes
+
+| Fonte | Estado |
+|---|---|
+| Li & Gott (1998) | Transcrito da versão arXiv gr-qc/9711074. A comparação com a versão publicada (PRL 80, 2980) está **PENDENTE** por falta de acesso. |
+| Hiscock & Konkowski (1982) | **PENDENTE:** o artigo não está disponível em versão aberta. A fase 4 fica bloqueada até o PDF ser obtido, e nenhuma fórmula dele é reconstruída de memória. |
+
+PDFs de artigos ficam em `papers/`, que não entra no repositório.
+
 ## Instalação e uso
 
 ```bash
@@ -70,20 +79,23 @@ git clone https://github.com/fasn98/chronosim.git
 cd chronosim
 python3 -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
-python -m pytest            # 24 testes, ~12 s
+python -m pytest            # 26 testes, ~12 s
 python -m chronosim.run     # validação completa, figuras e relatório em outputs/ (~1 min)
 ```
 
 ## Roteiro
 
 1. ✅ **Misner, vácuo de Li-Gott:** soma de imagens contra a forma fechada.
-2. **Misner, vácuo de Minkowski com imagens (Hiscock & Konkowski, 1982):** o cálculo original da divergência, com as fórmulas transcritas linha a linha do artigo.
-3. **Máquina do tempo de buraco de minhoca:** as estimativas de Kim & Thorne (1991) e a resposta de Hawking (1992), lado a lado.
-4. **Princípio de Novikov:** bolas de bilhar em buracos de minhoca com curvas fechadas tipo tempo (Echeverria, Klinkhammer & Thorne, 1991). Mecânica clássica e busca de soluções autoconsistentes.
+2. **Máquina do tempo de buraco de minhoca (Kim & Thorne, 1991):** o tensor ⟨T_ab⟩ perto do horizonte de Cauchy e a estimativa de onde a gravidade quântica passa a dominar. Em planejamento: `docs/phase2_plan.md`.
+3. **Bolas de bilhar (Echeverria, Klinkhammer & Thorne, 1991):** mecânica clássica em buracos de minhoca com curvas fechadas tipo tempo e busca de soluções autoconsistentes.
+4. 🔒 **Misner, vácuo de Minkowski com imagens (Hiscock & Konkowski, 1982):** bloqueada até o PDF do artigo ser obtido.
 
 ## Referências
 
 - Li, L.-X. & Gott, J. R. (1998). Self-consistent vacuum for Misner space and the chronology protection conjecture. *Phys. Rev. Lett.* 80, 2980. DOI 10.1103/PhysRevLett.80.2980 · arXiv:gr-qc/9711074
+- Kim, S.-W. & Thorne, K. S. (1991). Do vacuum fluctuations prevent the creation of closed timelike curves? *Phys. Rev. D* 43, 3929. DOI 10.1103/PhysRevD.43.3929
+- Echeverria, F., Klinkhammer, G. & Thorne, K. S. (1991). Billiard balls in wormhole spacetimes with closed timelike curves: Classical theory. *Phys. Rev. D* 44, 1077. DOI 10.1103/PhysRevD.44.1077
+- Hiscock, W. A. & Konkowski, D. A. (1982). Quantum vacuum energy in Taub-NUT (Newman-Unti-Tamburino)-type cosmologies. *Phys. Rev. D* 26, 1225. DOI 10.1103/PhysRevD.26.1225 · **não lido; ver Estado das fontes**
 - Hawking, S. W. (1992). Chronology protection conjecture. *Phys. Rev. D* 46, 603. DOI 10.1103/PhysRevD.46.603
 - Kay, B. S., Radzikowski, M. J. & Wald, R. M. (1997). Quantum field theory on spacetimes with a compactly generated Cauchy horizon. *Commun. Math. Phys.* 183, 533. arXiv:gr-qc/9603012
 - Misner, C. W. (1967). Taub-NUT space as a counterexample to almost anything. *Lectures in Applied Mathematics* 8, 160.

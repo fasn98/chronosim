@@ -11,6 +11,7 @@ class Source:
     citation: str
     doi: str | None = None
     arxiv: str | None = None
+    status: str | None = None  # what has and has not been checked against this source
 
     def ref(self, locator: str) -> str:
         """A precise pointer, e.g. ``LI_GOTT_1998.ref("eq. 12")``."""
@@ -25,6 +26,10 @@ LI_GOTT_1998 = Source(
     ),
     doi="10.1103/PhysRevLett.80.2980",
     arxiv="gr-qc/9711074",
+    status=(
+        "Transcribed from the arXiv version gr-qc/9711074. Comparison with the published version "
+        "(PRL 80, 2980) is PENDING: no access to it."
+    ),
 )
 
 HAWKING_1992 = Source(
@@ -51,4 +56,17 @@ KRW_1997 = Source(
     arxiv="gr-qc/9603012",
 )
 
-ALL = (LI_GOTT_1998, HAWKING_1992, MISNER_1967, KRW_1997)
+HISCOCK_KONKOWSKI_1982 = Source(
+    key="Hiscock & Konkowski (1982)",
+    citation=(
+        "Hiscock, W. A. & Konkowski, D. A. (1982). Quantum vacuum energy in Taub-NUT "
+        "(Newman-Unti-Tamburino)-type cosmologies. Physical Review D 26, 1225."
+    ),
+    doi="10.1103/PhysRevD.26.1225",
+    status=(
+        "PENDING: no open version of the article is available. The phase that depends on it is blocked "
+        "until the PDF is obtained. No formula from it may be used or reconstructed from memory."
+    ),
+)
+
+ALL = (LI_GOTT_1998, HAWKING_1992, MISNER_1967, KRW_1997, HISCOCK_KONKOWSKI_1982)
