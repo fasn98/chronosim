@@ -32,7 +32,7 @@ Comparação entre a energia do vácuo **calculada** a partir da soma de imagens
 - **Estabelece:** a eq. 12 de Li & Gott decorre das eqs. 8 e 11, reproduzida de forma independente até a precisão numérica, incluindo a divergência ξ⁻⁴ no horizonte (o mecanismo invocado por Hawking, 1992) e o anulamento em b = 2π (o contra-exemplo de Li & Gott).
 - **Não estabelece:** que viagens no tempo sejam possíveis ou impossíveis. O cálculo é semiclássico (campo quântico em espaço-tempo fixo, sem reação gravitacional) e Kay, Radzikowski & Wald (1997) provaram que a função de dois pontos não pode ser Hadamard no horizonte de Cauchy; a questão depende de uma teoria de gravidade quântica.
 
-## Fase 2 (em andamento): Kim & Thorne (1991)
+## Fase 2: Kim & Thorne (1991)
 
 Plano em `docs/phase2_plan.md`, transcrições em `docs/equation_transcription.md`. Até aqui: testes árbitros do operador e itens F1 a F7. Figuras: `fig3_kt_divergence.png` e `fig4_kt_cutoffs.png`. Checagem de literatura do fator 2: `docs/literature_check_factor2.md`.
 
@@ -127,7 +127,7 @@ Erro relativo da eq. 38 contra o intervalo exato. Ele cai linearmente com ε. O 
 
 ### F3: ⟨T^μν⟩ entre as bocas
 
-Diferenças finitas aplicadas à eq. 66, com λ_N da eq. 61 e prefator lido literalmente, sem usar a eq. 67, com os dois operadores em paralelo: a eq. 4a impressa (`eq4_stress`, separação em y) e a eq. 4a com o fator ½ (`stress_tensor` da fase 1, separação em z). Δ é a distância a H_1, em unidades de λ_1. D = 1. Tudo é COMPUTED, salvo a coluna da eq. 67, que é DERIVED. A tabela completa está em `outputs/kim_thorne_f3.csv`.
+Diferenças finitas aplicadas à eq. 66, com λ_N da eq. 61 e prefator lido literalmente, sem usar a eq. 67, com os dois operadores em paralelo: a eq. 4a impressa (`eq4_stress`, separação em y) e a eq. 4a com o fator ½ (`stress_tensor` da fase 1, separação em z). Δ é a distância a H_1, em unidades de λ_1. D = 1. Tudo é COMPUTED, inclusive a coluna da eq. 67: ela é a série impressa, truncada em kt_series_tol. A tabela completa está em `outputs/kim_thorne_f3.csv`.
 
 | β | b/D | X/D | ρ/X | Δ/D | sem ½ / eq. 67, T^TT | com ½ / eq. 67, T^TT | maior desvio sem ½ (TT, TX, XX) | demais componentes / eq. 67 |
 |---|---|---|---|---|---|---|---|---|
@@ -156,7 +156,7 @@ Diferenças finitas aplicadas à eq. 66, com λ_N da eq. 61 e prefator lido lite
 | 0.5 | 0.01 | 0.25 | 1e-3 | 1e-4 | 0.999996585533217 | 0.499998292766609 | 6.23e-6 | 0.000455 |
 | 0.5 | 0.01 | 0.25 | 1e-3 | 1e-6 | 0.999999826384168 | 0.499999913192084 | 4.63e-7 | 0.000455 |
 
-- **Maior desvio do operador sem ½ em relação à eq. 67:** sobre o eixo, 0.00404 (β = 0,9, Δ/D = 1e-2); fora do eixo, 0.00495 (ρ/X = 0,1).
+- **Maior desvio do operador sem ½ em relação à eq. 67:** sobre o eixo, 0.00404 (β = 0.9, Δ/D = 1e-2); fora do eixo, 0.00495 (ρ/X = 1e-1, Δ/D = 1e-4).
 - **Maior erro de diferenças finitas em T^TT:** 3.96e-20.
 - **Inclinação de log|T^TT| contra log Δ, sobre o eixo (β = 0,5, b/D = 0,01, X/D = 0,25):** −3 com desvio de -4.39e-6 sem ½ e -4.39e-6 com ½.
 
@@ -168,7 +168,7 @@ O desvio residual tem a forma dos termos que o artigo despreza. Sobre o eixo, el
 
 ### F4: ⟨T^μν⟩ na garganta
 
-Diferenças finitas aplicadas à eq. 50, com λ_N da eq. 46, sem usar a eq. 51, com os dois operadores em paralelo, em pontos da eq. 42 a uma distância Δ antes de H_1, em unidades de λ_1. A comparação usa as 16 componentes do tensor, e o desvio é relativo à maior componente da eq. 51. Para a eq. 52, roda a forma impressa √(X²+Y²) e a forma √(Y²+Z²), o ρ da eq. 39. Tudo é COMPUTED, salvo as colunas da eq. 51, que são DERIVED. A tabela completa está em `outputs/kim_thorne_f4.csv`.
+Diferenças finitas aplicadas à eq. 50, com λ_N da eq. 46, sem usar a eq. 51, com os dois operadores em paralelo, em pontos da eq. 42 a uma distância Δ antes de H_1, em unidades de λ_1. A comparação usa as 16 componentes do tensor, e o desvio é relativo à maior componente da eq. 51. Para a eq. 52, roda a forma impressa √(X²+Y²) e a forma √(Y²+Z²), o ρ da eq. 39. Tudo é COMPUTED, inclusive as colunas da eq. 51 (série impressa truncada em kt_series_tol). A tabela completa está em `outputs/kim_thorne_f4.csv`.
 
 | β | b/D | θ | φ | Δ/b | sem ½ / eq. 51, T^TT | com ½ / eq. 51, T^TT | desvio com √(Y²+Z²) | desvio com √(X²+Y²) |
 |---|---|---|---|---|---|---|---|---|
@@ -228,7 +228,7 @@ Raiz numérica de λ_N(x, x) = 0 (eqs. 46 e 61): coincide com a eq. 43 até 1.05
 
 Quadratura numérica das eqs. 51 e 67 (validadas em F3 e F4) nos domínios escritos no artigo, em unidades de Planck (l_P = m_P = 1), com D = 1000, b = 10, X = 250 e β = 0,5. Por integrar as eqs. 51 e 67 impressas, estes resultados carregam a convenção sem ½; com ½, cada um cai à metade. COMPUTED.
 
-- **Eq. 69:** desvio máximo de 1.99e-8 em β = 0,1, 0,5, 0,9, N = 1 e 3 e ρ/X = 0, 1e-3, 1e-2; independe de ρ, como o texto afirma.
+- **Eq. 69:** desvio máximo de 1.99e-8 em β = 0,1, 0,5, 0,9, N = 1 e 3 e ρ/X = 0, 1e-3, 1e-2; independe de ρ, como o texto afirma (testado em ρ/X = 0, 1e-3, 1e-2; a independência também é algébrica).
 - **Eq. 68** (N = 1 e 2, ΔT = l_P): desvio de -5.34e-11.
 - **Eq. 54** (N = 1): a integral numérica se aproxima da eq. 54 quando ΔT/b diminui: ΔT/b = 0.1: desvio 0.6318; ΔT/b = 0.01: desvio 0.07867; ΔT/b = 0.001: desvio 0.009066. A eq. 54 é o termo dominante; o termo em tan θ (cortado em a/b = 1e-6) e o fator cos θ somam a correção.
 - **Eq. 53** (N = 1, ΔT = l_P): o coeficiente de ln(b/a) da integral numérica difere do da eq. 53 por -1.25e-9. A razão total fica abaixo de 1 pelo termo finito, que a eq. 53 não inclui: a/b = 1e-2: 0.983216; a/b = 1e-4: 0.991602; a/b = 1e-6: 0.994401.
@@ -251,7 +251,7 @@ A densidade máxima impressa depois da eq. 14 é 10⁴⁹ g/cm³; com a fórmula
 
 - **Estabelece:** as eqs. 33, 34 e 37 são exatas para a geometria das eqs. 25 e 28, e a eq. 38 é uma aproximação cujo erro relativo é proporcional a ε/D, sobre o eixo de simetria.
 - **Estabelece também:** as eqs. 67 e 51 decorrem das eqs. 61 e 66 e das eqs. 46 e 50 pelo operador da eq. 4a impressa, com os desvios medidos acima, e a divergência é Δ⁻³. As eqs. 43, 44a, 62, 63 e 69 decorrem das expressões de partida; as eqs. 47, 48, 53, 54, 64 e 68 são os termos dominantes dos cálculos numéricos correspondentes.
-- **Não estabelece:** que as eqs. 46, 50, 61 e 66 estejam certas: elas são entrada do cálculo, em óptica geométrica. A ancoragem pelos árbitros foi feita no estado térmico e no vácuo de Rindler, não no buraco de minhoca. O que os árbitros mostram é qual convenção reproduz esses valores. A leitura da eq. 52 aguarda conferência humana.
+- **Não estabelece:** que as eqs. 46, 50, 61 e 66 estejam certas: elas são entrada do cálculo, em óptica geométrica. A ancoragem pelos árbitros foi feita no estado térmico e no vácuo de Rindler, não no buraco de minhoca. O que os árbitros mostram é qual convenção reproduz esses valores.
 - **Disputa com Hawking:** Hawking (1992, p. 603 e seção VI) contesta a conclusão de Kim & Thorne. Ele argumenta que um eventual corte deveria ser em distância invariante, e não no tempo próprio, que depende do observador. A `fig4_kt_cutoffs.png` mostra os dois cortes lado a lado. Esta fase reproduz o cálculo de Kim & Thorne e não decide quem estava certo.
 - **F7** confere aritmética de estimativas de ordem de grandeza; não testa as estimativas.
 
@@ -269,4 +269,7 @@ A densidade máxima impressa depois da eq. 14 é 10⁴⁹ g/cm³; com a fórmula
 - `thermal_n_terms` = 24: imaginary-time image pairs summed explicitly before the Kummer tail
 - `thermal_split_ratio` = 1.0e-10: point-splitting distance / beta in the thermal arbiter
 - `thermal_step_ratio` = 1.0e-11: finite-difference step / beta in the thermal arbiter
+- `thermal_mode_dps` = 30: working precision of the mode integral
+- `thermal_mode_intervals` = 30: subintervals of the mode integral
+- `thermal_mode_pairs` = 400: image pairs summed in the image-versus-mode comparison
 - `thermal_mode_cutoff` = 60: mode integral stops at k = cutoff / beta, where n_k ~ e^-60

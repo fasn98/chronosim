@@ -48,6 +48,8 @@ def eq4_stress(F, X, delta=None, h=None, dps=None):
     """
     delta = DELTA.value if delta is None else mp.mpf(delta)
     h = STEP.value if h is None else mp.mpf(h)
+    if not h < delta:
+        raise ValueError("finite-difference step must be smaller than the split distance")
     with mp.workdps(DPS.value if dps is None else dps):
         X = [mp.mpf(v) for v in X]
         plus = _eq4_at(F, X, _shift(X, 2, delta), h)

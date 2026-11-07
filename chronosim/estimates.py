@@ -57,7 +57,6 @@ def max_density() -> Quantity:
 
 
 def hawking_cutoff_dt() -> Quantity:
-    """Delta t, in units of l_P, where eq. 9c reaches 1 with N - 1 = 0: Delta t = l_P^2 / D."""
-    u = mp.findroot(lambda u: mp.log10(metric_perturbation(1, 0, lp_over_D().value, 10 ** -u).value), mp.mpf(0))
-    dt = mp.mpf(10) ** u
-    return Quantity(dt, Origin.DERIVED, f"root of {KIM_THORNE_1991.ref('eq. 9c')} = 1 (Hawking's cutoff, Sec. II F), {OOM}", "l_P")
+    """Delta t, in units of l_P, where eq. 9c reaches 1 with N - 1 = 0: (l_P/D)(l_P/Delta t) = 1, so Delta t / l_P = l_P / D."""
+    return Quantity(lp_over_D().value, Origin.DERIVED,
+                    f"{KIM_THORNE_1991.ref('eq. 9c')} = 1 solved in closed form (Hawking's cutoff, Sec. II F), {OOM}", "l_P")

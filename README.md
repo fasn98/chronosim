@@ -85,7 +85,7 @@ git clone https://github.com/fasn98/chronosim.git
 cd chronosim
 python3 -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
-python -m pytest            # ~370 testes, ~2,5 min
+python -m pytest            # 387 testes, ~3,5 min
 python -m chronosim.run     # validação completa, figuras e relatório em outputs/ (~5 min)
 ```
 

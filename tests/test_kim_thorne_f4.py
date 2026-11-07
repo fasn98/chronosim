@@ -31,7 +31,8 @@ def _dev(beta, b, theta, delta_over_b, variant, name="eq4a", phi="0"):
 
 def test_origins():
     b, theta, phi, xi, delta, T = _point("0.5", "0.01", "0.7", "1e-3")
-    assert kt.stress_throat(T, theta, phi, D, b, xi, 3, "transverse")[0][0].origin is Origin.DERIVED
+    assert kt.stress_throat(T, theta, phi, D, b, xi, 3, "transverse")[0][0].origin is Origin.COMPUTED  # truncated series
+    assert kt.stress_throat(T, theta, phi, D, b, xi, 3, "transverse", [2])[0][0].origin is Origin.DERIVED  # one printed term
     num = wh.stress_throat_numeric(kt.throat_point(T, theta, phi, b), D, b, "0.5", delta)
     assert num["eq4a"][0][0].origin is Origin.COMPUTED
 

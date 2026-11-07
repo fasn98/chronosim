@@ -2,7 +2,7 @@
 
 Pergunta: alguém já apontou que a eq. 4a de Kim & Thorne (Phys. Rev. D 43, 3929), sem o fator ½, dá resultados 2 vezes acima da convenção que reproduz o estado térmico (`outputs/report.md`)? Há errata?
 
-**Resposta curta:** não encontrei errata nem ninguém que aponte o fator. Encontrei dois trabalhos que usam um operador equivalente ao com ½ e chegam, para a divergência perto de uma geodésica nula fechada, a uma expressão que é **metade** da eq. 67 de Kim & Thorne. Mesmo assim, os dois dizem estar de acordo com Kim & Thorne. Esta checagem confirma o fator 2 de forma independente, mas não encontrou quem o tenha apontado antes.
+**Resposta curta:** não encontrei errata nem ninguém que aponte o fator. Encontrei dois trabalhos que usam um operador equivalente ao com ½ e chegam, para a divergência perto de uma geodésica nula fechada, a uma expressão que é **metade** da eq. 67 de Kim & Thorne. Mesmo assim, os dois dizem estar de acordo com Kim & Thorne. Essa comparação depende das nossas transcrições de Klinkhammer e Visser, que tiveram leitura única.
 
 ## O que foi lido
 
@@ -44,4 +44,4 @@ Lido no texto do arXiv, sem conferir a versão publicada.
 
 ## Redação
 
-Como ninguém apontou o fator antes, a redação do relatório não muda: este trabalho mostra a inconsistência de convenção de forma independente. Acrescenta-se que Klinkhammer (1992) e Visser (hep-th/9303023) chegam, com o operador com ½, à metade da eq. 67, e declaram concordância com Kim & Thorne sem comentar o fator.
+Como não encontramos quem tenha apontado o fator, dentro dos limites acima, a redação do relatório não muda: este trabalho mostra a inconsistência de convenção de forma independente. Acrescenta-se que Klinkhammer (1992) e Visser (hep-th/9303023) chegam, com o operador com ½, à metade da eq. 67, e declaram concordância com Kim & Thorne sem comentar o fator.

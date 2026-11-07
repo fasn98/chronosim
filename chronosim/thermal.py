@@ -19,6 +19,9 @@ THERMAL_SPLIT_RATIO = heuristic("thermal_split_ratio", mp.mpf("1e-10"), "point-s
 THERMAL_STEP_RATIO = heuristic("thermal_step_ratio", mp.mpf("1e-11"), "finite-difference step / beta in the thermal arbiter")
 
 
+MODE_DPS = heuristic("thermal_mode_dps", 30, "working precision of the mode integral")
+MODE_INTERVALS = heuristic("thermal_mode_intervals", 30, "subintervals of the mode integral")
+MODE_PAIRS = heuristic("thermal_mode_pairs", 400, "image pairs summed in the image-versus-mode comparison")
 MODE_CUTOFF = heuristic("thermal_mode_cutoff", 60, "mode integral stops at k = cutoff / beta, where n_k ~ e^-60")
 
 
@@ -37,10 +40,10 @@ def hadamard_regularized(P, Q, beta, n_max):
 
 def hadamard_mode_integral(t, r, beta) -> Quantity:
     """G_reg from the thermal occupation numbers, (1 / 2 pi^2) int dk 2 n_k cos(k t) sin(k r) / r."""
-    with mp.workdps(30):
+    with mp.workdps(MODE_DPS.value):
         value = mp.quad(
             lambda k: 2 / mp.expm1(beta * k) * mp.cos(k * t) * mp.sin(k * r) / r,
-            mp.linspace(0, MODE_CUTOFF.value / beta, 31),
+            mp.linspace(0, MODE_CUTOFF.value / beta, MODE_INTERVALS.value + 1),
         ) / (2 * mp.pi ** 2)
     return Quantity(value, Origin.COMPUTED, "mode integral with Bose occupation numbers, docs/thermal_images.md")
 

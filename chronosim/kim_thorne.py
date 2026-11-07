@@ -69,6 +69,12 @@ def sigma_N(N, x, xp, D, beta) -> Quantity:
     return Quantity(zeta(N, D, xi) * delta_U(N, x, xp, xi), Origin.DERIVED, KIM_THORNE_1991.ref("eq. 38"))
 
 
+def _series_origin(orders, n_terms):
+    """DERIVED for a single printed term; COMPUTED for a sum truncated at kt_series_tol (an image sum)."""
+    count = n_terms if orders is None else len(list(orders))
+    return Origin.DERIVED if count == 1 else Origin.COMPUTED
+
+
 SERIES_TOL = heuristic("kt_series_tol", mp.mpf("1e-30"), "the eqs. 66-67 series stops when (b xi / 2D)^N is below this")
 
 
@@ -113,7 +119,9 @@ def stress_between_kk(T, X, rho, D, b, xi, n_terms, orders=None) -> Quantity:
         a = xi ** N
         denominator = (X - T) * (1 - a) + rho ** 2 / (2 * X) + rho ** 2 / (2 * (D - X)) * a
         total += (b * xi / (2 * D)) ** N * (1 + 4 * a + a ** 2) / denominator ** 3
-    return Quantity(-D / (6 * mp.pi ** 2 * X * (D - X)) * total, Origin.DERIVED, KIM_THORNE_1991.ref("eq. 67"))
+    origin = _series_origin(orders, n_terms)
+    note = "" if origin is Origin.DERIVED else ", series truncated at kt_series_tol"
+    return Quantity(-D / (6 * mp.pi ** 2 * X * (D - X)) * total, origin, KIM_THORNE_1991.ref("eq. 67") + note)
 
 
 def lambda_throat(N, x, xp, b, xi):
@@ -135,7 +143,7 @@ def hadamard_throat(x, xp, D, b, xi, n_terms):
 
 
 RHO_HAT_DENOMINATORS = {
-    "literal": lambda X, Y, Z: mp.sqrt(X ** 2 + Y ** 2),  # eq. 52 as printed, awaiting human check
+    "literal": lambda X, Y, Z: mp.sqrt(X ** 2 + Y ** 2),  # eq. 52 as printed (checked by a human reader)
     "transverse": lambda X, Y, Z: mp.sqrt(Y ** 2 + Z ** 2),  # the rho of eq. 39
 }
 
@@ -180,8 +188,9 @@ def stress_throat(T, theta, phi, D, b, xi, n_terms, variant, orders=None, rows=r
                     + (2 + 4 * a) * tan * (k[m] * rh[n] + rh[m] * k[n])
                     + 4 * tan ** 2 * rh[m] * rh[n]
                 ) / denominator
-    src = KIM_THORNE_1991.ref(f"eq. 51 with eq. 52 ({variant})")
-    return [[Quantity(out[m][n], Origin.DERIVED, src) for n in range(4)] for m in range(4)]
+    origin = _series_origin(orders, n_terms)
+    src = KIM_THORNE_1991.ref(f"eq. 51 with eq. 52 ({variant})") + ("" if origin is Origin.DERIVED else ", series truncated at kt_series_tol")
+    return [[Quantity(out[m][n], origin, src) for n in range(4)] for m in range(4)]
 
 
 def klinkhammer_kk_on_axis(delta_t, X, D, b, xi, n_terms) -> Quantity:
@@ -197,8 +206,10 @@ def klinkhammer_kk_on_axis(delta_t, X, D, b, xi, n_terms) -> Quantity:
         total += amplitude * (1 + 4 * eh ** n + eh ** (2 * n)) / (eh ** n - 1) ** 3
     from .sources import KLINKHAMMER_1992
 
-    return Quantity(-total / (12 * mp.pi ** 2 * delta_t ** 3), Origin.DERIVED,
-                    f"{KLINKHAMMER_1992.ref('eq. 3.8')} with {KIM_THORNE_1991.ref('eqs. 33, 64')}")
+    origin = _series_origin(None, n_terms)
+    return Quantity(-total / (12 * mp.pi ** 2 * delta_t ** 3), origin,
+                    f"{KLINKHAMMER_1992.ref('eq. 3.8')} with {KIM_THORNE_1991.ref('eqs. 33, 64')}"
+                    + ("" if origin is Origin.DERIVED else ", series truncated at kt_series_tol"))
 
 
 # F2: geometric-optics amplitudes (eqs. 24, 47, 48, 57, 64)
@@ -267,7 +278,9 @@ def momentum_horizon(delta_T, D, b, xi, n_terms) -> Quantity:
     total = sum(
         (b / (2 * D)) ** N * (1 + 4 * xi ** N + xi ** (2 * N)) / (1 - xi ** N) ** 2 for N in range(1, n_terms + 1)
     )
-    return Quantity(-total / (6 * mp.pi * delta_T), Origin.DERIVED, KIM_THORNE_1991.ref("eqs. 54, 68"))
+    origin = _series_origin(None, n_terms)
+    return Quantity(-total / (6 * mp.pi * delta_T), origin, KIM_THORNE_1991.ref("eqs. 54, 68")
+                    + ("" if origin is Origin.DERIVED else f", sum truncated at N = {n_terms}"))
 
 
 def momentum_per_area_N(N, X, D, b, xi) -> Quantity:

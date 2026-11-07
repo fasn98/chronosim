@@ -38,7 +38,8 @@ def test_origins():
     num, _ = _axis("0.5", "0.01", "0.25", "1e-3")
     assert num["eq4a"]["TT"].origin is Origin.COMPUTED
     xi = kt.doppler_xi(mp.mpf("0.5"))
-    assert kt.stress_between_kk(mp.mpf(0), mp.mpf("0.25"), mp.mpf(0), D, mp.mpf("0.01"), xi, 3).origin is Origin.DERIVED
+    assert kt.stress_between_kk(mp.mpf(0), mp.mpf("0.25"), mp.mpf(0), D, mp.mpf("0.01"), xi, 3).origin is Origin.COMPUTED  # truncated series
+    assert kt.stress_between_kk(mp.mpf(0), mp.mpf("0.25"), mp.mpf(0), D, mp.mpf("0.01"), xi, 3, [1]).origin is Origin.DERIVED  # one printed term
 
 
 @pytest.mark.parametrize("beta", ["0.1", "0.5", "0.9"])

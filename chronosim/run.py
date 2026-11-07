@@ -1,5 +1,5 @@
 """Phase 1: validate Li & Gott (1998) eq. 12 against the eq. 8 image sum.
-Phase 2 (in progress): Kim & Thorne (1991), arbiters of eq. 4a and items F1 to F7.
+Phase 2: Kim & Thorne (1991), arbiters of eq. 4a and items F1 to F7.
 
     python -m chronosim.run            # writes outputs/
 """
@@ -40,7 +40,7 @@ F3_RHO_DELTA = ("1e-4", "1e-6")
 SLOPE_DELTA = ("1e-3", "1e-4", "1e-5", "1e-6")
 THERMAL_T = ("0.3", "1", "3")
 MODE_POINTS = (("0.1", "0.2"), ("0.3", "0.5"), ("0.7", "1.5"))
-MODE_N = 400
+MODE_N = thermal.MODE_PAIRS.value
 F4_BETA = ("0.1", "0.5", "0.9")
 F4_B = ("0.01", "0.1")
 F4_THETA = ("0.2", "0.7", "1.3")
@@ -356,9 +356,8 @@ def f6_momentum():
         for b_s in F5_BETA for N in (1, 3) for rs in ("0", "1e-3", "1e-2")
     )
     numeric = wh.momentum_plane_numeric(mp.mpf(1), X, D, b, bs, orders=[1, 2]).value
-    printed = sum((b / (2 * D)) ** N * (1 + 4 * xi ** N + xi ** (2 * N)) / (1 - xi ** N) ** 2 for N in (1, 2)) / (-6 * mp.pi)
-    out["eq68"] = numeric / printed - 1
-    single = -(b / (2 * D)) * (1 + 4 * xi + xi ** 2) / (1 - xi) ** 2 / (6 * mp.pi)
+    out["eq68"] = numeric / kt.momentum_horizon(mp.mpf(1), D, b, xi, 2).value - 1
+    single = kt.momentum_horizon(mp.mpf(1), D, b, xi, 1).value
     out["eq54"] = [
         (dt, wh.momentum_throat_numeric(mp.mpf(dt), D, b, bs, lambda th: kt.time_Hminus_throat(th, b), orders=[1]).value
          / (single / mp.mpf(dt)) - 1)
@@ -404,7 +403,7 @@ def figures_phase2(out: Path):
     grid = np.logspace(-5, -2, 200)
     n_terms = nums[0]["n_terms"]
     curve = [float(abs(kt.stress_between_kk(X - mp.mpf(g), X, mp.mpf(0), D, b, xi, n_terms).value)) for g in grid]
-    ax.loglog(grid, curve, color=muted, lw=1.2, ls="--", label="eq. 67 impressa (DERIVED)")
+    ax.loglog(grid, curve, color=muted, lw=1.2, ls="--", label="eq. 67 impressa, série truncada (COMPUTED)")
     ax.loglog([float(d) for d in deltas], [float(abs(n["eq4a"]["TT"].value)) for n in nums], "o", color=blue, ms=8, mfc="none", mew=2,
               label="eq. 4a impressa, sem ½ (COMPUTED)")
     ax.loglog([float(d) for d in deltas], [float(abs(n["with_half"]["TT"].value)) for n in nums], "s", color=orange, ms=8, mfc="none", mew=2,
@@ -518,7 +517,7 @@ def report(out: Path, rows, worst, slope, arb, f1_rows, f1_exact, unruh_rows, f3
         "& Wald (1997) provaram que a função de dois pontos não pode ser Hadamard no horizonte de "
         "Cauchy; a questão depende de uma teoria de gravidade quântica.",
         "",
-        "## Fase 2 (em andamento): Kim & Thorne (1991)",
+        "## Fase 2: Kim & Thorne (1991)",
         "",
         "Plano em `docs/phase2_plan.md`, transcrições em `docs/equation_transcription.md`. Até aqui: testes "
         "árbitros do operador e itens F1 a F7. Figuras: `fig3_kt_divergence.png` e `fig4_kt_cutoffs.png`. "
@@ -641,7 +640,8 @@ def report(out: Path, rows, worst, slope, arb, f1_rows, f1_exact, unruh_rows, f3
         "Diferenças finitas aplicadas à eq. 66, com λ_N da eq. 61 e prefator lido literalmente, sem usar a eq. 67, "
         "com os dois operadores em paralelo: a eq. 4a impressa (`eq4_stress`, separação em y) e a eq. 4a com o "
         "fator ½ (`stress_tensor` da fase 1, separação em z). Δ é a distância a H_1, em unidades de λ_1. "
-        "D = 1. Tudo é COMPUTED, salvo a coluna da eq. 67, que é DERIVED. A tabela completa está em "
+        "D = 1. Tudo é COMPUTED, inclusive a coluna da eq. 67: ela é a série impressa, truncada em kt_series_tol. "
+        "A tabela completa está em "
         "`outputs/kim_thorne_f3.csv`.",
         "",
         "| β | b/D | X/D | ρ/X | Δ/D | sem ½ / eq. 67, T^TT | com ½ / eq. 67, T^TT | maior desvio sem ½ (TT, TX, XX) | demais componentes / eq. 67 |",
@@ -652,9 +652,11 @@ def report(out: Path, rows, worst, slope, arb, f1_rows, f1_exact, unruh_rows, f3
             for r in f3_rows if r["X_over_D"] == "0.25"
         ],
         "",
-        "- **Maior desvio do operador sem ½ em relação à eq. 67:** sobre o eixo, "
-        f"{max(mp.mpf(r['eq4a_worst_dev']) for r in f3_rows if r['rho_over_X'] == '0')} (β = 0,9, Δ/D = 1e-2); "
-        f"fora do eixo, {max(mp.mpf(r['eq4a_worst_dev']) for r in f3_rows if r['rho_over_X'] != '0')} (ρ/X = 0,1).",
+        (lambda on, off: "- **Maior desvio do operador sem ½ em relação à eq. 67:** sobre o eixo, "
+         f"{on['eq4a_worst_dev']} (β = {on['beta']}, Δ/D = {on['delta_over_D']}); fora do eixo, "
+         f"{off['eq4a_worst_dev']} (ρ/X = {off['rho_over_X']}, Δ/D = {off['delta_over_D']}).")(
+            max((r for r in f3_rows if r["rho_over_X"] == "0"), key=lambda r: mp.mpf(r["eq4a_worst_dev"])),
+            max((r for r in f3_rows if r["rho_over_X"] != "0"), key=lambda r: mp.mpf(r["eq4a_worst_dev"]))),
         f"- **Maior erro de diferenças finitas em T^TT:** {max(mp.mpf(r['fd_err']) for r in f3_rows)}.",
         f"- **Inclinação de log|T^TT| contra log Δ, sobre o eixo (β = 0,5, b/D = 0,01, X/D = 0,25):** "
         f"−3 com desvio de {mp.nstr(f3_slopes['eq4a'] + 3, 3)} sem ½ e {mp.nstr(f3_slopes['with_half'] + 3, 3)} com ½.",
@@ -680,7 +682,7 @@ def report(out: Path, rows, worst, slope, arb, f1_rows, f1_exact, unruh_rows, f3
         "Diferenças finitas aplicadas à eq. 50, com λ_N da eq. 46, sem usar a eq. 51, com os dois operadores em "
         "paralelo, em pontos da eq. 42 a uma distância Δ antes de H_1, em unidades de λ_1. A comparação usa as "
         "16 componentes do tensor, e o desvio é relativo à maior componente da eq. 51. Para a eq. 52, roda a "
-        "forma impressa √(X²+Y²) e a forma √(Y²+Z²), o ρ da eq. 39. Tudo é COMPUTED, salvo as colunas da eq. 51, que são DERIVED. A tabela completa está em "
+        "forma impressa √(X²+Y²) e a forma √(Y²+Z²), o ρ da eq. 39. Tudo é COMPUTED, inclusive as colunas da eq. 51 (série impressa truncada em kt_series_tol). A tabela completa está em "
         "`outputs/kim_thorne_f4.csv`.",
         "",
         "| β | b/D | θ | φ | Δ/b | sem ½ / eq. 51, T^TT | com ½ / eq. 51, T^TT | desvio com √(Y²+Z²) | desvio com √(X²+Y²) |",
@@ -692,7 +694,8 @@ def report(out: Path, rows, worst, slope, arb, f1_rows, f1_exact, unruh_rows, f3
         ],
         "",
         f"- **Maior desvio do operador sem ½, com √(Y²+Z²), em todo o grid:** "
-        f"{max(mp.mpf(r['eq4a_dev_transverse']) for r in f4_rows)} (Δ/b = 1e-2); em Δ/b = 1e-6, "
+        f"{max(mp.mpf(r['eq4a_dev_transverse']) for r in f4_rows)} "
+        f"(Δ/b = {max(f4_rows, key=lambda r: mp.mpf(r['eq4a_dev_transverse']))['delta_over_b']}); em Δ/b = 1e-6, "
         f"{max(mp.mpf(r['eq4a_dev_transverse']) for r in f4_rows if r['delta_over_b'] == '1e-6')}.",
         f"- **Maior desvio com a leitura literal √(X²+Y²):** {max(mp.mpf(r['eq4a_dev_literal']) for r in f4_rows)}; em "
         f"Δ/b = 1e-6, {max(mp.mpf(r['eq4a_dev_literal']) for r in f4_rows if r['delta_over_b'] == '1e-6')}. "
@@ -752,7 +755,7 @@ def report(out: Path, rows, worst, slope, arb, f1_rows, f1_exact, unruh_rows, f3
         "COMPUTED.",
         "",
         f"- **Eq. 69:** desvio máximo de {mp.nstr(f6['eq69'], 3)} em β = 0,1, 0,5, 0,9, N = 1 e 3 e ρ/X = 0, 1e-3, 1e-2; independe de ρ, "
-        "como o texto afirma.",
+        "como o texto afirma (testado em ρ/X = 0, 1e-3, 1e-2; a independência também é algébrica).",
         f"- **Eq. 68** (N = 1 e 2, ΔT = l_P): desvio de {mp.nstr(f6['eq68'], 3)}.",
         "- **Eq. 54** (N = 1): a integral numérica se aproxima da eq. 54 quando ΔT/b diminui: "
         + "; ".join(f"ΔT/b = {mp.nstr(mp.mpf(dt) / mp.mpf(F6_UNITS['b']), 2)}: desvio {mp.nstr(v, 4)}" for dt, v in f6["eq54"])
@@ -785,8 +788,7 @@ def report(out: Path, rows, worst, slope, arb, f1_rows, f1_exact, unruh_rows, f3
         "numéricos correspondentes.",
         "- **Não estabelece:** que as eqs. 46, 50, 61 e 66 estejam certas: elas são entrada do cálculo, em óptica "
         "geométrica. A ancoragem pelos árbitros foi feita no estado térmico e no vácuo de Rindler, não no "
-        "buraco de minhoca. O que os árbitros mostram é qual convenção reproduz esses valores. A leitura da eq. 52 "
-        "aguarda conferência humana.",
+        "buraco de minhoca. O que os árbitros mostram é qual convenção reproduz esses valores.",
         "- **Disputa com Hawking:** Hawking (1992, p. 603 e seção VI) contesta a conclusão de Kim & Thorne. "
         "Ele argumenta que um eventual corte deveria ser em distância invariante, e não no tempo próprio, "
         "que depende do observador. A `fig4_kt_cutoffs.png` mostra os dois cortes lado a lado. Esta fase "
