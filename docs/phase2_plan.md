@@ -1,6 +1,6 @@
 # Fase 2 · plano: Kim & Thorne (1991)
 
-**Estado: aguardando aprovação. Nada foi implementado.**
+**Estado: aprovado, com ajustes. Em implementação, nesta ordem: F1, F3, F4 (núcleo, com parada para revisão ao fim de cada um), depois F2, F5, F6, e por último F7. Feitos até aqui: teste árbitro e F1.**
 
 Fonte: Kim, S.-W. & Thorne, K. S. (1991), *Phys. Rev. D* 43, 3929–3947, DOI 10.1103/PhysRevD.43.3929. Volume, data e páginas conferidos no PDF (`papers/KIMprd91.pdf`, 19 páginas, lido inteiro). O PDF é um scan sem texto extraível: as equações foram lidas como imagem, e as eqs. 14, 51, 53, 54, 67, 68 e 69 foram conferidas de novo com zoom.
 
@@ -36,19 +36,17 @@ Um buraco de minhoca com garganta infinitesimal, em espaço plano. A boca 1 est�
 
 Estes pontos vêm de uma conferência feita **à mão**, ainda sem execução nenhuma.
 
-### 1. Fator 2 no operador (decisão necessária)
+### 1. Fator 2 no operador
 
-- A eq. 4a de Kim & Thorne é T_μν = lim D_μν G_reg, **sem** fator ½.
-- A eq. 11 de Li & Gott, como transcrita na fase 1, tem o fator ½.
-- As duas funções de Hadamard têm a mesma normalização: 1/(4π²σ) aqui (eq. 17), com σ igual à metade do quadrado da distância, e 1/(2π²·distância²) em Li & Gott.
-- À mão, as eqs. 51, 53, 54, 67, 68 e 69 saem do operador **sem** o ½. Elas são coerentes com a eq. 4a, mas ficam 2 vezes maiores que o mesmo cálculo com o operador da fase 1.
-- A fase 1 reproduz a eq. 12 de Li & Gott com o ½. Isso sugere que a diferença está na eq. 4a, mas não decide a questão: a eq. 1 define G^(1) com os dois ordenamentos, e não fizemos essa dedução de forma independente aqui.
+**Resolvido por um teste árbitro, com resultado em `outputs/report.md`.** O operador das eqs. 4a e 4b de Kim & Thorne (p. 3933), como impressas e escritas sem usar o código da fase 1, aplicado ao vácuo de Rindler, dá o dobro do valor validado com a eq. 11 de Li & Gott (arXiv gr-qc/9711074, p. 2).
 
-**Proposta:** comparar com o operador da eq. 4a como impresso, porque é o cálculo deles, e relatar à parte a razão contra `stress_tensor` da fase 1. O código da fase 1 não muda. Para as conclusões do artigo, que são de ordem de grandeza, um fator 2 não faz diferença, mas o relatório diz isso às claras.
+Os dois artigos normalizam a função de Hadamard da mesma forma, e nenhuma definição em volta da eq. 4a compensa a diferença (ver `docs/equation_transcription.md`). Fica relatado como inconsistência entre os dois artigos. **Decisão:** F3 e F4 usam a eq. 4a como impressa, e a fase 1 não muda.
+
+Correção: a versão anterior deste plano dizia que a eq. 1 tem "os dois ordenamentos". Como impressa, ela traz os dois termos na mesma ordem.
 
 ### 2. Valor numérico depois da eq. 14
 
-O texto diz que T⁰⁰_max é l_P/D ~ 10⁻³⁵ da densidade de Planck, "i.e., ... ~ 10⁴⁹ g/cm³". Com os valores do próprio artigo (l_P ~ 10⁻³³ cm, m_P ~ 10⁻⁵ g), m_P/l_P³ ~ 10⁹⁴ g/cm³, o que daria ~ 10⁵⁹ g/cm³. A diferença é de 10¹⁰, e pode ser erro tipográfico. **Proposta:** relatar os dois valores sem corrigir nenhum.
+O texto imprime T⁰⁰_max ~ 10⁴⁹ g/cm³. **Decisão:** F7 relata lado a lado o valor impresso e o recalculado, com a fórmula e os valores de entrada: (l_P/D)(m_P/l_P³), eq. 14, com l_P ~ 10⁻³³ cm, m_P ~ 10⁻⁵ g e l_P/D ~ 10⁻³⁵, todos do próprio artigo, o que dá ~ 10⁵⁹ g/cm³. Fica descrita só a discrepância.
 
 ### 3. Prefator da eq. 66
 
@@ -56,7 +54,9 @@ A eq. 66 usa X na forma simétrica em x e x′ só no λ, e o prefator D/[4π²X
 
 ### 4. Citação de Hawking (1992)
 
-A contestação de Hawking que li é a descrita na seção II.F, que cita um seminário de 1990 (ref. 13), anterior ao artigo de 1992. **Hawking (1992) em si não foi lido.** A seção "o que estabelece" pode citar a conclusão pela via de Kim & Thorne e dizer isso. Para citar direto o artigo de 1992, preciso do PDF.
+**Resolvido:** o PDF em `papers/Hawking_C.pdf` é Phys. Rev. D 46, 603, com título, volume e página conferidos no próprio arquivo. A citação é direta: p. 603 e seção VI.
+
+Nota para F7: Hawking imprime 10⁹⁴ g/cc como densidade de Planck (p. 603), o mesmo valor de m_P/l_P³ usado no recálculo do ponto 2.
 
 ### 5. Referência interna no texto
 
@@ -65,23 +65,16 @@ Logo após a eq. 52, o texto diz "the stress-energy tensor (52)", mas o tensor �
 ## Desenho da implementação
 
 - **`chronosim/kim_thorne.py`:** fórmulas transcritas, cada uma com a equação citada (`DERIVED`). Avaliações de ordem de grandeza ficam marcadas no `source`.
-- **`chronosim/wormhole.py`:** recobrimento, matrizes ABCD, raízes e integrais (`COMPUTED`). Usa `pointsplit.stress_tensor` sem alterá-lo. Os índices são convertidos de forma explícita, porque ele devolve T_ab e o artigo escreve T^μν.
+- **`chronosim/wormhole.py`:** recobrimento, matrizes ABCD, raízes e integrais (`COMPUTED`). Usa `eq4_stress`, escrito a partir das eqs. 4a e 4b, sem depender de `pointsplit.stress_tensor`. Os índices são convertidos de forma explícita, porque ele devolve T_ab e o artigo escreve T^μν.
 - **`sources.py`:** adiciona `KIM_THORNE_1991`.
 - **`run.py`:** tabelas, CSV e relatório. **Figuras:** T⁰⁰ contra Δt em log-log, com a camada de dipolo do artigo (fig. 3a), e δg^VP contra Δt com os dois cortes, em Δt ~ l_P (Kim & Thorne) e DΔt ~ l_P² (Hawking).
 - **`heuristic()` previstas:** parâmetros de avaliação (β, b/D, X/D, ρ/X, θ), corte N da série, passos δ e h adequados à escala de Δt, tolerância de `mp.quad` e cutoff angular de F6. Valores físicos do artigo (D = 1 m, l_P, m_P) entram como citados.
 - **Dependências novas:** nenhuma.
-- **Testes:** tolerâncias definidas depois de medir o erro, com o valor medido ao lado, como nas fases anteriores. Os critérios acima são a previsão do que deve valer. Se algum falhar, relato a diferença e paro, sem ajustar nada para concordar.
+- **Testes:** um teste de análise dimensional para cada fórmula, e tolerâncias definidas depois de medir o erro, com o valor medido ao lado, como nas fases anteriores. Os critérios acima são a previsão do que deve valer. Se algum falhar, relato a diferença e paro, sem ajustar nada para concordar.
 
 ## O que a fase vai estabelecer e o que não vai
 
 - **Estabelece, se os testes passarem:** as fórmulas fechadas das eqs. 51, 54, 67, 68 e 69 decorrem das expressões de partida do próprio artigo (eqs. 46, 50, 61, 66), e a geometria e a desfocalização se reproduzem de forma independente.
 - **Não estabelece:** que a função de Hadamard (eq. 20) esteja certa, porque ela é entrada do cálculo. Também não estabelece nenhuma das conjecturas sobre o corte da divergência.
-- **Disputa com Hawking:** Hawking contestou a conclusão de Kim & Thorne. O corte em Δt ~ l_P depende do referencial, e ele propõe DΔt ~ l_P², em que δg^VP chega a 1. Esta fase reproduz o cálculo deles, e **não decide quem estava certo**. A figura mostra os dois cortes lado a lado, sem escolher um.
+- **Disputa com Hawking:** Hawking (1992) contestou a conclusão de Kim & Thorne. O corte em Δt ~ l_P depende do referencial, e ele propõe um corte em distância invariante, o que corresponde a DΔt ~ l_P², em que δg^VP chega a 1. Esta fase reproduz o cálculo deles, e **não decide quem estava certo**. A figura mostra os dois cortes lado a lado, sem escolher um.
 - **Escopo:** um único campo, em espaço-tempo fixo (cálculo semiclássico), para um buraco de minhoca idealizado com b ≪ D.
-
-## Decisões para aprovação
-
-1. **Fator 2:** usar a eq. 4a como impressa e relatar a razão contra a fase 1, como proposto no ponto 1?
-2. **Valor 10⁴⁹:** relatar sem corrigir, como proposto no ponto 2?
-3. **Escopo:** implementar de F1 a F7, ou cortar algum item?
-4. **Hawking (1992):** citar pela via de Kim & Thorne, ou você vai obter o PDF de 1992?
