@@ -1,0 +1,144 @@
+"""Phase 3: the independent geometric model (billiards.py) against Echeverria, Klinkhammer &
+Thorne (1991). Small, fast versions of R1-R11; the full runs are in chronosim.run.
+
+Tolerances on the geometry-vs-equation residuals are set from the polish precision (40 digits):
+a residual above 1e-30 would mean a real disagreement, not rounding.
+"""
+
+import mpmath as mp
+import pytest
+
+from chronosim import billiards as bl
+from chronosim import ekt
+from chronosim import phase3 as p3
+from chronosim.provenance import Origin
+from chronosim.sources import ALL, EKT_1991
+
+ROUNDING = mp.mpf("1e-30")
+
+
+def test_source_is_registered_with_its_reading_status():
+    assert EKT_1991 in ALL
+    assert EKT_1991.doi == "10.1103/PhysRevD.44.1077"
+    assert "twice" in EKT_1991.status
+
+
+def test_r1_identification_reproduces_eq_2_1b():
+    r = p3.r1_traversal_rule(n=9)
+    assert r["max_dev"].value < mp.mpf("1e-60")
+    assert r["max_dev"].origin is Origin.COMPUTED
+    assert r["time_shift"] == -1  # mouth 2 -> mouth 1 goes back by T_d
+
+
+def test_r2_speed_exchange_admits_only_velocity_and_mirror_exchange():
+    r = p3.r2_collision_law(n=4)
+    assert r["counts"]["other"] == 0
+    assert r["counts"]["velocity"] > 0 and r["counts"]["mirror"] > 0
+    assert r["max_dev_direction"].value < mp.mpf("1e-60")
+
+
+def _fig7b(B, R="1e-7", v1="0.5"):
+    with mp.workdps(40):
+        grid = [-0.4 + 0.3 * i / 30 for i in range(31)]
+        sols, unres = p3.solutions(p3.SYM_P0, p3.SYM_E, mp.mpf(v1), 1, 1, mp.mpf(B), mp.mpf(R), grid)
+        good = [s for s in sols if s["ok"]]
+        assert len(good) == 1, (sols, unres)
+        psi = mp.atan(2 * abs(good[0]["sol"][0]))
+        return mp.tan(psi) / mp.mpf(v1) - 1
+
+
+def test_r4_fig7b_tends_to_eq_3_1_linearly_in_B():
+    # measured on 2026-11-07: deviation 0.0368 (B = 0.02) and 0.0181 (B = 0.01)
+    d1, d2 = _fig7b("0.02"), _fig7b("0.01")
+    assert 0 < d2 < d1 < mp.mpf("0.05")
+    assert abs(d1 / d2 - 2) < mp.mpf("0.1")
+
+
+def test_ball_at_rest_on_the_line_of_centers_is_a_solution_for_any_position():
+    for x in ("0.3", "0.6"):
+        with mp.workdps(40):
+            ok, fails = bl.verify((mp.mpf(x), mp.mpf(0)), p3.SYM_E, 0, 0, 0, mp.pi, 1, 1, mp.mpf("0.01"), mp.mpf("1e-6"))
+        assert ok, fails
+
+
+def _central_pair():
+    case = {}
+    with mp.workdps(40):
+        th, ph, lam, B, R = (mp.mpf(x) for x in ("0.2", "0.6", "0.5", "0.01", "0.001"))
+        v1 = ekt.v1_from_lambda(lam, th, ph, B, R).value
+        p0, e = p3.line_theta_phi(th, ph, B)
+        s0 = p3.self_inconsistent_crossing(p0, e, B)
+        grid = [float(s0) - 0.01 + 0.02 * i / 60 for i in range(61)]
+        sols, _ = p3.solutions(p0, e, v1, 1, 1, B, R, grid)
+        case.update(th=th, ph=ph, v1=v1, B=B, R=R, sols=[s for s in sols if s["ok"]])
+    return case
+
+
+def test_r8_geometric_solutions_satisfy_printed_eqs_4_2_and_4_3():
+    c = _central_pair()
+    assert sorted("I" if s["angles"]["beta"] > 0 else "II" for s in c["sols"]) == ["I", "II"]
+    with mp.workdps(40):
+        for s in c["sols"]:
+            a = s["angles"]
+            sign = 1 if a["d"] > 0 else -1
+            r42, r43 = ekt.eq42_43(a["alpha"], a["beta"], c["th"], c["ph"], c["v1"], c["B"], c["R"], sign)
+            assert max(abs(r42), abs(r43)) < ROUNDING
+            assert abs(ekt.d_of(a["alpha"], a["beta"], sign, c["R"]) - a["d"]) < ROUNDING      # eq. 4.4b
+            assert abs(ekt.rho_of(a["alpha"], a["beta"]) * c["v1"] - a["v2"]) < ROUNDING       # eq. 4.5
+            assert mp.sign(a["beta"]) == sign                                                  # eq. 4.6c
+            dist = ekt.appendix_a_distances(a["alpha"], a["beta"], c["th"], c["ph"], c["B"]).value
+            assert abs(dist["a"] + s["sol"][0]) < ROUNDING                                     # eq. A6: a = PQ
+
+
+def test_root_of_eqs_4_2_4_3_outside_the_eq_4_6_list_has_a_negative_distance():
+    """(theta, phi) = (1.0, 1.05): a root not listed in eq. 4.6, which the geometry cannot realize."""
+    with mp.workdps(40):
+        th, ph, lam, B, R = (mp.mpf(x) for x in ("1.0", "1.05", "0.5", "0.01", "0.001"))
+        v1 = ekt.v1_from_lambda(lam, th, ph, B, R).value
+        a, b = ekt.solve_eq42_43(th, ph, v1, B, R, -1, (mp.mpf("2.0468"), mp.mpf("-0.1366")))
+        assert not ekt.is_spurious(a, b, ph, -1, R, mp.mpf("1e-15"))
+        dist = ekt.appendix_a_distances(a, b, th, ph, B).value
+        assert dist["a"] < 0 and dist["a_p"] < 0
+
+
+def test_verifier_rejects_a_perturbed_solution_and_the_wrong_kick_sign():
+    c = _central_pair()
+    s = c["sols"][0]
+    with mp.workdps(40):
+        p0, e = p3.line_theta_phi(c["th"], c["ph"], c["B"])
+        s_, nu, aim = s["sol"]
+        ok, fails = bl.verify(p0, e, c["v1"], s_ + mp.mpf("1e-6"), nu, aim, 1, 1, c["B"], c["R"])
+        assert not ok and fails
+        ok, fails = bl.verify(p0, e, c["v1"], s_, nu + mp.pi, aim, 1, 1, c["B"], c["R"])
+        assert not ok
+
+
+def test_free_history_detects_the_dangerous_case_and_accepts_a_harmless_one():
+    with mp.workdps(40):
+        th, ph, lam, B, R = (mp.mpf(x) for x in ("0.2", "0.6", "0.5", "0.01", "0.001"))
+        v1 = ekt.v1_from_lambda(lam, th, ph, B, R).value
+        p0, e = p3.line_theta_phi(th, ph, B)
+        ok, _, overlaps = bl.free_history(bl.add(p0, e, -1), e, v1, B, R)
+        assert not ok and overlaps
+        ok, _, overlaps = bl.free_history(p3.SYM_P0, p3.SYM_E, mp.mpf("0.5"), B, R)
+        assert ok and not overlaps
+
+
+def test_itinerary_windows_shrink_like_B_over_two_per_traversal():
+    P, B = (0.5, -0.2655), 0.01
+    w = [bl.itinerary_windows(P, 1, k, B) for k in (2, 3)]
+    assert len(w[0]) == 1 and len(w[1]) == 1
+    width2, width3 = w[0][0][1] - w[0][0][0], w[1][0][1] - w[1][0][0]
+    assert 0.5 * B < width2 < 2 * B          # measured 0.00996
+    assert 0.1 * B < width3 / width2 < 2 * B  # measured 5.05e-3, i.e. about B/2
+
+
+def test_dangerous_rejects_points_outside_the_triangle():
+    with pytest.raises(ValueError):
+        p3.dangerous("-0.3", "0.5", "0.5", "0.3", "0.135")
+
+
+def test_backend_switches_to_mpmath_for_deep_itineraries():
+    assert bl.backend_for(2, 0.01)[0] is bl.FLOAT
+    xm, digits = bl.backend_for(12, 0.01)
+    assert xm is bl.MP and digits > 12 * 2

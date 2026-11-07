@@ -124,4 +124,17 @@ HISCOCK_KONKOWSKI_1982 = Source(
     ),
 )
 
-ALL = (LI_GOTT_1998, HAWKING_1992, KIM_THORNE_1991, MISNER_1967, KRW_1997, CANDELAS_DEUTSCH_1977, KLINKHAMMER_1992, VISSER_1993, BIRRELL_DAVIES_1982, HISCOCK_KONKOWSKI_1982)
+EKT_1991 = Source(
+    key="Echeverria, Klinkhammer & Thorne (1991)",
+    citation=(
+        "Echeverria, F., Klinkhammer, G. & Thorne, K. S. (1991). Billiard balls in wormhole spacetimes "
+        "with closed timelike curves: Classical theory. Physical Review D 44, 1077-1099."
+    ),
+    doi="10.1103/PhysRevD.44.1077",
+    status=(
+        "Read from a scan of the published version. Equations transcribed twice (second pass blind): "
+        "docs/equation_transcription.md."
+    ),
+)
+
+ALL = (LI_GOTT_1998, HAWKING_1992, KIM_THORNE_1991, EKT_1991, MISNER_1967, KRW_1997, CANDELAS_DEUTSCH_1977, KLINKHAMMER_1992, VISSER_1993, BIRRELL_DAVIES_1982, HISCOCK_KONKOWSKI_1982)

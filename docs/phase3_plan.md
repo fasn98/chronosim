@@ -1,6 +1,6 @@
 # Fase 3 · plano: bolas de bilhar em buracos de minhoca (Echeverria, Klinkhammer & Thorne, 1991)
 
-**Estado: aprovado, com as decisões abaixo. Ordem: reprodução R1–R11 contra as eqs. 4.2–4.3, com parada ao final; depois o mapa e a certificação.**
+**Estado: aprovado, com as decisões abaixo. Ordem: reprodução R1–R11 contra as eqs. 4.2–4.3, com parada ao final; depois o mapa e a certificação. Reprodução R1–R11 calculada (`outputs/report.md`); parada para revisão do usuário. Mapa e certificação não iniciados.**
 
 ## Decisões do usuário (2026-11-07)
 
