@@ -80,6 +80,15 @@ CANDELAS_DEUTSCH_1977 = Source(
     ),
 )
 
+BIRRELL_DAVIES_1982 = Source(
+    key="Birrell & Davies (1982)",
+    citation="Birrell, N. D. & Davies, P. C. W. (1982). Quantum Fields in Curved Space. Cambridge University Press.",
+    status=(
+        "PENDING: the page on thermal Green functions could not be checked. The derivation used "
+        "here is written out in docs/thermal_images.md and does not rely on this book."
+    ),
+)
+
 HISCOCK_KONKOWSKI_1982 = Source(
     key="Hiscock & Konkowski (1982)",
     citation=(
@@ -93,4 +102,4 @@ HISCOCK_KONKOWSKI_1982 = Source(
     ),
 )
 
-ALL = (LI_GOTT_1998, HAWKING_1992, KIM_THORNE_1991, MISNER_1967, KRW_1997, CANDELAS_DEUTSCH_1977, HISCOCK_KONKOWSKI_1982)
+ALL = (LI_GOTT_1998, HAWKING_1992, KIM_THORNE_1991, MISNER_1967, KRW_1997, CANDELAS_DEUTSCH_1977, BIRRELL_DAVIES_1982, HISCOCK_KONKOWSKI_1982)

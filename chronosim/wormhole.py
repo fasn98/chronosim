@@ -10,7 +10,7 @@ from __future__ import annotations
 import mpmath as mp
 
 from .config import DPS
-from .kim_thorne import doppler_xi, hadamard_between, hadamard_flat, series_terms
+from .kim_thorne import doppler_xi, hadamard_between, hadamard_flat, hadamard_throat, series_terms
 from .pointsplit import DELTA, STEP, stress_tensor
 from .provenance import Origin, Quantity, heuristic
 from .sources import KIM_THORNE_1991
@@ -130,4 +130,22 @@ def stress_between_numeric(T, X, rho, D, b, beta, length, tol=None, split_ratio=
                 "XX": Quantity(up[1][1], Origin.COMPUTED, f"{KIM_THORNE_1991.ref('eq. 66')} + {name} operator"),
                 "rest": Quantity(rest, Origin.COMPUTED, f"{KIM_THORNE_1991.ref('eq. 66')} + {name} operator"),
             }
+    return out
+
+
+def stress_throat_numeric(point, D, b, beta, length, tol=None, split_ratio=None, step_ratio=None) -> dict:
+    """T^mu^nu near the throat from eq. 50, without using eq. 51, with both operators."""
+    split = (SPLIT_RATIO.value if split_ratio is None else mp.mpf(split_ratio)) * length
+    step = (STEP_RATIO.value if step_ratio is None else mp.mpf(step_ratio)) * length
+    with mp.workdps(DPS.value):
+        xi = doppler_xi(mp.mpf(beta))
+        n_terms = series_terms(D, b, xi, tol)
+        G = lambda P, Q: hadamard_throat(P, Q, D, b, xi, n_terms)
+        point = [mp.mpf(v) for v in point]
+        out = {"n_terms": n_terms}
+        for name, L in (("eq4a", eq4_stress(G, point, delta=split, h=step)),
+                        ("with_half", stress_tensor(G, point, delta=split, h=step))):
+            src = f"{KIM_THORNE_1991.ref('eq. 50')} + {name} operator"
+            out[name] = [[Quantity(L[a][c] * METRIC[a] * METRIC[c], Origin.COMPUTED, src) for c in range(4)]
+                         for a in range(4)]
     return out

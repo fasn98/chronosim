@@ -1,5 +1,5 @@
 """Phase 1: validate Li & Gott (1998) eq. 12 against the eq. 8 image sum.
-Phase 2 (in progress): Kim & Thorne (1991), arbiters of eq. 4a and items F1 and F3.
+Phase 2 (in progress): Kim & Thorne (1991), arbiters of eq. 4a and items F1, F3 and F4.
 
     python -m chronosim.run            # writes outputs/
 """
@@ -13,6 +13,7 @@ from pathlib import Path
 import mpmath as mp
 
 from . import kim_thorne as kt
+from . import thermal
 from . import unruh
 from . import wormhole as wh
 from .config import DPS
@@ -36,6 +37,13 @@ F3_DELTA = ("1e-2", "1e-4", "1e-6")
 F3_RHO = ("1e-1", "1e-2", "1e-3")
 F3_RHO_DELTA = ("1e-4", "1e-6")
 SLOPE_DELTA = ("1e-3", "1e-4", "1e-5", "1e-6")
+THERMAL_T = ("0.3", "1", "3")
+MODE_POINTS = (("0.1", "0.2"), ("0.3", "0.5"), ("0.7", "1.5"))
+MODE_N = 400
+F4_BETA = ("0.1", "0.5", "0.9")
+F4_B = ("0.01", "0.1")
+F4_THETA = ("0.2", "0.7", "1.3")
+F4_DELTA = ("1e-2", "1e-4", "1e-6")
 
 
 def _num(s):
@@ -131,6 +139,45 @@ def f1_geometry():
     return rows, exact
 
 
+def thermal_arbiter():
+    """Thermal state in Minkowski space, with both operators, against Stefan-Boltzmann."""
+    rows = []
+    for Ts in THERMAL_T:
+        T = mp.mpf(Ts)
+        ref = unruh.thermal_density_closed(T)
+        num = thermal.thermal_stress(T)
+        finer = thermal.thermal_stress(T, split_ratio="1e-11", step_ratio="1e-12")
+        for name in ("eq4a", "with_half"):
+            d = num[name]
+            rho = d["rho"].value
+            rows.append({
+                "T": Ts, "operator": name,
+                "rho": rho,
+                "rho_over_stefan_boltzmann": rho / ref,
+                "worst_3p_over_rho_minus_1": max((3 * q.value / rho - 1 for q in d["p"]), key=abs),
+                "trace_over_rho": d["trace"].value / rho,
+                "max_offdiag_over_rho": d["max_offdiag"].value / abs(rho),
+                "fd_err": abs(rho / finer[name]["rho"].value - 1),
+                "decay_spread": d["decay_spread"].value,
+                "tail_fraction": d["tail_fraction"].value,
+            })
+    return rows
+
+
+def thermal_modes():
+    """The image sum against the mode integral with Bose occupation numbers, at separated points."""
+    beta = mp.mpf(1)
+    rows = []
+    for ts, rs in MODE_POINTS:
+        t, r = mp.mpf(ts), mp.mpf(rs)
+        partial = thermal.hadamard_regularized([t, r, 0, 0], [0, 0, 0, 0], beta, MODE_N)
+        tail = (mp.zeta(2) - sum(mp.mpf(n) ** -2 for n in range(1, MODE_N + 1))) / (mp.pi ** 2 * beta ** 2)
+        modes = thermal.hadamard_mode_integral(t, r, beta).value
+        rows.append({"t": ts, "r": rs, "images": partial + tail, "modes": modes,
+                     "rel_diff": abs((partial + tail) / modes - 1)})
+    return rows
+
+
 def unruh_arbiter():
     """Rindler vacuum from each operator, against the value from the Unruh temperature."""
     rows = []
@@ -192,6 +239,63 @@ def f3_slope():
     return out
 
 
+def _f4_point(bs, bb, ths, ds, phis="0"):
+    """A point a distance delta = ds * b before H_1 on the throat, in units of lambda_1."""
+    D, b, theta, phi = mp.mpf(1), mp.mpf(bb), mp.mpf(ths), mp.mpf(phis)
+    xi = kt.doppler_xi(mp.mpf(bs))
+    delta = mp.mpf(ds) * b
+    T = kt.hypersurface_time_throat(1, theta, b, xi) - delta
+    return D, b, theta, phi, xi, delta, T
+
+
+def _f4_dev(num, D, b, theta, phi, xi, T, variant, name):
+    target = mp.mpf(1) if name == "eq4a" else mp.mpf(1) / 2
+    E = kt.stress_throat(T, theta, phi, D, b, xi, num["n_terms"], variant)
+    scale = max(abs(E[m][c].value) for m in range(4) for c in range(4))
+    return max(abs(num[name][m][c].value - target * E[m][c].value) for m in range(4) for c in range(4)) / (target * scale)
+
+
+def _f4_row(bs, bb, ths, ds, phis="0"):
+    D, b, theta, phi, xi, delta, T = _f4_point(bs, bb, ths, ds, phis)
+    num = wh.stress_throat_numeric(kt.throat_point(T, theta, phi, b), D, b, bs, delta)
+    finer = wh.stress_throat_numeric(kt.throat_point(T, theta, phi, b), D, b, bs, delta, split_ratio="1e-11", step_ratio="1e-12")
+    E = kt.stress_throat(T, theta, phi, D, b, xi, num["n_terms"], "transverse")
+    return {
+        "beta": bs, "b_over_D": bb, "theta": ths, "phi": phis, "delta_over_b": ds,
+        "eq51_TT": mp.nstr(E[0][0].value, 15),
+        "eq4a_TT_over_eq51": mp.nstr(num["eq4a"][0][0].value / E[0][0].value, 15),
+        "with_half_TT_over_eq51": mp.nstr(num["with_half"][0][0].value / E[0][0].value, 15),
+        "eq4a_dev_transverse": mp.nstr(_f4_dev(num, D, b, theta, phi, xi, T, "transverse", "eq4a"), 4),
+        "with_half_dev_transverse": mp.nstr(_f4_dev(num, D, b, theta, phi, xi, T, "transverse", "with_half"), 4),
+        "eq4a_dev_literal": mp.nstr(_f4_dev(num, D, b, theta, phi, xi, T, "literal", "eq4a"), 4),
+        "with_half_dev_literal": mp.nstr(_f4_dev(num, D, b, theta, phi, xi, T, "literal", "with_half"), 4),
+        "fd_err": mp.nstr(abs(num["eq4a"][0][0].value / finer["eq4a"][0][0].value - 1), 3),
+        "n_terms": num["n_terms"],
+    }
+
+
+def f4_stress():
+    """T^mu^nu at the throat from eq. 50, with both operators and both denominators of eq. 52, against eq. 51."""
+    rows = [_f4_row(bs, bb, ths, ds) for bs in F4_BETA for bb in F4_B for ths in F4_THETA for ds in F4_DELTA]
+    rows += [_f4_row("0.5", "0.01", "0.7", ds, "0.6") for ds in F4_DELTA]
+    return rows
+
+
+def f4_slope():
+    """log-log slope of |T^TT| against the distance to H_1 on the throat, for each operator."""
+    out = {}
+    for name in ("eq4a", "with_half"):
+        pts = []
+        for ds in ("1e-3", "1e-4", "1e-5", "1e-6"):
+            D, b, theta, phi, xi, delta, T = _f4_point("0.5", "0.01", "0.7", ds)
+            num = wh.stress_throat_numeric(kt.throat_point(T, theta, phi, b), D, b, "0.5", delta)
+            pts.append((mp.log(delta), mp.log(abs(num[name][0][0].value))))
+        mx = sum(p[0] for p in pts) / len(pts)
+        my = sum(p[1] for p in pts) / len(pts)
+        out[name] = sum((p[0] - mx) * (p[1] - my) for p in pts) / sum((p[0] - mx) ** 2 for p in pts)
+    return out
+
+
 def figures(out: Path):
     import matplotlib
 
@@ -238,7 +342,7 @@ def figures(out: Path):
     plt.close(fig)
 
 
-def report(out: Path, rows, worst, slope, arb, f1_rows, f1_exact, unruh_rows, f3_rows, f3_slopes):
+def report(out: Path, rows, worst, slope, arb, f1_rows, f1_exact, unruh_rows, f3_rows, f3_slopes, thermal_rows, mode_rows, f4_rows, f4_slopes):
     h = reported_heuristics()
     lines = [
         "# chronosim · relatório de validação",
@@ -277,9 +381,44 @@ def report(out: Path, rows, worst, slope, arb, f1_rows, f1_exact, unruh_rows, f3
         "## Fase 2 (em andamento): Kim & Thorne (1991)",
         "",
         "Plano em `docs/phase2_plan.md`, transcrições em `docs/equation_transcription.md`. Até aqui: testes "
-        "árbitros do operador e itens F1 e F3. F4, F2, F5, F6 e F7 ainda não foram implementados.",
+        "árbitros do operador e itens F1, F3 e F4. F2, F5, F6 e F7 ainda não foram implementados.",
         "",
-        "### Teste árbitro: eq. 4a de Kim & Thorne contra a eq. 11 de Li & Gott",
+        "### Árbitro principal: estado térmico no espaço de Minkowski",
+        "",
+        "Não depende de nenhum artigo fechado. A função de Hadamard é a soma de imagens em tempo imaginário "
+        "(período β = 1/T), derivada da condição KMS em `docs/thermal_images.md`, sem o termo n = 0, que é o "
+        "vácuo de Minkowski. A referência é Stefan-Boltzmann para um escalar sem massa, π²T⁴/30, conferido pela "
+        "integral de Bose. Valores COMPUTED.",
+        "",
+        "| T | operador | ρ / (π²T⁴/30) | maior desvio de 3p/ρ em relação a 1 | traço / ρ | erro DF |",
+        "|---|---|---|---|---|---|",
+        *[
+            f"| {r['T']} | {'eq. 4a impressa' if r['operator'] == 'eq4a' else 'com ½'} | "
+            f"{mp.nstr(r['rho_over_stefan_boltzmann'], 22)} | {mp.nstr(r['worst_3p_over_rho_minus_1'], 3)} | "
+            f"{mp.nstr(r['trace_over_rho'], 3)} | {mp.nstr(r['fd_err'], 3)} |"
+            for r in thermal_rows
+        ],
+        "",
+        "Os valores coincidem entre as temperaturas porque δ e h escalam com β.",
+        "",
+        "**Resultado:** o operador com ½ reproduz Stefan-Boltzmann, e a eq. 4a impressa dá o dobro. O estado "
+        "tem pressão ρ/3 e traço zero com os dois operadores. É uma inconsistência de convenção entre a eq. 4a "
+        "impressa e o valor térmico.",
+        "",
+        "A soma de imagens também foi comparada com a integral de modos com ocupação de Bose, em pontos "
+        f"separados (β = 1, {MODE_N} pares e o termo dominante da cauda):",
+        "",
+        "| t | r | imagens | modos | diferença relativa |",
+        "|---|---|---|---|---|",
+        *[
+            f"| {r['t']} | {r['r']} | {mp.nstr(r['images'], 15)} | {mp.nstr(r['modes'], 15)} | {mp.nstr(r['rel_diff'], 3)} |"
+            for r in mode_rows
+        ],
+        "",
+        "A diferença vem do corte da soma de imagens. Birrell & Davies (1982) fica como referência pendente: a "
+        "página não pôde ser conferida, e a derivação está escrita por extenso em `docs/`.",
+        "",
+        "### Comparação direta: eq. 4a de Kim & Thorne contra a eq. 11 de Li & Gott",
         "",
         "Operador das eqs. 4a e 4b de Kim & Thorne (p. 3933), como impressas, escrito sem usar o código da "
         "fase 1, aplicado à função de Rindler (Li & Gott, eq. 6) regularizada pela eq. 3 (p. 3933). A "
@@ -299,11 +438,11 @@ def report(out: Path, rows, worst, slope, arb, f1_rows, f1_exact, unruh_rows, f3
         "eq. 9). A eq. 4a não tem o fator ½ da eq. 11, e nenhuma definição em volta dela o compensa. "
         "Inconsistência entre os dois artigos, nas convenções como impressas.",
         "",
-        "### Árbitro independente dos dois artigos: efeito Unruh",
+        "### Árbitro secundário: efeito Unruh",
         "",
-        "Referência: ρ = −π²T⁴/30 com T = 1/(2πξ), ou seja, −3/(1440π²ξ⁴). A relação é a atribuída a Candelas & "
-        "Deutsch (1977), com volume e página confirmados no Crossref, mas **o texto do artigo não foi lido** "
-        "(acesso fechado). A densidade térmica π²T⁴/30 foi conferida por integração numérica da integral de Bose.",
+        "Referência: ρ = −π²T⁴/30 com T = 1/(2πξ), ou seja, −3/(1440π²ξ⁴). **Ressalva:** a relação \"vácuo de "
+        "Rindler = −térmico\" não foi lida em Candelas & Deutsch (1977). Volume e página foram confirmados só no "
+        "Crossref, e o artigo tem acesso fechado.",
         "",
         "| ξ | referência / escala | operador com ½ / referência | eq. 4a impressa / referência |",
         "|---|---|---|---|",
@@ -313,8 +452,8 @@ def report(out: Path, rows, worst, slope, arb, f1_rows, f1_exact, unruh_rows, f3
             for r in unruh_rows
         ],
         "",
-        "**Resultado:** a versão com ½ concorda com o valor de Unruh, e a eq. 4a impressa dá o dobro. "
-        "É uma inconsistência de convenção entre a eq. 4a impressa e o valor de Unruh.",
+        "**Resultado:** a versão com ½ concorda com o valor de Unruh, e a eq. 4a impressa dá o dobro, como no "
+        "árbitro térmico. É uma inconsistência de convenção entre a eq. 4a impressa e o valor de Unruh.",
         "",
         "### F1: geometria do espaço de recobrimento",
         "",
@@ -379,9 +518,10 @@ def report(out: Path, rows, worst, slope, arb, f1_rows, f1_exact, unruh_rows, f3
         f"- **Inclinação de log|T^TT| contra log Δ, sobre o eixo (β = 0,5, b/D = 0,01, X/D = 0,25):** "
         f"−3 com desvio de {mp.nstr(f3_slopes['eq4a'] + 3, 3)} sem ½ e {mp.nstr(f3_slopes['with_half'] + 3, 3)} com ½.",
         "",
-        "**Resultado:** a versão sem ½ reproduz a eq. 67, e a versão com ½ dá metade dela. Os resultados impressos "
-        "ficam, portanto, 2 vezes acima do valor ancorado pelo árbitro de Unruh. Um fator constante não altera a "
-        "taxa de divergência, que é a conclusão qualitativa do artigo.",
+        "**Resultado:** Os resultados impressos de Kim & Thorne (eq. 67) são reproduzidos pelo operador da eq. 4a "
+        "como impresso, sem o fator ½. Portanto o fator é carregado de forma consistente até o resultado final, "
+        "e os valores impressos ficam 2 vezes acima dos obtidos com a convenção que reproduz o árbitro térmico. A "
+        "taxa de divergência (Δ⁻³) e a troca de sinal na hipersuperfície não dependem desse fator.",
         "",
         "O desvio residual tem a forma dos termos que o artigo despreza. Sobre o eixo, ele cai linearmente com Δ "
         "em X/D = 0,25. Em X = D/2, T^TT e T^TX ficam no nível do erro numérico e só T^XX se desvia, "
@@ -389,15 +529,57 @@ def report(out: Path, rows, worst, slope, arb, f1_rows, f1_exact, unruh_rows, f3
         "em kk cresce como (ρ/X)², e as demais componentes crescem como ρ/X, a correção fracionária que o texto "
         "diz ignorar (p. 3945).",
         "",
+        "### F4: ⟨T^μν⟩ na garganta",
+        "",
+        "Diferenças finitas aplicadas à eq. 50, com λ_N da eq. 46, sem usar a eq. 51, com os dois operadores em "
+        "paralelo, em pontos da eq. 42 a uma distância Δ antes de H_1, em unidades de λ_1. A comparação usa as "
+        "16 componentes do tensor, e o desvio é relativo à maior componente da eq. 51. Para a eq. 52, roda a "
+        "leitura literal √(X²+Y²) e a variante √(Y²+Z²), o ρ da eq. 39. **A eq. 52 está aguardando conferência "
+        "humana.** Tudo é COMPUTED, salvo as colunas da eq. 51, que são DERIVED. A tabela completa está em "
+        "`outputs/kim_thorne_f4.csv`.",
+        "",
+        "| β | b/D | θ | φ | Δ/b | sem ½ / eq. 51, T^TT | com ½ / eq. 51, T^TT | desvio com √(Y²+Z²) | desvio com √(X²+Y²) |",
+        "|---|---|---|---|---|---|---|---|---|",
+        *[
+            f"| {r['beta']} | {r['b_over_D']} | {r['theta']} | {r['phi']} | {r['delta_over_b']} | "
+            f"{r['eq4a_TT_over_eq51']} | {r['with_half_TT_over_eq51']} | {r['eq4a_dev_transverse']} | {r['eq4a_dev_literal']} |"
+            for r in f4_rows if r["b_over_D"] == "0.01" and (r["beta"] == "0.5" or r["delta_over_b"] == "1e-4")
+        ],
+        "",
+        f"- **Maior desvio do operador sem ½, com √(Y²+Z²), em todo o grid:** "
+        f"{max(mp.mpf(r['eq4a_dev_transverse']) for r in f4_rows)} (Δ/b = 1e-2); em Δ/b = 1e-6, "
+        f"{max(mp.mpf(r['eq4a_dev_transverse']) for r in f4_rows if r['delta_over_b'] == '1e-6')}.",
+        f"- **Maior desvio com a leitura literal √(X²+Y²):** {max(mp.mpf(r['eq4a_dev_literal']) for r in f4_rows)}; em "
+        f"Δ/b = 1e-6, {max(mp.mpf(r['eq4a_dev_literal']) for r in f4_rows if r['delta_over_b'] == '1e-6')}. "
+        "Não cai com Δ.",
+        f"- **Maior erro de diferenças finitas em T^TT:** {max(mp.mpf(r['fd_err']) for r in f4_rows)}.",
+        f"- **Inclinação de log|T^TT| contra log Δ (β = 0,5, b/D = 0,01, θ = 0,7):** −3 com desvio de "
+        f"{mp.nstr(f4_slopes['eq4a'] + 3, 3)} sem ½ e {mp.nstr(f4_slopes['with_half'] + 3, 3)} com ½.",
+        "",
+        "**Resultado:** Os resultados impressos de Kim & Thorne (eq. 51) são reproduzidos pelo operador da eq. 4a "
+        "como impresso, sem o fator ½. Portanto o fator é carregado de forma consistente até o resultado final, "
+        "e os valores impressos ficam 2 vezes acima dos obtidos com a convenção que reproduz o árbitro térmico. A "
+        "taxa de divergência (Δ⁻³) e a troca de sinal na hipersuperfície não dependem desse fator.",
+        "",
+        "**Eq. 52:** só a variante √(Y²+Z²) reproduz a eq. 51. Com a leitura literal √(X²+Y²), o vetor ρ̂ não é "
+        "unitário fora de θ = 0 (na garganta, sua componente transversal é cos(θ/2)), e o texto o chama de "
+        "\"unit transverse vector\" (p. 3943). O desvio cresce com θ e não cai com Δ.",
+        "",
+        "O desvio com √(Y²+Z²) cai linearmente com Δ/b. Ele é o termo com a segunda derivada de λ_N nas direções "
+        "transversais, que a eq. 51 não contém: a expressão analítica desse termo reproduz o resíduo em YY, YZ e "
+        "ZZ, e as demais componentes ficam no nível do erro numérico. Por isso T^TT coincide com a eq. 51 nos 15 "
+        "dígitos da tabela.",
+        "",
         "### O que esta parte estabelece e o que não estabelece",
         "",
         "- **Estabelece:** as eqs. 33, 34 e 37 são exatas para a geometria das eqs. 25 e 28, e a eq. 38 é "
         "uma aproximação cujo erro relativo é proporcional a ε/D, sobre o eixo de simetria.",
-        "- **Estabelece também:** a eq. 67 decorre das eqs. 61 e 66 pelo operador da eq. 4a impressa, com os "
-        "desvios medidos acima, e a divergência é Δ⁻³.",
-        "- **Não estabelece:** que as eqs. 61 e 66 estejam certas: elas são entrada do cálculo, em óptica "
-        "geométrica. A garganta (eq. 51) ainda não foi testada. A ancoragem pelo valor de Unruh foi feita no "
-        "vácuo de Rindler, não no buraco de minhoca, e o texto de Candelas & Deutsch não foi lido.",
+        "- **Estabelece também:** as eqs. 67 e 51 decorrem das eqs. 61 e 66 e das eqs. 46 e 50 pelo operador da "
+        "eq. 4a impressa, com os desvios medidos acima, e a divergência é Δ⁻³.",
+        "- **Não estabelece:** que as eqs. 46, 50, 61 e 66 estejam certas: elas são entrada do cálculo, em óptica "
+        "geométrica. A ancoragem pelos árbitros foi feita no estado térmico e no vácuo de Rindler, não no "
+        "buraco de minhoca. O que os árbitros mostram é qual convenção reproduz esses valores. A leitura da eq. 52 "
+        "aguarda conferência humana.",
         "- **Disputa com Hawking:** Hawking (1992, p. 603 e seção VI) contesta a conclusão de Kim & Thorne. "
         "Ele argumenta que um eventual corte deveria ser em distância invariante, e não no tempo próprio, "
         "que depende do observador. Esta fase reproduz o cálculo de Kim & Thorne e não decide quem estava certo.",
@@ -441,7 +623,15 @@ def main(argv=None) -> int:
         w.writeheader()
         w.writerows(f3_rows)
     f3_slopes = f3_slope()
-    report(out, rows, worst, slope, arb, f1_rows, f1_exact, unruh_rows, f3_rows, f3_slopes)
+    thermal_rows = thermal_arbiter()
+    mode_rows = thermal_modes()
+    f4_rows = f4_stress()
+    with open(out / "kim_thorne_f4.csv", "w", newline="", encoding="utf-8") as fh:
+        w = csv.DictWriter(fh, fieldnames=list(f4_rows[0]))
+        w.writeheader()
+        w.writerows(f4_rows)
+    f4_slopes = f4_slope()
+    report(out, rows, worst, slope, arb, f1_rows, f1_exact, unruh_rows, f3_rows, f3_slopes, thermal_rows, mode_rows, f4_rows, f4_slopes)
 
     print(f"pior erro relativo à escala: {mp.nstr(worst, 3)} [COMPUTED]")
     print(f"inclinação perto do horizonte: {mp.nstr(slope, 15)} [COMPUTED] (eq. 12: -4)")
@@ -450,10 +640,16 @@ def main(argv=None) -> int:
     print(f"fase 2, F1: eq. 33 {mp.nstr(f1_exact['eq33'], 3)}, eq. 34 {mp.nstr(f1_exact['eq34'], 3)}, "
           f"eq. 37 {mp.nstr(f1_exact['eq37'], 3)} [COMPUTED]")
     print(f"fase 2, F1: eq. 31 como impressa difere por um sinal, desvio de -1: {mp.nstr(f1_exact['eq31'], 3)} [COMPUTED]")
+    print("fase 2, árbitro térmico, T = 1: com ½ / Stefan-Boltzmann = "
+          f"{mp.nstr(thermal_rows[3]['rho_over_stefan_boltzmann'], 22)}; eq. 4a / Stefan-Boltzmann = "
+          f"{mp.nstr(thermal_rows[2]['rho_over_stefan_boltzmann'], 22)}")
     print("fase 2, Unruh: com ½ / referência = "
           f"{mp.nstr(unruh_rows[0]['with_half_over_ref'], 20)}; eq. 4a / referência = {mp.nstr(unruh_rows[0]['eq4a_over_ref'], 20)} (xi = 0.5)")
     print(f"fase 2, F3: maior desvio sem ½ contra a eq. 67: {max(mp.mpf(r['eq4a_worst_dev']) for r in f3_rows)} [COMPUTED]")
     print(f"fase 2, F3: inclinação -3 com desvio {mp.nstr(f3_slopes['eq4a'] + 3, 3)} [COMPUTED]")
+    print(f"fase 2, F4: maior desvio sem ½ contra a eq. 51, com sqrt(Y^2+Z^2): {max(mp.mpf(r['eq4a_dev_transverse']) for r in f4_rows)}; "
+          f"com sqrt(X^2+Y^2): {max(mp.mpf(r['eq4a_dev_literal']) for r in f4_rows)} [COMPUTED]")
+    print(f"fase 2, F4: inclinação -3 com desvio {mp.nstr(f4_slopes['eq4a'] + 3, 3)} [COMPUTED]")
     print("constantes HEURISTIC usadas:")
     for k, v in reported_heuristics().items():
         print(f"  {k} = {mp.nstr(v.value, 5)}  ({v.source})")

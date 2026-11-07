@@ -34,9 +34,36 @@ Comparação entre a energia do vácuo **calculada** a partir da soma de imagens
 
 ## Fase 2 (em andamento): Kim & Thorne (1991)
 
-Plano em `docs/phase2_plan.md`, transcrições em `docs/equation_transcription.md`. Até aqui: testes árbitros do operador e itens F1 e F3. F4, F2, F5, F6 e F7 ainda não foram implementados.
+Plano em `docs/phase2_plan.md`, transcrições em `docs/equation_transcription.md`. Até aqui: testes árbitros do operador e itens F1, F3 e F4. F2, F5, F6 e F7 ainda não foram implementados.
 
-### Teste árbitro: eq. 4a de Kim & Thorne contra a eq. 11 de Li & Gott
+### Árbitro principal: estado térmico no espaço de Minkowski
+
+Não depende de nenhum artigo fechado. A função de Hadamard é a soma de imagens em tempo imaginário (período β = 1/T), derivada da condição KMS em `docs/thermal_images.md`, sem o termo n = 0, que é o vácuo de Minkowski. A referência é Stefan-Boltzmann para um escalar sem massa, π²T⁴/30, conferido pela integral de Bose. Valores COMPUTED.
+
+| T | operador | ρ / (π²T⁴/30) | maior desvio de 3p/ρ em relação a 1 | traço / ρ | erro DF |
+|---|---|---|---|---|---|
+| 0.3 | eq. 4a impressa | 1.999999999999999999936 | -2.5e-20 | 8.36e-23 | 3.16e-20 |
+| 0.3 | com ½ | 0.9999999999999999999682 | -2.5e-20 | 2.09e-23 | 3.14e-20 |
+| 1 | eq. 4a impressa | 1.999999999999999999936 | -2.5e-20 | 8.36e-23 | 3.16e-20 |
+| 1 | com ½ | 0.9999999999999999999682 | -2.5e-20 | 2.09e-23 | 3.14e-20 |
+| 3 | eq. 4a impressa | 1.999999999999999999936 | -2.5e-20 | 8.36e-23 | 3.16e-20 |
+| 3 | com ½ | 0.9999999999999999999682 | -2.5e-20 | 2.09e-23 | 3.14e-20 |
+
+Os valores coincidem entre as temperaturas porque δ e h escalam com β.
+
+**Resultado:** o operador com ½ reproduz Stefan-Boltzmann, e a eq. 4a impressa dá o dobro. O estado tem pressão ρ/3 e traço zero com os dois operadores. É uma inconsistência de convenção entre a eq. 4a impressa e o valor térmico.
+
+A soma de imagens também foi comparada com a integral de modos com ocupação de Bose, em pontos separados (β = 1, 400 pares e o termo dominante da cauda):
+
+| t | r | imagens | modos | diferença relativa |
+|---|---|---|---|---|
+| 0.1 | 0.2 | 0.159568016514404 | 0.159568016477603 | 2.31e-10 |
+| 0.3 | 0.5 | 0.130419330870684 | 0.130419330597301 | 2.1e-9 |
+| 0.7 | 1.5 | 0.0780197619218726 | 0.0780197599661581 | 2.51e-8 |
+
+A diferença vem do corte da soma de imagens. Birrell & Davies (1982) fica como referência pendente: a página não pôde ser conferida, e a derivação está escrita por extenso em `docs/`.
+
+### Comparação direta: eq. 4a de Kim & Thorne contra a eq. 11 de Li & Gott
 
 Operador das eqs. 4a e 4b de Kim & Thorne (p. 3933), como impressas, escrito sem usar o código da fase 1, aplicado à função de Rindler (Li & Gott, eq. 6) regularizada pela eq. 3 (p. 3933). A referência é o operador da eq. 11 de Li & Gott (arXiv gr-qc/9711074, p. 2), validado na fase 1. Escala: 1/(1440π²ξ⁴). Todos os valores são COMPUTED.
 
@@ -48,9 +75,9 @@ Operador das eqs. 4a e 4b de Kim & Thorne (p. 3933), como impressas, escrito sem
 
 **Resultado: dá o dobro.** Os dois artigos normalizam a função de Hadamard da mesma forma, 1/(4π²σ) com σ igual à metade do quadrado da separação (Kim & Thorne, eqs. 3, 17 e 20; Li & Gott, eq. 9). A eq. 4a não tem o fator ½ da eq. 11, e nenhuma definição em volta dela o compensa. Inconsistência entre os dois artigos, nas convenções como impressas.
 
-### Árbitro independente dos dois artigos: efeito Unruh
+### Árbitro secundário: efeito Unruh
 
-Referência: ρ = −π²T⁴/30 com T = 1/(2πξ), ou seja, −3/(1440π²ξ⁴). A relação é a atribuída a Candelas & Deutsch (1977), com volume e página confirmados no Crossref, mas **o texto do artigo não foi lido** (acesso fechado). A densidade térmica π²T⁴/30 foi conferida por integração numérica da integral de Bose.
+Referência: ρ = −π²T⁴/30 com T = 1/(2πξ), ou seja, −3/(1440π²ξ⁴). **Ressalva:** a relação "vácuo de Rindler = −térmico" não foi lida em Candelas & Deutsch (1977). Volume e página foram confirmados só no Crossref, e o artigo tem acesso fechado.
 
 | ξ | referência / escala | operador com ½ / referência | eq. 4a impressa / referência |
 |---|---|---|---|
@@ -58,7 +85,7 @@ Referência: ρ = −π²T⁴/30 com T = 1/(2πξ), ou seja, −3/(1440π²ξ⁴
 | 1.3 | -3.0 | 0.99999999999999999999 | 2.0 |
 | 2 | -3.0 | 1.0 | 2.0 |
 
-**Resultado:** a versão com ½ concorda com o valor de Unruh, e a eq. 4a impressa dá o dobro. É uma inconsistência de convenção entre a eq. 4a impressa e o valor de Unruh.
+**Resultado:** a versão com ½ concorda com o valor de Unruh, e a eq. 4a impressa dá o dobro, como no árbitro térmico. É uma inconsistência de convenção entre a eq. 4a impressa e o valor de Unruh.
 
 ### F1: geometria do espaço de recobrimento
 
@@ -133,15 +160,51 @@ Diferenças finitas aplicadas à eq. 66, com λ_N da eq. 61 e prefator lido lite
 - **Maior erro de diferenças finitas em T^TT:** 3.96e-20.
 - **Inclinação de log|T^TT| contra log Δ, sobre o eixo (β = 0,5, b/D = 0,01, X/D = 0,25):** −3 com desvio de -4.39e-6 sem ½ e -4.39e-6 com ½.
 
-**Resultado:** a versão sem ½ reproduz a eq. 67, e a versão com ½ dá metade dela. Os resultados impressos ficam, portanto, 2 vezes acima do valor ancorado pelo árbitro de Unruh. Um fator constante não altera a taxa de divergência, que é a conclusão qualitativa do artigo.
+**Resultado:** Os resultados impressos de Kim & Thorne (eq. 67) são reproduzidos pelo operador da eq. 4a como impresso, sem o fator ½. Portanto o fator é carregado de forma consistente até o resultado final, e os valores impressos ficam 2 vezes acima dos obtidos com a convenção que reproduz o árbitro térmico. A taxa de divergência (Δ⁻³) e a troca de sinal na hipersuperfície não dependem desse fator.
 
 O desvio residual tem a forma dos termos que o artigo despreza. Sobre o eixo, ele cai linearmente com Δ em X/D = 0,25. Em X = D/2, T^TT e T^TX ficam no nível do erro numérico e só T^XX se desvia, quadraticamente, porque a derivada primeira do prefator da eq. 66 se anula ali. Fora do eixo, o desvio em kk cresce como (ρ/X)², e as demais componentes crescem como ρ/X, a correção fracionária que o texto diz ignorar (p. 3945).
+
+### F4: ⟨T^μν⟩ na garganta
+
+Diferenças finitas aplicadas à eq. 50, com λ_N da eq. 46, sem usar a eq. 51, com os dois operadores em paralelo, em pontos da eq. 42 a uma distância Δ antes de H_1, em unidades de λ_1. A comparação usa as 16 componentes do tensor, e o desvio é relativo à maior componente da eq. 51. Para a eq. 52, roda a leitura literal √(X²+Y²) e a variante √(Y²+Z²), o ρ da eq. 39. **A eq. 52 está aguardando conferência humana.** Tudo é COMPUTED, salvo as colunas da eq. 51, que são DERIVED. A tabela completa está em `outputs/kim_thorne_f4.csv`.
+
+| β | b/D | θ | φ | Δ/b | sem ½ / eq. 51, T^TT | com ½ / eq. 51, T^TT | desvio com √(Y²+Z²) | desvio com √(X²+Y²) |
+|---|---|---|---|---|---|---|---|---|
+| 0.1 | 0.01 | 0.2 | 0 | 1e-4 | 1.0 | 0.5 | 1.865e-6 | 0.001047 |
+| 0.1 | 0.01 | 0.7 | 0 | 1e-4 | 1.0 | 0.5 | 3.925e-6 | 0.06137 |
+| 0.1 | 0.01 | 1.3 | 0 | 1e-4 | 1.0 | 0.5 | 9.61e-6 | 0.5779 |
+| 0.5 | 0.01 | 0.2 | 0 | 1e-2 | 1.0 | 0.5 | 0.001233 | 0.001198 |
+| 0.5 | 0.01 | 0.2 | 0 | 1e-4 | 1.0 | 0.5 | 1.232e-5 | 0.001198 |
+| 0.5 | 0.01 | 0.2 | 0 | 1e-6 | 1.0 | 0.5 | 1.232e-7 | 0.001198 |
+| 0.5 | 0.01 | 0.7 | 0 | 1e-2 | 1.0 | 0.5 | 0.002593 | 0.089 |
+| 0.5 | 0.01 | 0.7 | 0 | 1e-4 | 1.0 | 0.5 | 2.593e-5 | 0.09157 |
+| 0.5 | 0.01 | 0.7 | 0 | 1e-6 | 1.0 | 0.5 | 2.593e-7 | 0.0916 |
+| 0.5 | 0.01 | 1.3 | 0 | 1e-2 | 1.0 | 0.5 | 0.004254 | 0.5712 |
+| 0.5 | 0.01 | 1.3 | 0 | 1e-4 | 1.0 | 0.5 | 4.254e-5 | 0.5778 |
+| 0.5 | 0.01 | 1.3 | 0 | 1e-6 | 1.0 | 0.5 | 4.254e-7 | 0.5779 |
+| 0.9 | 0.01 | 0.2 | 0 | 1e-4 | 1.0 | 0.5 | 4.155e-5 | 0.0015 |
+| 0.9 | 0.01 | 0.7 | 0 | 1e-4 | 1.0 | 0.5 | 6.069e-5 | 0.1332 |
+| 0.9 | 0.01 | 1.3 | 0 | 1e-4 | 1.0 | 0.5 | 7.757e-5 | 0.5778 |
+| 0.5 | 0.01 | 0.7 | 0.6 | 1e-2 | 1.0 | 0.5 | 0.00225 | 0.1232 |
+| 0.5 | 0.01 | 0.7 | 0.6 | 1e-4 | 1.0 | 0.5 | 2.25e-5 | 0.1209 |
+| 0.5 | 0.01 | 0.7 | 0.6 | 1e-6 | 1.0 | 0.5 | 2.25e-7 | 0.1209 |
+
+- **Maior desvio do operador sem ½, com √(Y²+Z²), em todo o grid:** 0.007757 (Δ/b = 1e-2); em Δ/b = 1e-6, 7.757e-07.
+- **Maior desvio com a leitura literal √(X²+Y²):** 0.5779; em Δ/b = 1e-6, 0.5779. Não cai com Δ.
+- **Maior erro de diferenças finitas em T^TT:** 1.64e-16.
+- **Inclinação de log|T^TT| contra log Δ (β = 0,5, b/D = 0,01, θ = 0,7):** −3 com desvio de -9.6e-13 sem ½ e -9.6e-13 com ½.
+
+**Resultado:** Os resultados impressos de Kim & Thorne (eq. 51) são reproduzidos pelo operador da eq. 4a como impresso, sem o fator ½. Portanto o fator é carregado de forma consistente até o resultado final, e os valores impressos ficam 2 vezes acima dos obtidos com a convenção que reproduz o árbitro térmico. A taxa de divergência (Δ⁻³) e a troca de sinal na hipersuperfície não dependem desse fator.
+
+**Eq. 52:** só a variante √(Y²+Z²) reproduz a eq. 51. Com a leitura literal √(X²+Y²), o vetor ρ̂ não é unitário fora de θ = 0 (na garganta, sua componente transversal é cos(θ/2)), e o texto o chama de "unit transverse vector" (p. 3943). O desvio cresce com θ e não cai com Δ.
+
+O desvio com √(Y²+Z²) cai linearmente com Δ/b. Ele é o termo com a segunda derivada de λ_N nas direções transversais, que a eq. 51 não contém: a expressão analítica desse termo reproduz o resíduo em YY, YZ e ZZ, e as demais componentes ficam no nível do erro numérico. Por isso T^TT coincide com a eq. 51 nos 15 dígitos da tabela.
 
 ### O que esta parte estabelece e o que não estabelece
 
 - **Estabelece:** as eqs. 33, 34 e 37 são exatas para a geometria das eqs. 25 e 28, e a eq. 38 é uma aproximação cujo erro relativo é proporcional a ε/D, sobre o eixo de simetria.
-- **Estabelece também:** a eq. 67 decorre das eqs. 61 e 66 pelo operador da eq. 4a impressa, com os desvios medidos acima, e a divergência é Δ⁻³.
-- **Não estabelece:** que as eqs. 61 e 66 estejam certas: elas são entrada do cálculo, em óptica geométrica. A garganta (eq. 51) ainda não foi testada. A ancoragem pelo valor de Unruh foi feita no vácuo de Rindler, não no buraco de minhoca, e o texto de Candelas & Deutsch não foi lido.
+- **Estabelece também:** as eqs. 67 e 51 decorrem das eqs. 61 e 66 e das eqs. 46 e 50 pelo operador da eq. 4a impressa, com os desvios medidos acima, e a divergência é Δ⁻³.
+- **Não estabelece:** que as eqs. 46, 50, 61 e 66 estejam certas: elas são entrada do cálculo, em óptica geométrica. A ancoragem pelos árbitros foi feita no estado térmico e no vácuo de Rindler, não no buraco de minhoca. O que os árbitros mostram é qual convenção reproduz esses valores. A leitura da eq. 52 aguarda conferência humana.
 - **Disputa com Hawking:** Hawking (1992, p. 603 e seção VI) contesta a conclusão de Kim & Thorne. Ele argumenta que um eventual corte deveria ser em distância invariante, e não no tempo próprio, que depende do observador. Esta fase reproduz o cálculo de Kim & Thorne e não decide quem estava certo.
 
 ## Constantes numéricas escolhidas por nós (HEURISTIC)
@@ -153,3 +216,7 @@ O desvio residual tem a forma dos termos que o artigo despreza. Sobre o eixo, el
 - `n_terms` = 24: image pairs summed explicitly before the Kummer tail
 - `kt_split_ratio` = 1.0e-10: point-splitting distance / distance to the horizon, Kim & Thorne runs
 - `kt_step_ratio` = 1.0e-11: finite-difference step / distance to the horizon, Kim & Thorne runs
+- `thermal_n_terms` = 24: imaginary-time image pairs summed explicitly before the Kummer tail
+- `thermal_split_ratio` = 1.0e-10: point-splitting distance / beta in the thermal arbiter
+- `thermal_step_ratio` = 1.0e-11: finite-difference step / beta in the thermal arbiter
+- `thermal_mode_cutoff` = 60: mode integral stops at k = cutoff / beta, where n_k ~ e^-60
