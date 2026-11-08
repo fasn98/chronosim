@@ -33,7 +33,7 @@ Two later works recompute the analogue of one of Kim and Thorne's results.
   \begin{itemize}
   \item He derives the stress-energy near a closed null geodesic for multiply connected spacetimes (eqs.~3.7 and 3.8, pp.~31--32 of the thesis), using an operator (eq.~3.3, p.~30) that equals the operator of Kim and Thorne's eq.~4b multiplied by $\tfrac12$.
   \item With Kim and Thorne's van Vleck factor (eq.~64) and $e^h = 1/\xi$ (eq.~33), his eq.~3.8 is \emph{exactly half} of Kim and Thorne's eq.~67. This is an algebraic identity, checked by a test in the repository.
-  \item He states that their results ``are in perfect agreement with ours'' (thesis, section~4, p.~38). He does not comment on the factor.
+  \item He states that their results ``are in perfect agreement with ours'' (thesis, section~4, p.~38) [quotation pending the author's check against the thesis]. He does not comment on the factor.
   \end{itemize}
 \item \textbf{Visser, arXiv:hep-th/9303023~\cite{visser1993}.}
   \begin{itemize}
@@ -106,7 +106,7 @@ Before the wormhole, the same machinery was validated on Misner space against Li
 \begin{itemize}
 \item \textbf{Agreement:} the largest difference, relative to the scale $1/(1440\pi^2\xi^4)$, is $\PhaseOneWorst$ (\textsc{computed}).
 \item \textbf{Horizon slope:} the log--log slope of $|\rho|$ against $\xi$ differs from the $-4$ that eq.~12 predicts by $\PhaseOneSlopeDev$.
-\item \textbf{The self-consistent value $b = 2\pi$}, where eq.~12 vanishes: the largest computed $|\rho|$ there is $\PhaseOneTwoPiMax$.
+\item \textbf{The self-consistent value $b = 2\pi$}, where eq.~12 vanishes: the largest computed $|\rho|$ there is $\PhaseOneTwoPiMax$ in absolute value (natural units), at $\xi = \PhaseOneTwoPiXi$, which is $\PhaseOneTwoPiRel$ relative to the scale $1/(1440\pi^2\xi^4)$.
 \end{itemize}
 Figure~\ref{fig:phase1} shows the horizon divergence.
 
@@ -183,7 +183,7 @@ For each discrepancy, the subsection gives what is printed, what the computation
   \item The definitions around it were read with that question in mind: $G^{(1)}$ as the expectation of two field products (eq.~1), the subtraction $1/(4\pi^2\sigma_0)$ (eq.~3) and the normalization of eqs.~17 and~20.
   \item None of them supplies a compensating factor, and the author's reading of eqs.~1, 3, 4a and 4b confirms the transcription.
   \end{itemize}
-\item \textbf{What the arbiters show.} With $\tfrac12$ the operator reproduces Stefan--Boltzmann and the Unruh value; as printed it gives twice both (Table~\ref{tab:arbiters}). The thermal state also has pressure $\rho/3$ to within $\ThermalPressureDev$ and trace $\ThermalTrace$ relative to $\rho$, for temperatures $T = \ThermalTemps$. Against Li and Gott's eq.~11 the ratio is $2$ to within $\ArbiterRatioDev$ at $\xi = \ArbiterXis$.
+\item \textbf{What the primary arbiter shows.} With $\tfrac12$ the operator reproduces the Stefan--Boltzmann density of the thermal state; as printed it gives twice that value (Table~\ref{tab:arbiters}). The secondary comparison with the Unruh value, whose source was not read, gives the same factor. The thermal state also has pressure $\rho/3$ to within $\ThermalPressureDev$ and trace $\ThermalTrace$ relative to $\rho$, for temperatures $T = \ThermalTemps$. Against Li and Gott's eq.~11 the ratio is $2$ to within $\ArbiterRatioDev$ at $\xi = \ArbiterXis$.
 \item \textbf{What the printed results carry.} Eqs.~51 and 67 are reproduced \emph{by the operator as printed} (F3, F4). The normalization of eq.~4a is therefore carried consistently through to the final results, and the printed stress-energy values lie a factor of two above the convention that matches the arbiters.
 \end{itemize}
 
@@ -222,7 +222,7 @@ For each discrepancy, the subsection gives what is printed, what the computation
 
 \begin{itemize}
 \item \textbf{What is printed.} The text gives $T^{00}_{\max} \sim (l_P/D)(m_P/l_P^3)$ (eq.~14) and the value $\sim \FSevenPrinted$\,g/cm$^3$.
-\item \textbf{What the printed inputs give.} With the inputs the article itself prints beside it, $m_P$ after eq.~54 (p.~3943) and $l_P/D$ with $D = 1$\,m (p.~3935), the expression gives $\sim \FSevenRecomputed$\,g/cm$^3$ (Table~\ref{tab:f7}). The other estimates are consistent.
+\item \textbf{What the printed inputs give.} With the inputs the article itself prints beside it, $m_P$ after eq.~54 (p.~3943) and $l_P/D$ with $D = 1$\,m (p.~3935), the expression gives $\sim \FSevenRecomputed$\,g/cm$^3$ (Table~\ref{tab:f7}). The other printed estimates agree with their recomputation.
 \item \textbf{Reading.} The author's reading of the printed exponent is unambiguous.
 \item \textbf{What depends on it.} This is an order-of-magnitude estimate, and no conclusion of the article depends on it.
 \end{itemize}
@@ -230,7 +230,7 @@ For each discrepancy, the subsection gives what is printed, what the computation
 \begin{table}[t]
 \centering\small
 \input{generated/tab_f7.tex}
-\caption{F7: printed estimates against the arithmetic of the inputs printed with them.}
+\caption{F7: estimates printed in Kim and Thorne, with page, against the arithmetic of the inputs printed with them. A dash means the value is not printed in Kim and Thorne; only the recomputation is shown. \FSevenNotInKT{}; it is used only as a cross-check of the arithmetic.}
 \label{tab:f7}
 \end{table}
 
@@ -240,7 +240,7 @@ For each discrepancy, the subsection gives what is printed, what the computation
 \begin{itemize}
 \item \textbf{The question a replication asks:} whether the article's results follow from its stated starting points by its stated methods. For every closed form examined here they do: eqs.~51 and 67 follow from eqs.~50 and 66 through the operator of eq.~4a exactly as printed.
 \item \textbf{What the factor is.} It sits in one overall constant, the normalization of the operator relative to the normalization of $G^{(1)}$. That constant multiplies every stress-energy value of the article uniformly.
-\item \textbf{What the arbiters decide.} They decide which value of the constant reproduces known physics (a thermal state, the Unruh value, Li and Gott's operator): the value with $\tfrac12$.
+\item \textbf{What the arbiters decide.} The primary arbiter, the thermal state in Minkowski space, decides which value of the constant reproduces known physics: the value with $\tfrac12$. Li and Gott's operator and the secondary Unruh comparison (source not read) agree with it.
 \item \textbf{What the factor does not touch.} It does not affect the $\Delta^{-3}$ rate, the sign change at the polarized hypersurface, the location of the hypersurfaces, the geometry, or the defocusing. An order-of-magnitude argument such as eqs.~9--14 is not moved by it.
 \item \textbf{Conclusion.} The replication succeeds, and the factor is reported as an inconsistency of convention between eq.~4a and the references, carried consistently through the article.
 \end{itemize}
@@ -257,7 +257,7 @@ Eq.~31 is not used later. Eq.~52 must be read with $\sqrt{Y^2+Z^2}$ for eq.~51 t
 \begin{itemize}
 \item The closed forms of the article (F1--F6) follow from its starting expressions. Their residuals have the form of the terms the article neglects.
 \item The geometry and the defocusing reproduce independently.
-\item The operator convention that matches a thermal state and the Unruh value is the one with $\tfrac12$.
+\item The operator convention that matches the Stefan--Boltzmann density of a thermal state is the one with $\tfrac12$ (the secondary Unruh comparison, source not read, agrees).
 \end{itemize}
 
 \paragraph{What it does not establish.}
@@ -305,12 +305,14 @@ The human checks of the equations were done by the author: the third reading of 
 
 Claude is not an author. Authorship requires taking responsibility for the work, which a model cannot do; this follows ICMJE and COPE guidance.
 
-The extent of that assistance is auditable rather than asserted: commits in the project repository carry Co-Authored-By trailers, so the development record can be inspected directly. Declaring it here applies to the authorship of the paper the same discipline the paper applies to its numbers: stating an origin rather than leaving it to be inferred.
+Methodological suggestions, including the thermal arbiter and the transcription protocol, were also discussed with Claude in a separate chat interface; all decisions were made by the author.
+
+The extent of that assistance is auditable rather than asserted. In the history of the release, $\CommitsWithTrailer$ of the non-merge commits carry a Co-Authored-By trailer naming Claude and $\CommitsWithoutTrailer$ do not; the $\MergeCommits$ merge commits, made by the author, carry none. The development record can be inspected directly. Declaring it here applies to the authorship of the paper the same discipline the paper applies to its numbers: stating an origin rather than leaving it to be inferred.
 
 \section{Reproducibility}
 
 \begin{itemize}
-\item \textbf{Repository:} the code, the tests and the generated outputs are at \url{https://github.com/fasn98/chronosim}. This paper was built from commit \texttt{\CodeCommit}. Zenodo DOI: PENDING, until release v0.2.0.
+\item \textbf{Repository:} the code, the tests and the generated outputs are at \url{https://github.com/fasn98/chronosim}. Code release: \CodeRelease. The numbers of this paper are generated from the outputs of that release; the generator refuses to run on any other commit once the tag exists. Zenodo DOI: PENDING, until the release.
 \item \textbf{Environment:} Python \VersionPython{}, with the exact versions of \texttt{requirements.txt} (mpmath \VersionMpmath, NumPy \VersionNumpy, Matplotlib \VersionMatplotlib). The pins matter: another mpmath version changes the formatting of the generated report, and a test checks the installed versions.
 \end{itemize}
 To reproduce:
