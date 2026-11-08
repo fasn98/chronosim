@@ -2,7 +2,8 @@
 Phase 2: Kim & Thorne (1991), arbiters of eq. 4a and items F1 to F7.
 Phase 3: Echeverria, Klinkhammer & Thorne (1991), reproduction R1 to R11 (parallel worker processes).
 
-    python -m chronosim.run            # writes outputs/
+    python -m chronosim.run            # phases 1-2 in full, a small phase 3 subset; writes outputs/
+    python -m chronosim.run --full     # also R1-R11 in full: outputs/phase3_full.md, ekt_r8.csv, fig5
 """
 
 from __future__ import annotations
@@ -866,10 +867,13 @@ def main(argv=None) -> int:
     p = argparse.ArgumentParser(description="chronosim: phases 1-3 (Misner, Kim & Thorne, Echeverria-Klinkhammer-Thorne)")
     p.add_argument("--out", default="outputs")
     p.add_argument("--no-figures", action="store_true")
+    p.add_argument("--full", action="store_true", help="run R1-R11 of phase 3 in full (~15 min); the default runs a small subset")
     args = p.parse_args(argv)
     mp.mp.dps = DPS.value  # all comparisons at full working precision
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
+
+    p3_handle = phase3.start(quick=not args.full)  # phase 3 runs in worker processes meanwhile
 
     rows = []
     worst = validate(rows)
@@ -909,18 +913,23 @@ def main(argv=None) -> int:
         figures_phase2(out)
     report(out, rows, worst, slope, arb, f1_rows, f1_exact, unruh_rows, f3_rows, f3_slopes, thermal_rows, mode_rows, f4_rows, f4_slopes, f2, f5, f6, f7)
 
-    p3_res = phase3.reproduce()
+    p3_res = phase3.collect(p3_handle)
+    section = phase3.report_section(p3_res) if args.full else phase3.report_section_quick(p3_res)
     with open(out / "report.md", "a", encoding="utf-8") as fh:
-        fh.write("\n".join(phase3.report_section(p3_res)) + "\n")
-    with open(out / "ekt_r8.csv", "w", newline="", encoding="utf-8") as fh:
-        w = csv.writer(fh)
-        w.writerow(["theta", "phi", "lambda1", "B", "R", "class", "s", "alpha", "beta", "eps", "d", "residual_4.2_4.3", "dev_d_4.4b", "dev_v2_4.5", "origin"])
-        for arg, r in p3_res["r8"]:
-            for x in r["rows"]:
-                w.writerow(list(arg) + [x["class"], mp.nstr(x["s"], 20), mp.nstr(x["alpha"], 20), mp.nstr(x["beta"], 20), mp.nstr(x["eps"], 20),
-                                        mp.nstr(x["d"], 20), mp.nstr(x["res"].value, 5), mp.nstr(x["dev_d"].value, 5), mp.nstr(x["dev_v2"].value, 5), "COMPUTED"])
-    if not args.no_figures:
-        figure_phase3(out, p3_res)
+        fh.write("\n".join(section) + "\n")
+    if args.full:
+        (out / "phase3_full.md").write_text("# chronosim · fase 3, reprodução completa (`python -m chronosim.run --full`)\n" + "\n".join(section) + "\n", encoding="utf-8")
+        with open(out / "ekt_r8.csv", "w", newline="", encoding="utf-8") as fh:
+            w = csv.writer(fh)
+            w.writerow(["theta", "phi", "lambda1", "B", "R", "class", "s", "alpha", "beta", "eps", "d", "residual_4.2_4.3", "dev_d_4.4b", "dev_v2_4.5",
+                        "sign_rule_4.6c", "dev_a_A6", "origin"])
+            for arg, r in p3_res["r8"]:
+                for x in r["rows"]:
+                    w.writerow(list(arg) + [x["class"], mp.nstr(x["s"], 20), mp.nstr(x["alpha"], 20), mp.nstr(x["beta"], 20), mp.nstr(x["eps"], 20),
+                                            mp.nstr(x["d"], 20), mp.nstr(x["res"].value, 5), mp.nstr(x["dev_d"].value, 5), mp.nstr(x["dev_v2"].value, 5),
+                                            x["sign_rule"], mp.nstr(x["dev_a6"].value, 5), "COMPUTED"])
+        if not args.no_figures:
+            figure_phase3(out, p3_res)
 
     print(f"pior erro relativo à escala: {mp.nstr(worst, 3)} [COMPUTED]")
     print(f"inclinação perto do horizonte: {mp.nstr(slope, 15)} [COMPUTED] (eq. 12: -4)")
@@ -945,6 +954,7 @@ def main(argv=None) -> int:
           f"eq. 54 em ΔT/b = 1e-3: {mp.nstr(f6['eq54'][-1][1], 3)} [COMPUTED]")
     print(f"fase 2, F7: T00_max impresso 1e49 g/cm^3, recalculado {mp.nstr(f7[3][3].value, 3)} g/cm^3 (ordem de grandeza)")
     r8_res = [x["res"].value for _, r in p3_res["r8"] for x in r["rows"]]
+    print(f"fase 3 ({'completa, --full' if args.full else 'execução reduzida; a completa é --full'}):")
     print(f"fase 3, R8: maior resíduo das eqs. 4.2-4.3 nas soluções geométricas: {mp.nstr(max(r8_res), 3)} [COMPUTED]")
     print(f"fase 3, R1: eq. 2.1b reproduzida com desvio {mp.nstr(p3_res['r1'][0][1]['max_dev'].value, 3)} rad [COMPUTED]")
     print("constantes HEURISTIC usadas:")

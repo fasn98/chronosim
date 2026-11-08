@@ -284,7 +284,7 @@ As equações estão em unidades D = T_d = 1. Restaurando D e T_d, cada termo pr
 - **Demais equações:** são homogêneas com B, R e d em unidades de D, v em D/T_d e ângulos adimensionais.
 - **Teste de escala:** o teste do modelo ("só v₁T_d/D importa"), decidido para o mapa, ainda não foi feito.
 
-## Trechos do texto que parecem trocados
+## Trechos do texto com inconsistência aparente
 
 As duas passadas os leem da mesma forma. Nenhum é usado no cálculo.
 

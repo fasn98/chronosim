@@ -142,3 +142,51 @@ def test_backend_switches_to_mpmath_for_deep_itineraries():
     assert bl.backend_for(2, 0.01)[0] is bl.FLOAT
     xm, digits = bl.backend_for(12, 0.01)
     assert xm is bl.MP and digits > 12 * 2
+
+
+KINDS = {"s_count_change", "s_bisect_lost", "nu_count_change", "nu_state_lost", "nu_bisect_lost"}
+
+
+def test_search_reports_every_discard_with_its_kind_or_reason():
+    """Reviewer B1: nothing the bracketing cannot follow is dropped silently."""
+    with mp.workdps(40):
+        th, ph, lam, B, R = (mp.mpf(x) for x in ("0.2", "0.6", "0.5", "0.01", "0.001"))
+        v1 = ekt.v1_from_lambda(lam, th, ph, B, R).value
+        p0, e = p3.line_theta_phi(th, ph, B)
+        s0 = p3.self_inconsistent_crossing(p0, e, B)
+        grid = [float(s0) - 0.01 + 0.02 * i / 60 for i in range(61)]
+        sols, unres = p3.solutions(p0, e, v1, 1, 1, B, R, grid)
+    assert all(u[0] in KINDS for u in unres)
+    assert set(p3.unresolved_by_kind(unres)) <= KINDS
+    assert all(s["fails"] and all(isinstance(f, str) and f for f in s["fails"]) for s in sols if not s["ok"])
+
+
+def test_nu_interval_with_a_count_change_is_logged_not_skipped():
+    """A nu-interval whose aim-root count changes is split, and what is left is logged."""
+    calls = []
+
+    def fake_roots(P, nu, m, k, B, R, windows, xm, aim_grid):
+        calls.append(nu)
+        return [0.1] if nu < 0.3 else [0.1, 0.2]
+
+    saved = bl._aim_roots
+    bl._aim_roots = fake_roots
+    try:
+        log = []
+        pairs = bl._nu_intervals((0.5, -0.3), 1, 1, 0.01, 0.001, [(0, 1)], bl.FLOAT, None, 4, log)
+    finally:
+        bl._aim_roots = saved
+    assert len(log) == 1 and log[0][0] == "nu_count_change"
+    lo, hi = log[0][2], log[0][3]
+    assert lo < 0.3 <= hi and hi - lo <= 2 * mp.pi / 4 / 2 ** bl.MAX_SPLIT.value * 1.0001
+    assert all(len(a) == len(b) for _, a, _, b in pairs)
+
+
+def test_r8_rows_carry_the_eq_A6_and_sign_rule_checks():
+    """Reviewer B2: the run itself checks eq. A6 and the eq. 4.6c sign rule in every R8 row."""
+    c = _central_pair()
+    case = {"sols": [{"ok": True, "sol": s["sol"], "angles": s["angles"]} for s in c["sols"]],
+            "theta": c["th"], "phi": c["ph"], "v1": c["v1"], "B": c["B"], "R": c["R"]}
+    rows = p3.r8_eq42_43(case)
+    assert rows and all(r["sign_rule"] for r in rows)
+    assert all(r["dev_a6"].value < ROUNDING and r["dev_a6"].origin is Origin.COMPUTED for r in rows)

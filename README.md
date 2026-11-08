@@ -86,8 +86,9 @@ git clone https://github.com/fasn98/chronosim.git
 cd chronosim
 python3 -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
-python -m pytest            # 436 testes, ~4 min
-python -m chronosim.run     # validação completa, figuras e relatório em outputs/ (~18 min; a fase 3 usa vários processos)
+python -m pytest            # 496 testes, ~8 min
+python -m chronosim.run          # fases 1 e 2 completas e um subconjunto da fase 3; relatório em outputs/ (~4 min; meta de até ~6 min)
+python -m chronosim.run --full   # inclui R1–R11 completos da fase 3 (outputs/phase3_full.md; ~18 min, vários processos)
 ```
 
 ## Roteiro
@@ -95,8 +96,9 @@ python -m chronosim.run     # validação completa, figuras e relatório em outp
 1. ✅ **Misner, vácuo de Li-Gott:** soma de imagens contra a forma fechada.
 2. ✅ **Máquina do tempo de buraco de minhoca (Kim & Thorne, 1991):** o tensor ⟨T_ab⟩ perto do horizonte de Cauchy e a estimativa de onde a gravidade quântica passa a dominar (F1 a F7, árbitros, figuras). Resultados em `outputs/report.md`; plano em `docs/phase2_plan.md`.
 3. 🟡 **Bolas de bilhar (Echeverria, Klinkhammer & Thorne, 1991):** mecânica clássica em buracos de minhoca com curvas fechadas tipo tempo e busca de soluções autoconsistentes. Testa a alternativa de autoconsistência de Novikov; não testa o mecanismo quântico de Hawking.
-   - Feito: a reprodução R1–R11, com um modelo geométrico exato e independente (`chronosim/billiards.py`) e um árbitro contra as eqs. 4.2–4.3 do artigo. Os resultados estão em `outputs/report.md`.
-   - Falta: o mapa sistemático, a certificação intervalar e a revisão do squad. O plano está em `docs/phase3_plan.md`.
+   - Feito: a reprodução R1–R11, com um modelo geométrico exato e independente (`chronosim/billiards.py`) e um árbitro contra as eqs. 4.2–4.3 do artigo. Os resultados completos estão em `outputs/phase3_full.md` (`--full`); `outputs/report.md` traz o subconjunto da execução padrão.
+   - Feito: revisão de scalpel e reviewer da reprodução, com os bloqueantes aplicados.
+   - Falta: o mapa sistemático e a certificação intervalar. O plano está em `docs/phase3_plan.md`.
 4. 🔒 **Misner, vácuo de Minkowski com imagens (Hiscock & Konkowski, 1982):** bloqueada até o PDF do artigo ser obtido.
 
 ## Referências

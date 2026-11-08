@@ -157,7 +157,7 @@ Diferenças finitas aplicadas à eq. 66, com λ_N da eq. 61 e prefator lido lite
 | 0.5 | 0.01 | 0.25 | 1e-3 | 1e-6 | 0.999999826384168 | 0.499999913192084 | 4.63e-7 | 0.000455 |
 
 - **Maior desvio do operador sem ½ em relação à eq. 67:** sobre o eixo, 0,00404 (β = 0,9, Δ/D = 1e-2); fora do eixo, 0,00495 (ρ/X = 0,1, Δ/D = 1e-4).
-- **Maior erro de diferenças finitas em T^TT:** 3.96e-20.
+- **Maior erro de diferenças finitas em T^TT:** 0.0000000000000000000396.
 - **Inclinação de log|T^TT| contra log Δ, sobre o eixo (β = 0,5, b/D = 0,01, X/D = 0,25):** −3 com desvio de -4.39e-6 sem ½ e -4.39e-6 com ½.
 
 **Resultado:** Os resultados impressos de Kim & Thorne (eq. 67) são reproduzidos pelo operador da eq. 4a como impresso, sem o fator ½. Portanto o fator é carregado de forma consistente até o resultado final, e os valores impressos ficam 2 vezes acima dos obtidos com a convenção que reproduz o árbitro térmico. A taxa de divergência (Δ⁻³) e a troca de sinal na hipersuperfície não dependem desse fator.
@@ -191,9 +191,9 @@ Diferenças finitas aplicadas à eq. 50, com λ_N da eq. 46, sem usar a eq. 51, 
 | 0.5 | 0.01 | 0.7 | 0.6 | 1e-4 | 1.0 | 0.5 | 2.25e-5 | 0.1209 |
 | 0.5 | 0.01 | 0.7 | 0.6 | 1e-6 | 1.0 | 0.5 | 2.25e-7 | 0.1209 |
 
-- **Maior desvio do operador sem ½, com √(Y²+Z²), em todo o grid:** 0.007757 (Δ/b = 1e-2); em Δ/b = 1e-6, 7.757e-07.
+- **Maior desvio do operador sem ½, com √(Y²+Z²), em todo o grid:** 0.007757 (Δ/b = 1e-2); em Δ/b = 1e-6, 0.0000007757.
 - **Maior desvio com a leitura literal √(X²+Y²):** 0.5779; em Δ/b = 1e-6, 0.5779. Não cai com Δ.
-- **Maior erro de diferenças finitas em T^TT:** 1.64e-16.
+- **Maior erro de diferenças finitas em T^TT:** 0.000000000000000164.
 - **Inclinação de log|T^TT| contra log Δ (β = 0,5, b/D = 0,01, θ = 0,7):** −3 com desvio de -9.6e-13 sem ½ e -9.6e-13 com ½.
 
 **Resultado:** Os resultados impressos de Kim & Thorne (eq. 51) são reproduzidos pelo operador da eq. 4a como impresso, sem o fator ½. Portanto o fator é carregado de forma consistente até o resultado final, e os valores impressos ficam 2 vezes acima dos obtidos com a convenção que reproduz o árbitro térmico. A taxa de divergência (Δ⁻³) e a troca de sinal na hipersuperfície não dependem desse fator.
@@ -276,6 +276,9 @@ As demais quantidades conferem. A densidade de Planck de 10⁹⁴ g/cm³ que Haw
 - `ekt_float_depth` = 11: floats are used while k log10(2/B) is below this; mpmath above (itinerary windows ~ (B/2)^k)
 - `ekt_future_traversals` = 6: traversals followed after the collision when the verifier builds the history
 - `ekt_s_grid` = 240: points of the uniform part of the outer grid of collision positions
+- `ekt_s_far` = 3: farthest collision position searched, in D, along the incoming line (before the traversal) or the exit line (after)
+- `ekt_s_near_over_R` = '0.01': closest collision position to the line's mouth-2 entry searched before the traversal, as a fraction of R
+- `ekt_s_near_after` = '1e-6': closest collision position to the mouth-1 exit searched after the traversal, in D
 - `ekt_window_grid` = 160: extra collision positions in each refinement window around a known special point
 - `ekt_refine_factor` = 2: grid refinement factor of the stabilization search (empty case)
 - `kt_series_tol` = 1.0e-30: the eqs. 66-67 series stops when (b xi / 2D)^N is below this
@@ -295,185 +298,17 @@ As demais quantidades conferem. A densidade de Planck de 10⁹⁴ g/cm³ que Haw
 - `thermal_mode_pairs` = 400: image pairs summed in the image-versus-mode comparison
 - `thermal_mode_cutoff` = 60: mode integral stops at k = cutoff / beta, where n_k ~ e^-60
 
-## Fase 3 · Bolas de bilhar (Echeverria, Klinkhammer & Thorne, 1991): reprodução R1–R11
+## Fase 3 · Bolas de bilhar (Echeverria, Klinkhammer & Thorne, 1991): execução reduzida
 
-Todas as grandezas desta seção são **COMPUTED**.
+Esta é a execução padrão, com um subconjunto pequeno de R1–R11. A reprodução completa está em `outputs/phase3_full.md`, escrita pela última execução de `python -m chronosim.run --full`; os números de lá não foram recalculados nesta execução. Todas as grandezas são **COMPUTED**.
 
-- **Modelo independente** (`chronosim/billiards.py`): o modelo exato que o artigo descreve em palavras e figuras.
-  - Bocas de raio B identificadas por reflexão no plano x = ½ (Fig. 2).
-  - Defasagem T_d: quem entra na boca 2 sai da boca 1 em T − 1.
-  - Travessia em linha reta vista da garganta.
-  - Colisão elástica de esferas iguais, na forma geral.
-  - Não usa nenhuma equação do artigo.
-- **Equações do artigo** (`chronosim/ekt.py`): transcritas duas vezes; a segunda passada foi cega. Registro em `docs/equation_transcription.md`.
-- **Unidades:** D = T_d = 1.
-- **Busca:** bracketing unidimensional aninhado, em grades determinísticas, com polimento em mpmath (40 dígitos).
-  - Cada solução passa por um verificador que reconstrói a história inteira e confere as leis do modelo, incluindo a ausência de qualquer outra sobreposição entre encarnações.
-  - "Intervalos não resolvidos" são trechos da grade em que o número de raízes mudou e não pôde ser ligado após 12 bisseções. Eles são contados, nunca descartados.
+- **R1, eq. 2.1b:** desvio máximo 1,38e-40 rad.
+- **R2, eqs. 2.2–2.4:** troca de velocidades 144, troca espelhada 144, outra 0.
+- **Bola em repouso (p. 1084):** verificador aceita em x = 0,3; 0,5; 0,7: sim; sim; sim.
+- **R3, Fig. 6b** (B = 0,01, R = 1e-4): 1 solução; rapidez menos (1 − 2B): -0,000178; 3 intervalos não resolvidos.
+- **R8, caso central (0,2; 0,6; 0,5; 0,01; 0,001):** 3 soluções geométricas (I, II, II), 3 raízes físicas das eqs. 4.2–4.3; maior resíduo das eqs. 4.2–4.3 ou desvio da A6: 1,48e-37; sign(β) = sign(d) em 3/3; 0 intervalos não resolvidos.
+- **R10, borda superior, φ = 0,8:** β classe I = 0,00023052; eq. B32 = 0,00023069 (B = 10⁻²).
+- **R11, classe II depois da travessia, φ = 0,85:** 1 soluções; β = -0,0007575.
 
-**O que estas contagens são.** São soluções com **uma colisão** e o itinerário indicado, encontradas sob as grades `ekt_*` (HEURISTIC). Não são a multiplicidade do problema, e não estabelecem nenhuma afirmação universal.
-
-- **R1, eq. 2.1b.** O modelo de identificação reproduz ψ_out = ψ_in − 2φ com desvio máximo de 1,38e-40 rad numa grade de 25 × 25 em (φ, ψ_in). É uma derivação da regra, usada como checagem da transcrição.
-- **R2, eqs. 2.2–2.4.** Foram testadas 144 colisões elásticas (pares v₁, v₂), impondo a troca de módulos das eqs. 2.2a–b.
-  - Toda normal de contato que satisfaz a condição é uma das duas da eq. 2.3 ou 2.4: troca de velocidades 144 vezes, troca espelhada 144 vezes, outra 0 vezes.
-  - A direção da linha dos centros desvia das eqs. 2.3b/2.4b no máximo 2,3e-41.
-
-### R3, R4–R6: a trajetória simétrica das Figs. 6 e 7
-
-A trajetória é perpendicular à linha dos centros e passa pelo ponto médio, com v₁ = 0,5.
-
-- **R3, Fig. 6b, troca de velocidades** (B = 0,01, R = 1e-4): 1 solução. A rapidez entre colisões menos (1 − 2B) dá -0,000178. Houve 3 intervalos não resolvidos.
-- **R3, Fig. 6b, troca de velocidades** (B = 0,01, R = 1e-5): 1 solução. A rapidez entre colisões menos (1 − 2B) dá -1,78e-5. Houve 7 intervalos não resolvidos.
-- **R3, Fig. 6b, troca de velocidades** (B = 0,01, R = 1e-6): 1 solução. A rapidez entre colisões menos (1 − 2B) dá -1,78e-6. Houve 46 intervalos não resolvidos.
-  - Desvio / R = -1,781, -1,782, -1,782: o desvio é proporcional a R, e v₁′ = 1 − 2B (p. 1083) é o limite R → 0.
-- **Limite v₁ → 0 (p. 1084).** Com a bola em repouso sobre a linha dos centros em x = 0,3; 0,5; 0,7, o verificador aceita a solução: sim; sim; sim.
-  - A rapidez do laço é 0,979998; menos (1 − 2B − 2R), dá 1,13e-41. O texto dá v₂ = 1, no limite B ≪ 1.
-  - Nada na história depende do instante da colisão, que é o contínuo de soluções de que fala o artigo.
-
-| B | soluções com 1, 2 e 3 travessias | tan ψ / v₁ − 1 (eq. 3.1) | (sin ψ + tan ψ)/(2v₁) − 1 (eq. 3.2) | instantes da p. 1084, maior desvio | intervalos não resolvidos (1/2/3) |
-|---|---|---|---|---|---|
-| 0,04 | y = -0,268948581; y = -0,278565901; y = -0,286884495 | 0,07579 | 0,04383 | 0,00257 | 48/44/42 |
-| 0,02 | y = -0,259204821; y = -0,27177034; y = -0,279178381 | 0,03682 | 0,0211 | 0,0012 | 47/57/47 |
-| 0,01 | y = -0,254536707; y = -0,268574866; y = -0,275548933 | 0,01815 | 0,01035 | 0,000583 | 53/57/49 |
-| 0,005 | y = -0,25225214; y = -0,267024647; y = -0,273786081 | 0,009009 | 0,005129 | 0,000287 | 46/56/50 |
-
-ψ é medido na geometria: tan ψ = |y|/(1/2), onde y é a altura da colisão. Ajustando log|desvio| contra log B, a ordem medida é 1,02 para a eq. 3.1 e 1,03 para a eq. 3.2. As duas são, portanto, o limite B → 0 da geometria. Para a Fig. 7d (três travessias), o artigo não imprime valor ("exercise for the reader"), e a coluna dá o y medido.
-
-### R7: muitas travessias (seção III B)
-
-**v₁ = 3, ψ_A = 0,6, h = 0,5**, B = 0,05, R = 10⁻⁴, colisão a até 50 D. O n_min da eq. 3.8 é 1,125.
-
-| n | L medido | n da eq. 3.7 no L medido | intervalos não resolvidos |
-|---|---|---|---|
-| 1 | 1,906699 | 2,0104 | 0 |
-| 2 | 2,956811 | 3,0216 | 0 |
-| 3 | 4,011271 | 4,0586 | 0 |
-| 4 | 5,064029 | 5,1013 | 0 |
-| 5 | 6,115843 | 6,1467 | 0 |
-| 6 | 7,167124 | 7,1934 | 125 |
-
-**v₁ = 2, ψ_A = 0,6, h = 1**, B = 0,05, R = 10⁻⁴, colisão a até 50 D. O n_min da eq. 3.8 é 5,196.
-
-| n | L medido | n da eq. 3.7 no L medido | intervalos não resolvidos |
-|---|---|---|---|
-| 1 | nenhuma solução encontrada | — | 2 |
-| 2 | nenhuma solução encontrada | — | 18 |
-| 3 | nenhuma solução encontrada | — | 24 |
-| 4 | nenhuma solução encontrada | — | 30 |
-| 5 | 0,9403691 | -14,374 | 36 |
-| 6 | nenhuma solução encontrada | — | 96 |
-
-- **Primeiro conjunto:** soluções encontradas para n = 1, 2, 3, 4, 5, 6. A eq. 3.7, avaliada no L medido, dá n mais 1,01 a 1,19, então o desvio relativo cai aproximadamente como 1/n. A eq. 3.7 vale para n ≫ 1, L ≫ 1, e este conjunto está no começo desse regime. O menor n encontrado é 1; a eq. 3.8, também assintótica, dá 1,125.
-- **Segundo conjunto:** soluções encontradas só para n = 5, com 206 intervalos não resolvidos no total. A busca é **inconclusiva** aqui: a ausência das outras soluções não é afirmada.
-
-### R8: árbitro das eqs. 4.2–4.3 contra a geometria independente
-
-Para cada solução geométrica verificada (colisão antes de uma travessia), α, β e d são medidos na geometria e postos nas eqs. 4.2 e 4.3 como impressas. Em separado, as eqs. 4.2–4.3 são resolvidas diretamente, por findroot a partir de uma grade de pontos de partida, e suas raízes são confrontadas com as geométricas.
-
-| (θ, φ, λ₁, B, R) | movimento livre consistente? | soluções geométricas | raízes físicas das eqs. 4.2–4.3 | coincidem | raízes com distância negativa | maior resíduo das eqs. 4.2–4.3 | maior desvio de d (4.4b) e de v₂ (4.5) |
-|---|---|---|---|---|---|---|---|
-| (0,2; 0,6; 0,5; 0,01; 0,001) | não | 3 (I, II, II) | 3 | 3/3 | 0 | 1,22e-41 | 4,25e-40 |
-| (0,2; 0,6; 0,25; 0,2; 0,05) | não | 1 (I) | 1 | 1/1 | 0 | 6,91e-42 | 1,15e-41 |
-| (0,0; 0,4; 0,75; 0,3; 0,135) | não | 0 | 0 | 0/0 | 0 | — | — |
-| (0,05; 0,1; 0,5; 0,01; 0,001) | não | 1 (I) | 1 | 1/1 | 0 | 1,6e-42 | 3,44e-41 |
-| (1,0; 1,05; 0,5; 0,01; 0,001) | não | 2 (I, II) | 2 | 2/2 | 1 | 5,07e-42 | 4,59e-41 |
-| (-0,78; 0,9; 0,5; 0,1; 0,02) | não | 1 (I) | 1 | 1/1 | 0 | 7,53e-42 | 7,17e-43 |
-
-- **Árbitro.** Em todo caso perigoso, as raízes físicas das eqs. 4.2–4.3 e as soluções geométricas são as mesmas, uma a uma.
-  - Os resíduos e desvios ficam no arredondamento de 40 dígitos.
-  - Também se cumprem a regra de sinal sign(β) = sign(d) = s (eq. 4.6c) e a distância a = PQ da eq. A6, que coincide com a posição medida da colisão.
-  - Isso confere a transcrição das eqs. 4.2, 4.3, 4.4a, 4.4b, 4.5 e A6, e o modelo da travessia.
-- **Raízes que a eq. 4.6 não lista,** com alguma das distâncias a, a′ ou c do Apêndice A negativa: (θ, φ) = (1,0; 1,05): 1.
-  - A geometria não a realiza, porque nenhuma bola percorre distância negativa ao longo do caminho.
-  - A lista da eq. 4.6 cobre as raízes introduzidas pelas manipulações do Apêndice A (p. 1097). Esta tem outra origem.
-- **Caso (0,0; 0,4; 0,75; 0,3; 0,135):** a trajetória é perigosa, porque o movimento livre se sobrepõe a si mesmo (distância mínima 0,135 < 2R). Mesmo assim, **nenhuma solução de uma colisão foi encontrada** sob os critérios abaixo:
-  - Colisão antes da travessia, com 1 travessia entre as visitas: grades `ekt_*` padrão, sem raiz das eqs. 4.2–4.3 e sem candidato geométrico.
-  - Colisão antes da travessia, 2 travessias entre as visitas: 0 soluções, 0 candidatos rejeitados, 32 intervalos não resolvidos.
-  - Colisão antes da travessia, 3 travessias entre as visitas: 0 soluções, 0 candidatos rejeitados, 30 intervalos não resolvidos.
-  - Colisão depois de uma travessia, 1 travessia entre as visitas: 0 soluções, 0 candidatos rejeitados, 2 intervalos não resolvidos.
-  - Colisão depois de uma travessia, 2 travessias entre as visitas: 0 soluções, 0 candidatos rejeitados, 2 intervalos não resolvidos.
-  - Colisão antes da travessia, 1 travessia entre as visitas, grades dobradas (ν, mira e s): 0 soluções, 0 candidatos rejeitados, 2 intervalos não resolvidos.
-  - Colisão antes da travessia, 2 travessias entre as visitas, grades dobradas (ν, mira e s): 0 soluções, 0 candidatos rejeitados, 38 intervalos não resolvidos.
-  - Colisão antes da travessia, 3 travessias entre as visitas, grades dobradas (ν, mira e s): 0 soluções, 0 candidatos rejeitados, 68 intervalos não resolvidos.
-  - Colisão antes da travessia, 1 travessia entre as visitas, λ₁ = 0,1: 0 soluções, 0 candidatos rejeitados, 4 intervalos não resolvidos.
-  - Colisão antes da travessia, 1 travessia entre as visitas, λ₁ = 0,25: 0 soluções, 0 candidatos rejeitados, 4 intervalos não resolvidos.
-  - Colisão antes da travessia, 1 travessia entre as visitas, λ₁ = 0,5: 0 soluções, 0 candidatos rejeitados, 4 intervalos não resolvidos.
-  - Colisão antes da travessia, 1 travessia entre as visitas, λ₁ = 0,9: 0 soluções, 0 candidatos rejeitados, 4 intervalos não resolvidos.
-  - Isto **não** é declarado paradoxo nem multiplicidade zero. Soluções com várias colisões, que o artigo menciona (p. 1080), estão fora do modelo buscado, e a grade é finita. É o primeiro alvo do mapa (pergunta Q1).
-
-### R9: região central do triângulo, eqs. 4.12–4.13 e as duas formas da eq. B20
-
-Parâmetros: (θ, φ) = (0,2; 0,6), λ₁ = ½, R = 0,1 B.
-
-| B | classe | β / (4.12a ou 4.13a) − 1 | ε / (4.12b ou 4.13b) − 1 | (λ₂ − σ) / (4.12c ou 4.13c) − 1 | (λ₂ − σ) / (B20, 1ª forma) − 1 |
-|---|---|---|---|---|---|
-| 0,04 | I | 0,2077 | 0,22 | 0,01366 | 0,1269 |
-| 0,04 | II | 0,3144 | 0,2483 | 0,03446 | 0,15 |
-| 0,02 | I | 0,09972 | 0,1038 | 0,003738 | 0,06084 |
-| 0,02 | II | 0,1351 | 0,109 | 0,007865 | 0,06521 |
-| 0,01 | I | 0,04875 | 0,05033 | 0,0009735 | 0,02972 |
-| 0,01 | II | 0,06327 | 0,05145 | 0,001903 | 0,03068 |
-| 0,005 | I | 0,02409 | 0,02478 | 0,0002482 | 0,01468 |
-| 0,005 | II | 0,03067 | 0,02504 | 0,0004693 | 0,0149 |
-
-- **β e ε (classe I):** os desvios das eqs. 4.12a–b caem com ordem 1,04 e 1,05 em B. As formas analíticas são o limite B → 0 da geometria.
-- **λ₂ − σ:** com a segunda forma da eq. B20 (igual à 4.12c), o desvio cai com ordem 1,93, então o termo de ordem B confere. Com a primeira forma impressa, cai com ordem 1,04, então o coeficiente de ordem B dela não confere com a geometria.
-- **As duas formas impressas da eq. B20 diferem por um fator 4 no termo em B** (ver `docs/equation_transcription.md`). A geometria segue a segunda forma.
-
-### R10: borda superior θ = φ (Fig. 14), B = 10⁻², R = 10⁻⁵, λ₁ = ½
-
-| φ | β classe I (geometria) | eq. B32 | eq. 4.14 | eq. 4.15 | classe II (geometria) |
-|---|---|---|---|---|---|
-| 0,05 | 0,001483 | 0,00049825 | 0,0004973 | -1,005e-6 | nenhuma |
-| 0,1 | 0,0014612 | 0,00098029 | 0,0009784 | -2,037e-6 | nenhuma |
-| 0,2 | 0,002047 | 0,0018335 | 0,00183 | -4,314e-6 | nenhuma |
-| 0,3 | 0,0025618 | 0,0024448 | 0,002439 | -7,161e-6 | nenhuma |
-| 0,5 | 0,0026422 | 0,0026049 | 0,00259 | -1,775e-5 | nenhuma |
-| 0,7 | 0,0011649 | 0,0011614 | 0,001095 | -7,58e-5 | nenhuma |
-| 0,75 | 0,00062446 | 0,00062527 | 0,0004822 | -0,0001927 | nenhuma |
-| 0,78 | 0,0003506 | 0,00035152 | 7,593e-5 | -0,001303 | nenhuma |
-| 0,8 | 0,00023052 | 0,00023069 | -0,0002095 | 0,0004913 | nenhuma |
-| 0,82 | 0,00015967 | 0,00015932 | -0,0005056 | 0,0002115 | nenhuma |
-| 0,9 | 6,6744e-5 | 6,6233e-5 | -0,00178 | 6,895e-5 | nenhuma |
-| 1,1 | 3,0287e-5 | 3,0067e-5 | -0,005245 | 3,029e-5 | nenhuma |
-| 1,3 | 2,2497e-5 | 2,2403e-5 | -0,008257 | 2,249e-5 | nenhuma |
-| 1,5 | 2,0099e-5 | 2,009e-5 | -0,009875 | 2,015e-5 | nenhuma |
-
-- **Classe I.** Para φ entre 0,7 e 0,9, a geometria acompanha a eq. B32 com desvio relativo máximo de 0,0077. Longe de π/4 ela tende às eqs. 4.14 e 4.15, cada uma do seu lado.
-  - Perto de φ → 0, β volta a crescer, e a eq. B32 deixa de acompanhar. O artigo atribui isso à quebra da expansão do Apêndice B perto do canto (p. 1092), e é onde a Fig. 14 mostra a parte numérica.
-  - A forma da curva confere, a olho, com a Fig. 14: mínimo perto de φ = 0,1, máximo de cerca de 2,6 × 10⁻³ perto de φ = 0,5, e cerca de 2 × 10⁻⁵ em φ → π/2. A comparação com a figura é visual; não há números impressos.
-- **Classe II.** Com a colisão antes da travessia, a geometria não encontra solução de classe II em nenhum φ da borda.
-  - φ = 0,3: as eqs. 4.2–4.3 têm 0 raízes físicas de classe II e 0 de classe II com distância negativa (β = —, a = —). A eq. B29 com s = −1 dá β = 0,002433; 7,178e-6.
-  - φ = 0,9: as eqs. 4.2–4.3 têm 0 raízes físicas de classe II e 2 de classe II com distância negativa (β = -0,001698; -7,349e-5, a = -0,0011; -5,71e-5). A eq. B29 com s = −1 dá β = -7,216e-5; -0,001701.
-  - φ = 1,1: as eqs. 4.2–4.3 têm 0 raízes físicas de classe II e 2 de classe II com distância negativa (β = -0,005181; -3,085e-5, a = -0,00165; -1,55e-5). A eq. B29 com s = −1 dá β = -3,051e-5; -0,005206.
-  - Onde a eq. B29 prevê classe II (φ > π/4), as raízes correspondentes das eqs. 4.2–4.3 têm a = PQ < 0: a colisão ficaria além da boca 2 ao longo do caminho, e a geometria não as realiza com a colisão antes da travessia.
-  - O artigo suspeita (p. 1091, lacuna 16) que a classe II que falta exista com a colisão depois da travessia. R11 procura essa solução.
-
-### R11: classe II com a colisão depois de uma travessia (lacuna 16, p. 1091)
-
-| φ (borda superior) | soluções | β | posição após a saída da boca 1 | intervalos não resolvidos |
-|---|---|---|---|---|
-| 0,7 | 0 | — | — | 3 |
-| 0,75 | 0 | — | — | 3 |
-| 0,78 | 0 | — | — | 3 |
-| 0,79 | 0 | — | — | 3 |
-| 0,82 | 0 | — | — | 3 |
-| 0,85 | 1 | -0,0007575 | 0,0008133 | 3 |
-
-- O primeiro encontro com a colisão fica sobre a linha que sai livremente da boca 1, e há mais uma travessia entre as visitas.
-- Soluções verificadas aparecem em φ = 0,85. Em φ = 0,7, 0,75, 0,78, 0,79, 0,82, nenhuma solução foi encontrada sob este critério.
-- Só foi buscado um tipo de "colisão depois da travessia": uma travessia antes e uma entre as visitas. O artigo não especifica o que tem em mente.
-
-### O que a reprodução estabelece e o que não estabelece
-
-- ✅ **Estabelece:**
-  - As soluções que o artigo constrói (Figs. 6 e 7; eqs. 3.1, 3.2, 4.2–4.3, 4.12–4.15, B32) saem de um modelo geométrico exato e independente, como limites B → 0 onde o artigo usa B ≪ 1.
-  - Na seção III B (Fig. 9), há uma solução para cada n de 1 a 6 no primeiro conjunto de R7, com a eq. 3.7 conferindo só assintoticamente. O segundo conjunto é inconclusivo.
-  - As eqs. 4.2–4.3 são satisfeitas pela geometria no arredondamento de 40 dígitos, em todos os casos com solução.
-- ❌ **Não estabelece:**
-  - Nenhuma afirmação universal. As contagens valem para as grades, os itinerários e as janelas declarados.
-  - Nada sobre soluções com várias colisões.
-  - **A fase é clássica.** Ela testa a alternativa de autoconsistência de Novikov, não o mecanismo quântico de Hawking.
-  - O mapa sistemático e a certificação intervalar ainda não foram feitos.
-  - O teste de escala que confirmaria a observação deste projeto, de que só v₁T_d/D importa (a observação não é do artigo), ainda não foi feito.
+**Não estabelece** nada além destes casos; o que a fase estabelece está em `outputs/phase3_full.md`.
 

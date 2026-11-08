@@ -1,6 +1,6 @@
 # Fase 3 · plano: bolas de bilhar em buracos de minhoca (Echeverria, Klinkhammer & Thorne, 1991)
 
-**Estado: aprovado, com as decisões abaixo. Ordem: reprodução R1–R11 contra as eqs. 4.2–4.3, com parada ao final; depois o mapa e a certificação. Reprodução R1–R11 calculada (`outputs/report.md`); parada para revisão do usuário. Mapa e certificação não iniciados.**
+**Estado: aprovado, com as decisões abaixo. Ordem: reprodução R1–R11 contra as eqs. 4.2–4.3, com parada ao final; depois o mapa e a certificação. Reprodução R1–R11 calculada (`outputs/phase3_full.md`) e revisada por scalpel e reviewer; bloqueantes da revisão aplicados; parada para o usuário antes do mapa e da etapa 1 da certificação.**
 
 ## Decisões do usuário (2026-11-07)
 
@@ -16,6 +16,19 @@
 3. **Grade:** aprovada como proposta. B, R/B, N_max e L_max são `heuristic()`. Teste de sensibilidade: as contagens não podem mudar de N_max = 12 para 16, nem de L_max = 50 D para 80 D. Se mudarem, relata-se onde.
 4. **T_d:** substituído pelo teste de escala. O relatório deixa claro que a observação "só v₁·T_d/D importa" é deste projeto, não do artigo, e que é o teste que a confirma.
 5. **Citações de lacunas:** nenhuma das 20 é usada antes da transcrição dupla. A citação da p. 1088 ("their high nonlinearity has prevented us from proving definitively that there always is a solution") fica **pendente de conferência humana** até o usuário conferir.
+
+## Decisões do usuário, segunda rodada (2026-11-07, depois da reprodução)
+
+1. **Origem CERTIFIED:** aprovada na posição CITED < DERIVED < CERTIFIED < COMPUTED < HEURISTIC, com estas regras de escopo:
+   - **"Raiz certificada das eqs. 4.2–4.3":** quando só o teste de Krawczyk passou.
+   - **"Solução física certificada":** somente quando também estiverem certificadas em aritmética intervalar (a) a positividade de a, a′ e c e (b) a ausência de colisões extras ao longo de toda a história (distância entre centros > 2R em todo instante, provada por intervalos).
+   - Se (b) não for viável, a solução física fica COMPUTED, e o relatório diz exatamente o que foi provado e o que não foi.
+   - Combinação com COMPUTED volta a COMPUTED.
+   - Testes para essas regras vêm antes de qualquer uso do rótulo.
+2. **Revisão antes do mapa:** scalpel e reviewer sobre `main..e7bd1d8`, bloqueantes aplicados, parada com o resumo. Só depois vêm o mapa e a etapa 1 da certificação.
+3. **Execução:** `python -m chronosim.run` (padrão) roda as fases 1 e 2 completas e um caso pequeno e representativo da fase 3, com meta inicial de menos de ~3 min, ajustada pelo usuário para até ~6 min, sem mexer nas fases 1 e 2, que sozinhas levam cerca de 5 min. `python -m chronosim.run --full` roda tudo. Regras em `CLAUDE.md`; cada commit registra qual das duas foi rodada.
+4. **Caso (θ, φ) = (0; 0,4), B = 0,3, R/B = 0,45:** entra no mapa como alvo prioritário, incluindo a busca por soluções com duas colisões, se o modelo permitir estender. A redação fica "nenhuma solução encontrada sob [critério]".
+5. **Conferência humana pendente:** a citação da p. 1088 e as duas formas da eq. B20 na p. 1098. As duas ficam pendentes até o usuário confirmar.
 
 Fonte: Echeverria, F., Klinkhammer, G. & Thorne, K. S. (1991), *Phys. Rev. D* 44, 1077–1099, DOI 10.1103/PhysRevD.44.1077. Volume, número (4), data (15 de agosto de 1991) e páginas foram conferidos no PDF (`papers/ECHprd91.pdf`, 23 páginas, lido inteiro). O PDF é um scan sem texto extraível: tudo foi lido como imagem, a 110 dpi, e as eqs. 3.7, 3.8, 4.7 e 4.8 foram relidas a 250 dpi. A página k do PDF é a p. 1076 + k da revista. Abaixo, "p." é sempre a página da revista.
 

@@ -180,13 +180,10 @@ def roots_by_bracketing(f, xs, tol):
     None (undefined); a bracket needs both ends defined. A sign change across a jump is rejected:
     the refined end values must be small compared with the bracket's original end values."""
     vals = [f(x) for x in xs]
-    out = []
+    out = [x for x, v in zip(xs, vals) if v is not None and v == 0]  # zeros on a node, each once
     for i in range(len(xs) - 1):
         fa, fb = vals[i], vals[i + 1]
-        if fa is not None and fa == 0:
-            out.append(xs[i])
-            continue
-        if fa is None or fb is None or (fa > 0) == (fb > 0):
+        if fa is None or fb is None or fa == 0 or fb == 0 or (fa > 0) == (fb > 0):
             continue
         a, b = xs[i], xs[i + 1]
         scale_ab = max(abs(fa), abs(fb))
@@ -209,7 +206,7 @@ def roots_by_bracketing(f, xs, tol):
                 b, fb = mid, fm
         if ok and min(abs(fa), abs(fb)) <= JUMP_RATIO.value * scale_ab:
             out.append((a + b) / 2)
-    return out
+    return sorted(out)
 
 
 def backend_for(k, B):
@@ -374,28 +371,56 @@ def _exchange(P, nu, m, aim, k, B, R, xm):
     return None if st is None else dot(add(st["v2"], st["u"], -1), st["n"])
 
 
-def middle_roots(P, e, m, k, B, R, xm=FLOAT, nu_grid=None, aim_grid=None):
+def _nu_intervals(P, m, k, B, R, windows, xm, aim_grid, N, log):
+    """Pairs of neighbouring nu points with equal aim-root counts. A grid interval whose count
+    changes is halved up to MAX_SPLIT times; what still changes is logged as unresolved."""
+    def roots(nu):
+        return _aim_roots(P, nu, m, k, B, R, windows, xm, aim_grid)
+
+    out = []
+
+    def split(na, ra, nb, rb, depth):
+        if len(ra) == len(rb):
+            out.append((na, ra, nb, rb))
+            return
+        if depth >= MAX_SPLIT.value:
+            if log is not None:
+                log.append(("nu_count_change", P, na, nb, len(ra), len(rb)))
+            return
+        nm = (na + nb) / 2
+        rm = roots(nm)
+        split(na, ra, nm, rm, depth + 1)
+        split(nm, rm, nb, rb, depth + 1)
+
+    nus = [2 * xm.pi * i / N for i in range(N + 1)]
+    aims = [roots(nu) for nu in nus]
+    for i in range(N):
+        split(nus[i], aims[i], nus[i + 1], aims[i + 1], 0)
+    return out
+
+
+def middle_roots(P, e, m, k, B, R, xm=FLOAT, nu_grid=None, aim_grid=None, log=None):
     """All (nu, aim) with miss = 0 and C = 0 at the collision point P, found by bracketing on a nu
     grid, with the aim roots linked across grid points by sorted order. Each result carries v1
     (the incoming speed this solution needs) and the kick (normal velocity transferred, > 0 for a
-    physical collision)."""
+    physical collision). Every interval or bracket the search cannot follow is appended to ``log``
+    (when given) instead of being dropped silently."""
     windows = itinerary_windows(P, m, k, B, xm, aim_grid)
     if not windows:
         return []
     N = nu_grid or NU_GRID.value
-    nus = [2 * xm.pi * i / N for i in range(N + 1)]
-    aims = [_aim_roots(P, nu, m, k, B, R, windows, xm, aim_grid) for nu in nus]
     found = []
-    for i in range(N):
-        A, Bn = aims[i], aims[i + 1]
-        if len(A) != len(Bn):
-            continue
+    for nua, A, nub, Bn in _nu_intervals(P, m, k, B, R, windows, xm, aim_grid, N, log):
         for j in range(len(A)):
-            ca = _exchange(P, nus[i], m, A[j], k, B, R, xm)
-            cb = _exchange(P, nus[i + 1], m, Bn[j], k, B, R, xm)
-            if ca is None or cb is None or (ca > 0) == (cb > 0):
+            ca = _exchange(P, nua, m, A[j], k, B, R, xm)
+            cb = _exchange(P, nub, m, Bn[j], k, B, R, xm)
+            if ca is None or cb is None:
+                if log is not None:
+                    log.append(("nu_state_lost", P, nua, nub))
                 continue
-            lo, hi, flo, aim = nus[i], nus[i + 1], ca, A[j]
+            if (ca > 0) == (cb > 0):
+                continue
+            lo, hi, flo, aim = nua, nub, ca, A[j]
             ok = True
             while hi - lo > _tol(2 * xm.pi, xm):
                 mid = (lo + hi) / 2
@@ -414,14 +439,12 @@ def middle_roots(P, e, m, k, B, R, xm=FLOAT, nu_grid=None, aim_grid=None):
                     lo, flo = mid, fm
                 else:
                     hi = mid
-            if not ok:
-                continue
             nu = (lo + hi) / 2
-            st = _loop_state(P, nu, m, aim, k, B, R, xm)
-            if st is None:
-                continue
-            den = cross(e, st["n"])
+            st = _loop_state(P, nu, m, aim, k, B, R, xm) if ok else None
+            den = cross(e, st["n"]) if st is not None else 0
             if den == 0:
+                if log is not None:
+                    log.append(("nu_bisect_lost", P, nua, nub))
                 continue
             v1 = cross(st["u"], st["n"]) / den
             kick = dot(add(st["u"], e, -v1), st["n"])
@@ -454,8 +477,9 @@ def solve_mp(p0, e, s, nu, aim, v1, m, k, B, R, dps=None):
 
 
 def _circ(a, b):
-    d = (a - b) % (2 * math.pi)
-    return min(d, 2 * math.pi - d)
+    two_pi = 2 * mp.pi if isinstance(a, mp.mpf) or isinstance(b, mp.mpf) else 2 * math.pi
+    d = (a - b) % two_pi
+    return min(d, two_pi - d)
 
 
 def _dedupe(roots, xm=FLOAT):
@@ -478,27 +502,31 @@ def _match(A, Bs):
     return pairs
 
 
-def sweep(p0, e, s_grid, m, k, B, R, xm=FLOAT, nu_grid=None, aim_grid=None):
+def sweep(p0, e, s_grid, m, k, B, R, xm=FLOAT, nu_grid=None, aim_grid=None, log=None):
     """Middle roots at every collision position of s_grid (the v1-independent part of the search)."""
-    return [(s, _dedupe(middle_roots(add(p0, e, s), e, m, k, B, R, xm, nu_grid, aim_grid), xm)) for s in s_grid]
+    return [(s, _dedupe(middle_roots(add(p0, e, s), e, m, k, B, R, xm, nu_grid, aim_grid, log), xm)) for s in s_grid]
 
 
-def crossings(table, p0, e, v1, m, k, B, R, xm=FLOAT, nu_grid=None, aim_grid=None, max_split=None):
+def crossings(table, p0, e, v1, m, k, B, R, xm=FLOAT, nu_grid=None, aim_grid=None, max_split=None, log=None):
     """Collision positions where some branch of v1(s) crosses the target v1, refined by bisection.
 
-    Returns (candidates, unresolved): candidates are (s, nu, aim) float triples; unresolved lists
-    s-intervals where the number of middle roots changed and could not be linked after
-    ``max_split`` halvings (reported, never silently dropped)."""
-    cands, unresolved = [], []
-    max_split = max_split or MAX_SPLIT.value
+    Returns (candidates, unresolved, rejected). Candidates are (s, nu, aim) float triples.
+    Unresolved lists, tagged by kind, everything the search could not follow: s-intervals where the
+    number of middle roots changed and could not be linked after ``max_split`` halvings, s-bisections
+    that lost their branch, plus whatever middle_roots logged (``log``, nu-intervals and nu-brackets).
+    Rejected lists crossings found and refused, with the reason (a pole of v1(s), or kick <= 0).
+    Nothing is dropped silently."""
+    cands, rejected = [], []
+    unresolved = log if log is not None else []
+    max_split = MAX_SPLIT.value if max_split is None else max_split
 
     def roots_at(s):
-        return _dedupe(middle_roots(add(p0, e, s), e, m, k, B, R, xm, nu_grid, aim_grid), xm)
+        return _dedupe(middle_roots(add(p0, e, s), e, m, k, B, R, xm, nu_grid, aim_grid, unresolved), xm)
 
     def scan(sa, ra, sb, rb, depth):
         if len(ra) != len(rb):
             if depth >= max_split:
-                unresolved.append((sa, sb, len(ra), len(rb)))
+                unresolved.append(("s_count_change", sa, sb, len(ra), len(rb)))
                 return
             sm = (sa + sb) / 2
             rm = roots_at(sm)
@@ -525,13 +553,20 @@ def crossings(table, p0, e, v1, m, k, B, R, xm=FLOAT, nu_grid=None, aim_grid=Non
                     lo, rlo, flo = sm, pick, fm
                 else:
                     hi, rhi = sm, pick
+            if not ok:
+                unresolved.append(("s_bisect_lost", sa, sb))
+                continue
             tol_v = JUMP_RATIO.value * (1 + abs(v1))  # a v1 crossing across a pole of v1(s) is rejected
-            if ok and rlo["kick"] > 0 and abs(rlo["v1"] - v1) < tol_v and abs(rhi["v1"] - v1) < tol_v:
+            if abs(rlo["v1"] - v1) >= tol_v or abs(rhi["v1"] - v1) >= tol_v:
+                rejected.append(((lo, rlo["nu"], rlo["aim"]), "v1(s) crosses the target across a pole, not a root"))
+            elif rlo["kick"] <= 0:
+                rejected.append(((lo, rlo["nu"], rlo["aim"]), "kick <= 0: the balls would separate, not collide"))
+            else:
                 cands.append((lo, rlo["nu"], rlo["aim"]))
 
     for (sa, ra), (sb, rb) in zip(table, table[1:]):
         scan(sa, ra, sb, rb, 0)
-    return cands, unresolved
+    return cands, unresolved, rejected
 
 
 # ---------------------------------------------------------------------------------------------

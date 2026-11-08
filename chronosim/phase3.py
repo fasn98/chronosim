@@ -16,6 +16,9 @@ from . import ekt
 from .provenance import Origin, Quantity, heuristic
 
 S_GRID = heuristic("ekt_s_grid", 240, "points of the uniform part of the outer grid of collision positions")
+S_FAR = heuristic("ekt_s_far", 3, "farthest collision position searched, in D, along the incoming line (before the traversal) or the exit line (after)")
+S_NEAR_OVER_R = heuristic("ekt_s_near_over_R", "0.01", "closest collision position to the line's mouth-2 entry searched before the traversal, as a fraction of R")
+S_NEAR_AFTER = heuristic("ekt_s_near_after", "1e-6", "closest collision position to the mouth-1 exit searched after the traversal, in D")
 WINDOW_GRID = heuristic("ekt_window_grid", 160, "extra collision positions in each refinement window around a known special point")
 
 
@@ -55,15 +58,21 @@ def grid(lo, hi, n, windows=()):
 
 
 def solutions(p0, e, v1, m, k, B, R, s_grid, nu_grid=None, aim_grid=None, origin=None):
-    """All single-collision solutions on the s grid: float bracketing, mpmath polish, verification."""
-    xm, _ = bl.backend_for(k, float(B))
-    conv = (lambda x: float(x)) if xm is bl.FLOAT else (lambda x: mp.mpf(x))
-    pf, ef = (conv(p0[0]), conv(p0[1])), (conv(e[0]), conv(e[1]))
-    Bf, Rf, vf = conv(B), conv(R), conv(v1)
-    sg = [conv(s) for s in s_grid]
-    table = bl.sweep(pf, ef, sg, m, k, Bf, Rf, xm, nu_grid, aim_grid)
-    cands, unresolved = bl.crossings(table, pf, ef, vf, m, k, Bf, Rf, xm, nu_grid, aim_grid)
-    out = []
+    """All single-collision solutions on the s grid: float bracketing, mpmath polish, verification.
+
+    Returns (out, unresolved). ``out`` holds verified solutions and rejected candidates, each with
+    its reasons; ``unresolved`` is the tagged list of everything the bracketing could not follow
+    (see billiards.crossings)."""
+    xm, digits = bl.backend_for(k, float(B))
+    with mp.workdps(max(mp.mp.dps, digits)):
+        conv = (lambda x: float(x)) if xm is bl.FLOAT else (lambda x: mp.mpf(x))
+        pf, ef = (conv(p0[0]), conv(p0[1])), (conv(e[0]), conv(e[1]))
+        Bf, Rf, vf = conv(B), conv(R), conv(v1)
+        sg = [conv(s) for s in s_grid]
+        log = []
+        table = bl.sweep(pf, ef, sg, m, k, Bf, Rf, xm, nu_grid, aim_grid, log)
+        cands, unresolved, rejected = bl.crossings(table, pf, ef, vf, m, k, Bf, Rf, xm, nu_grid, aim_grid, log=log)
+    out = [{"candidate": c, "ok": False, "fails": [why]} for c, why in rejected]
     for c in cands:
         sol = bl.solve_mp(p0, e, *c, v1, m, k, B, R)
         if sol is None:
@@ -74,6 +83,15 @@ def solutions(p0, e, v1, m, k, B, R, s_grid, nu_grid=None, aim_grid=None, origin
         ok, fails = bl.verify(p0, e, v1, *sol, m, k, B, R, origin=origin)
         out.append({"sol": sol, "ok": ok, "fails": fails, "angles": bl.paper_angles(p0, e, v1, *sol, m, k, B, R)})
     return out, unresolved
+
+
+def unresolved_by_kind(unres):
+    """Counts of the unresolved list by kind (s_count_change, s_bisect_lost, nu_count_change,
+    nu_state_lost, nu_bisect_lost)."""
+    counts = {}
+    for u in unres:
+        counts[u[0]] = counts.get(u[0], 0) + 1
+    return counts
 
 
 # R1 --------------------------------------------------------------------------------------------
@@ -252,9 +270,11 @@ def dangerous(theta, phi, lam1, B, R, k=1, extra_windows=(), on_edge=False):
     p0, e = line_theta_phi(th, ph, B)
     s0 = self_inconsistent_crossing(p0, e, B)
     windows = list(extra_windows) + ([(s0, 40 * float(R))] if s0 is not None and s0 < 0 else [])
-    sg = grid(mp.mpf(-3), -float(R) / 100, S_GRID.value, windows)
+    s_range = (-S_FAR.value, -float(R) * float(S_NEAR_OVER_R.value))
+    sg = grid(mp.mpf(s_range[0]), s_range[1], S_GRID.value, windows)
     sols, unres = solutions(p0, e, v1, 1, k, B, R, sg)
-    return {"v1": v1, "p0": p0, "e": e, "s0": s0, "sols": sols, "unresolved": unres, "theta": th, "phi": ph, "B": B, "R": R, "lam1": lam}
+    return {"v1": v1, "p0": p0, "e": e, "s0": s0, "sols": sols, "unresolved": unres, "theta": th, "phi": ph, "B": B, "R": R, "lam1": lam,
+            "s_range": s_range}
 
 
 def r8_eq42_43(case):
@@ -274,7 +294,9 @@ def r8_eq42_43(case):
                 "res": _c(max(abs(r42), abs(r43)), "max |residual| of eqs. 4.2, 4.3 at the geometric solution"),
                 "dev_d": _c(abs(ekt.d_of(a["alpha"], a["beta"], sign, case["R"]) - a["d"]), "|d(eq. 4.4b) - d(model)|"),
                 "dev_v2": _c(abs(ekt.rho_of(a["alpha"], a["beta"]) * case["v1"] - a["v2"]), "|rho v1 (eq. 4.5) - v2(model)|"),
-                "sign_rule": (mp.sign(a["beta"]) == sign),
+                "sign_rule": (mp.sign(a["beta"]) == sign),  # eq. 4.6c: sign(beta) = sign(d)
+                "dev_a6": _c(abs(ekt.appendix_a_distances(a["alpha"], a["beta"], case["theta"], case["phi"], case["B"]).value["a"] + s_["sol"][0]),
+                             "|a(eq. A6) - PQ(model)|, PQ = -s"),
                 "lam2": ekt.lambda_from_speed(a["v2"], case["theta"], case["phi"], case["B"], case["R"]).value,
             })
     return rows
@@ -363,7 +385,7 @@ def after_traversal(theta, phi, lam1, B, R, k=1):
     v1 = ekt.v1_from_lambda(lam, th, ph, Bm, Rm).value
     a0, e0 = line_theta_phi(th, ph, Bm)
     E, w, _ = bl.traverse(a0, e0, 1, Bm)
-    sg = grid(mp.mpf("1e-6"), mp.mpf(3), S_GRID.value)
+    sg = grid(mp.mpf(S_NEAR_AFTER.value), mp.mpf(S_FAR.value), S_GRID.value)
     return solutions(E, w, v1, 1, k, Bm, Rm, sg, origin=(a0, e0))
 
 
@@ -439,15 +461,17 @@ def _task(name, arg):
                 sols, unres = after_traversal(th, ph, lam, B, R, k=k)
         finally:
             bl.NU_GRID, bl.THETA_GRID, S_GRID = saved
-        return {"kind": kind, "k": k, "refined": refined, "lam1": lam, "ok": len([x for x in sols if x["ok"]]),
-                "rejected": [x["fails"] for x in sols if not x["ok"]], "unresolved": len(unres)}
+        s_range = (-S_FAR.value, -float(R) * float(S_NEAR_OVER_R.value)) if kind == "before" else (float(S_NEAR_AFTER.value), S_FAR.value)
+        return {"case": R8_CASES[2], "kind": kind, "k": k, "refined": refined, "lam1": lam, "ok": len([x for x in sols if x["ok"]]),
+                "rejected": [x["fails"] for x in sols if not x["ok"]], "unresolved": len(unres),
+                "unresolved_kinds": unresolved_by_kind(unres), "s_range": s_range}
     if name == "r8":
         case = dangerous(*arg)
         phys, neg = eq42_43_roots(case)
         free_ok, _, overlaps = bl.free_history(bl.add(case["p0"], case["e"], -1), case["e"], case["v1"], case["B"], case["R"])
         return {"args": arg, "v1": case["v1"], "free_consistent": free_ok, "free_min_distance": min(o[2] for o in overlaps) if overlaps else None, "rows": r8_eq42_43(case), "physical": [p[:3] for p in phys],
                 "negative": [(a, b, s, d) for a, b, s, d in neg], "rejected": [s["fails"] for s in case["sols"] if not s["ok"]],
-                "unresolved": len(case["unresolved"])}
+                "unresolved": len(case["unresolved"]), "unresolved_kinds": unresolved_by_kind(case["unresolved"]), "s_range": case["s_range"]}
     if name == "r9":
         return r9_central(Bs=(arg,))
     if name == "r10":
@@ -466,10 +490,14 @@ def _task(name, arg):
     raise ValueError(name)
 
 
-def reproduce(workers=None):
-    """Run R1-R11 in parallel worker processes (deterministic grids only; each task is a pure function
-    of its arguments). Returns a dict of results keyed by task."""
-    from concurrent.futures import ProcessPoolExecutor
+QUICK_TASKS = (
+    ("r1", None), ("r2", None), ("rest", None), ("r3", "1e-4"),
+    ("r8", R8_CASES[0]),   # central region: geometry against eqs. 4.2-4.3, with A6 and the sign rule
+    ("r10", "0.8"), ("r11", "0.85"),
+)
+
+
+def full_tasks():
     tasks = [("r1", None), ("r2", None), ("rest", None)]
     tasks += [("r3", R) for R in ("1e-4", "1e-5", "1e-6")]
     tasks += [("r46", B) for B in R46_BS]
@@ -483,13 +511,35 @@ def reproduce(workers=None):
     tasks += [("r10", ph) for ph in R10_PHIS]
     tasks += [("r10x", ph) for ph in ("0.3", "0.9", "1.1")]
     tasks += [("r11", ph) for ph in R11_PHIS]
-    with ProcessPoolExecutor(max_workers=workers, initializer=_init_worker) as ex:
-        futures = [ex.submit(_task, n, a) for n, a in tasks]
+    return tasks
+
+
+def start(quick=False, workers=None):
+    """Submit the phase 3 tasks (QUICK_TASKS, or R1-R11 in full) to worker processes and return a
+    handle for collect(); the caller can do other work meanwhile. Deterministic grids only; each
+    task is a pure function of its arguments."""
+    from concurrent.futures import ProcessPoolExecutor
+    tasks = list(QUICK_TASKS) if quick else full_tasks()
+    ex = ProcessPoolExecutor(max_workers=workers, initializer=_init_worker)
+    return ex, tasks, [ex.submit(_task, n, a) for n, a in tasks]
+
+
+def collect(handle):
+    """Results of start(), as a dict of (argument, result) lists keyed by task, in task order."""
+    ex, tasks, futures = handle
+    try:
         done = [f.result() for f in futures]
+    finally:
+        ex.shutdown()
     res = {}
     for (n, a), r in zip(tasks, done):
         res.setdefault(n, []).append((a, r))
     return res
+
+
+def reproduce(workers=None, quick=False):
+    """Run R1-R11 (or the quick subset) in parallel worker processes."""
+    return collect(start(quick, workers))
 
 
 # Report ----------------------------------------------------------------------------------------
@@ -527,7 +577,8 @@ def report_section(res):
     add("- **Unidades:** D = T_d = 1.")
     add("- **Busca:** bracketing unidimensional aninhado, em grades determinísticas, com polimento em mpmath (40 dígitos).")
     add("  - Cada solução passa por um verificador que reconstrói a história inteira e confere as leis do modelo, incluindo a ausência de qualquer outra sobreposição entre encarnações.")
-    add("  - \"Intervalos não resolvidos\" são trechos da grade em que o número de raízes mudou e não pôde ser ligado após 12 bisseções. Eles são contados, nunca descartados.")
+    add(f"  - \"Intervalos não resolvidos\" são tudo o que o bracketing não conseguiu seguir: trechos de s ou de ν em que o número de raízes mudou e não pôde ser ligado após {bl.MAX_SPLIT.value} bisseções, e bisseções (em s ou em ν) que perderam o ramo. Eles são contados, nunca descartados em silêncio.")
+    add("  - Cruzamentos rejeitados (v₁(s) passando pelo alvo num polo, ou impulso normal ≤ 0) e candidatos recusados pelo verificador entram como \"candidatos rejeitados\", com o motivo.")
     add("")
     add("**O que estas contagens são.** São soluções com **uma colisão** e o itinerário indicado, encontradas sob as grades `ekt_*` (HEURISTIC). Não são a multiplicidade do problema, e não estabelecem nenhuma afirmação universal.")
     add("")
@@ -584,7 +635,10 @@ def report_section(res):
     first = [r["rows"][0] for _, r in res["r7"]]
     offs = [row["n_37"][0] - row["n"] for row in first if row["n_37"]]
     found_n = [row["n"] for row in first if row["L"]]
-    add(f"- **Primeiro conjunto:** soluções encontradas para n = {', '.join(map(str, found_n))}. A eq. 3.7, avaliada no L medido, dá n mais {_f(min(offs), 3)} a {_f(max(offs), 3)}, então o desvio relativo cai aproximadamente como 1/n. A eq. 3.7 vale para n ≫ 1, L ≫ 1, e este conjunto está no começo desse regime. O menor n encontrado é {min(found_n)}; a eq. 3.8, também assintótica, dá {_f(res['r7'][0][1]['n_min_38'], 4)}.")
+    if offs:
+        add(f"- **Primeiro conjunto:** soluções encontradas para n = {', '.join(map(str, found_n))}. A eq. 3.7, avaliada no L medido, dá n mais {_f(min(offs), 3)} a {_f(max(offs), 3)} (n ≫ 1, L ≫ 1 é o regime dela). O menor n encontrado é {min(found_n)}; a eq. 3.8, também assintótica, dá {_f(res['r7'][0][1]['n_min_38'], 4)}.")
+    else:
+        add("- **Primeiro conjunto:** nenhuma solução encontrada sob este critério.")
     second = [r["rows"][0] for _, r in res["r7b"]]
     add(f"- **Segundo conjunto:** soluções encontradas só para n = {', '.join(str(row['n']) for row in second if row['L']) or 'nenhum'}, com {sum(row['unresolved'] for row in second)} intervalos não resolvidos no total. A busca é **inconclusiva** aqui: a ausência das outras soluções não é afirmada.")
     add("")
@@ -593,36 +647,65 @@ def report_section(res):
     add("")
     add("Para cada solução geométrica verificada (colisão antes de uma travessia), α, β e d são medidos na geometria e postos nas eqs. 4.2 e 4.3 como impressas. Em separado, as eqs. 4.2–4.3 são resolvidas diretamente, por findroot a partir de uma grade de pontos de partida, e suas raízes são confrontadas com as geométricas.")
     add("")
-    add("| (θ, φ, λ₁, B, R) | movimento livre consistente? | soluções geométricas | raízes físicas das eqs. 4.2–4.3 | coincidem | raízes com distância negativa | maior resíduo das eqs. 4.2–4.3 | maior desvio de d (4.4b) e de v₂ (4.5) |")
-    add("|---|---|---|---|---|---|---|---|")
+    add("| (θ, φ, λ₁, B, R) | movimento livre consistente? | soluções geométricas | raízes físicas das eqs. 4.2–4.3 | coincidem | raízes com distância negativa | maior resíduo das eqs. 4.2–4.3 | maior desvio de d (4.4b) e de v₂ (4.5) | sign(β) = sign(d) (4.6c) | maior desvio de a (A6) contra PQ medido |")
+    add("|---|---|---|---|---|---|---|---|---|---|")
     for arg, r in res["r8"]:
         rows = r["rows"]
         matched = sum(1 for (a, b, sg) in r["physical"] if any(abs(a - x["alpha"]) < mp.mpf("1e-12") and abs(b - x["beta"]) < mp.mpf("1e-12") for x in rows))
         res_max = max((x["res"].value for x in rows), default=None)
         dmax = max((max(x["dev_d"].value, x["dev_v2"].value) for x in rows), default=None)
         classes = f" ({', '.join(x['class'] for x in rows)})" if rows else ""
+        a6max = max((x["dev_a6"].value for x in rows), default=None)
+        signs = ("sim" if all(x["sign_rule"] for x in rows) else "não") if rows else "—"
         add(f"| ({'; '.join(a.replace('.', ',') for a in arg)}) | {'sim' if r['free_consistent'] else 'não'} | {len(rows)}{classes} | "
-            f"{len(r['physical'])} | {matched}/{len(r['physical'])} | {len(r['negative'])} | {_f(res_max) if res_max is not None else '—'} | {_f(dmax) if dmax is not None else '—'} |")
+            f"{len(r['physical'])} | {matched}/{len(r['physical'])} | {len(r['negative'])} | {_f(res_max) if res_max is not None else '—'} | {_f(dmax) if dmax is not None else '—'} | "
+            f"{signs} | {_f(a6max) if a6max is not None else '—'} |")
     add("")
-    add("- **Árbitro.** Em todo caso perigoso, as raízes físicas das eqs. 4.2–4.3 e as soluções geométricas são as mesmas, uma a uma.")
-    add("  - Os resíduos e desvios ficam no arredondamento de 40 dígitos.")
-    add("  - Também se cumprem a regra de sinal sign(β) = sign(d) = s (eq. 4.6c) e a distância a = PQ da eq. A6, que coincide com a posição medida da colisão.")
-    add("  - Isso confere a transcrição das eqs. 4.2, 4.3, 4.4a, 4.4b, 4.5 e A6, e o modelo da travessia.")
+    add("As raízes das eqs. 4.2–4.3 são procuradas só no domínio 0 < α < π, |β| < π/2.")
+    add("")
+    with_sols = [(arg, r) for arg, r in res["r8"] if r["rows"]]
+    all_match = all(
+        len(r["rows"]) == len(r["physical"])
+        and all(any(abs(a - x["alpha"]) < mp.mpf("1e-12") and abs(b - x["beta"]) < mp.mpf("1e-12") for x in r["rows"]) for (a, b, sg) in r["physical"])
+        for _, r in with_sols)
+    rows_all = [x for _, r in with_sols for x in r["rows"]]
+    worst = max([x["res"].value for x in rows_all] + [x["dev_d"].value for x in rows_all] + [x["dev_v2"].value for x in rows_all] + [x["dev_a6"].value for x in rows_all], default=None)
+    signs_ok = all(x["sign_rule"] for x in rows_all)
+    add(f"- **Árbitro.** Nos {len(with_sols)} casos com solução geométrica, as raízes físicas das eqs. 4.2–4.3 e as soluções geométricas "
+        + ("são as mesmas, uma a uma." if all_match else "**não** coincidem em todos os casos (ver a tabela)."))
+    if worst is not None:
+        add(f"  - O maior resíduo ou desvio entre resíduo das eqs. 4.2–4.3, d (4.4b), v₂ (4.5) e a (A6) é {_f(worst)}.")
+    add(f"  - A regra de sinal sign(β) = sign(d) da eq. 4.6c vale em {'todas' if signs_ok else 'nem todas'} as {len(rows_all)} soluções. A eq. A6 é comparada com a distância PQ medida em cada uma.")
+    if all_match and signs_ok and worst is not None and worst < mp.mpf("1e-30"):
+        add("  - Isso confere a transcrição das eqs. 4.2, 4.3, 4.4a, 4.4b, 4.5 e A6, e o modelo da travessia, nestes casos.")
     negs = [(arg, r["negative"]) for arg, r in res["r8"] if r["negative"]]
     where = "; ".join(f"(θ, φ) = ({arg[0].replace('.', ',')}; {arg[1].replace('.', ',')}): {len(n)}" for arg, n in negs) or "nenhum caso"
     add(f"- **Raízes que a eq. 4.6 não lista,** com alguma das distâncias a, a′ ou c do Apêndice A negativa: {where}.")
     add("  - A geometria não a realiza, porque nenhuma bola percorre distância negativa ao longo do caminho.")
     add("  - A lista da eq. 4.6 cobre as raízes introduzidas pelas manipulações do Apêndice A (p. 1097). Esta tem outra origem.")
     empty = [(arg, r) for arg, r in res["r8"] if not r["rows"]]
+    kind_label = {"s_count_change": "s, contagem mudou", "s_bisect_lost": "s, bisseção perdeu o ramo", "nu_count_change": "ν, contagem mudou",
+                  "nu_state_lost": "ν, estado perdido", "nu_bisect_lost": "ν, bisseção perdeu o ramo"}
+
+    def kinds(kd):
+        return "; ".join(f"{kind_label.get(k, k)}: {n}" for k, n in sorted(kd.items())) or "nenhum"
+
     for arg, r in empty:
-        add(f"- **Caso ({'; '.join(a.replace('.', ',') for a in arg)}):** a trajetória é perigosa, porque o movimento livre se sobrepõe a si mesmo (distância mínima {_f(r['free_min_distance'])} < 2R). Mesmo assim, **nenhuma solução de uma colisão foi encontrada** sob os critérios abaixo:")
-        add("  - Colisão antes da travessia, com 1 travessia entre as visitas: grades `ekt_*` padrão, sem raiz das eqs. 4.2–4.3 e sem candidato geométrico.")
+        lo, hi = r["s_range"]
+        add(f"- **Caso ({'; '.join(a.replace('.', ',') for a in arg)}):** a trajetória é perigosa, porque o movimento livre se sobrepõe a si mesmo (distância mínima {_f(r['free_min_distance'])} < 2R). Mesmo assim, **nenhuma solução de uma colisão foi encontrada** sob os critérios abaixo.")
+        add(f"  - Posição da colisão s (distância com sinal ao longo da linha, a partir da entrada na boca 2; s < 0 antes dela) em [{_f(lo, 3)}; {_f(hi, 3)}] antes da travessia, e em [{_f(mp.mpf(S_NEAR_AFTER.value), 3)}; {_f(S_FAR.value, 3)}] depois dela. A grade de s tem `ekt_s_grid` pontos uniformes mais aproximações geométricas às pontas; ν e a mira usam `ekt_nu_grid` e `ekt_theta_grid`.")
+        add(f"  - Colisão antes da travessia, com 1 travessia entre as visitas, grades `ekt_*` padrão: {len(r['physical'])} raízes físicas das eqs. 4.2–4.3, "
+            f"{len(r['rejected'])} candidatos geométricos rejeitados{(' (' + '; '.join(sorted(set(f[0] for f in r['rejected'] if f))) + ')') if r['rejected'] else ''}, "
+            f"{r['unresolved']} intervalos não resolvidos ({kinds(r['unresolved_kinds'])}).")
         for _, x in res["r8x"]:
+            if tuple(x["case"]) != tuple(arg):
+                continue
             kind = "Colisão antes da travessia" if x["kind"] == "before" else "Colisão depois de uma travessia"
             trav = "1 travessia" if x["k"] == 1 else f"{x['k']} travessias"
             extra = (", grades dobradas (ν, mira e s)" if x["refined"] else "") + (f", λ₁ = {x['lam1'].replace('.', ',')}" if x["lam1"] != arg[2] else "")
-            add(f"  - {kind}, {trav} entre as visitas{extra}: {x['ok']} soluções, {len(x['rejected'])} candidatos rejeitados, {x['unresolved']} intervalos não resolvidos.")
-        add("  - Isto **não** é declarado paradoxo nem multiplicidade zero. Soluções com várias colisões, que o artigo menciona (p. 1080), estão fora do modelo buscado, e a grade é finita. É o primeiro alvo do mapa (pergunta Q1).")
+            add(f"  - {kind}, {trav} entre as visitas{extra}: {x['ok']} soluções, {len(x['rejected'])} candidatos rejeitados, "
+                f"{x['unresolved']} intervalos não resolvidos ({kinds(x['unresolved_kinds'])}).")
+        add("  - Isto **não** é declarado paradoxo nem multiplicidade zero. Soluções com várias colisões, que o artigo menciona (p. 1080), estão fora do modelo buscado; a grade é finita; e os intervalos não resolvidos acima são lugares onde uma solução poderia ter escapado. É o primeiro alvo do mapa (pergunta Q1).")
     add("")
 
     add("### R9: região central do triângulo, eqs. 4.12–4.13 e as duas formas da eq. B20")
@@ -651,7 +734,7 @@ def report_section(res):
         add(f"| {ph.replace('.', ',')} | {'; '.join(_f(b, 5) for b in r['beta_I']) or 'nenhuma'} | {_f(r['b32'], 5) if r['b32'] is not None else '—'} | {_f(r['b414'], 4)} | {_f(r['b415'], 4)} | {'; '.join(_f(b, 4) for b in r['beta_II']) or 'nenhuma'} |")
     add("")
     near = [abs(r["beta_I"][0] / r["b32"] - 1) for ph, r in res["r10"] if r["beta_I"] and r["b32"] and mp.mpf("0.7") <= mp.mpf(ph) <= mp.mpf("0.9")]
-    add(f"- **Classe I.** Para φ entre 0,7 e 0,9, a geometria acompanha a eq. B32 com desvio relativo máximo de {_f(max(near), 2)}. Longe de π/4 ela tende às eqs. 4.14 e 4.15, cada uma do seu lado.")
+    add(f"- **Classe I.** Para φ entre 0,7 e 0,9, a geometria acompanha a eq. B32 com desvio relativo máximo de {_f(max(near), 2) if near else '— (sem solução nesse trecho)'}. Longe de π/4 ela se aproxima das eqs. 4.14 e 4.15, cada uma do seu lado. Tudo isso num único B = 10⁻²: nenhum limite B → 0 foi medido para B32, 4.14 ou 4.15.")
     add("  - Perto de φ → 0, β volta a crescer, e a eq. B32 deixa de acompanhar. O artigo atribui isso à quebra da expansão do Apêndice B perto do canto (p. 1092), e é onde a Fig. 14 mostra a parte numérica.")
     add("  - A forma da curva confere, a olho, com a Fig. 14: mínimo perto de φ = 0,1, máximo de cerca de 2,6 × 10⁻³ perto de φ = 0,5, e cerca de 2 × 10⁻⁵ em φ → π/2. A comparação com a figura é visual; não há números impressos.")
     add("- **Classe II.** Com a colisão antes da travessia, a geometria não encontra solução de classe II em nenhum φ da borda.")
@@ -680,14 +763,49 @@ def report_section(res):
     add("### O que a reprodução estabelece e o que não estabelece")
     add("")
     add("- ✅ **Estabelece:**")
-    add("  - As soluções que o artigo constrói (Figs. 6 e 7; eqs. 3.1, 3.2, 4.2–4.3, 4.12–4.15, B32) saem de um modelo geométrico exato e independente, como limites B → 0 onde o artigo usa B ≪ 1.")
+    add("  - As eqs. 3.1, 3.2 (Figs. 6 e 7) e 4.12–4.13 são o limite B → 0 de um modelo geométrico exato e independente: os desvios caem com ordem ≈ 1 em B (R4–R6, R9).")
+    add("  - As eqs. 4.14, 4.15 e B32 (Fig. 14) foram comparadas só em B = 10⁻²: a classe I acompanha a B32 perto de φ = π/4 (R10). Isso não é um teste de limite.")
     add("  - Na seção III B (Fig. 9), há uma solução para cada n de 1 a 6 no primeiro conjunto de R7, com a eq. 3.7 conferindo só assintoticamente. O segundo conjunto é inconclusivo.")
-    add("  - As eqs. 4.2–4.3 são satisfeitas pela geometria no arredondamento de 40 dígitos, em todos os casos com solução.")
+    add("  - As eqs. 4.2–4.3 são satisfeitas pela geometria no arredondamento de 40 dígitos, nos casos de R8 com solução (ver a tabela de R8).")
     add("- ❌ **Não estabelece:**")
     add("  - Nenhuma afirmação universal. As contagens valem para as grades, os itinerários e as janelas declarados.")
     add("  - Nada sobre soluções com várias colisões.")
     add("  - **A fase é clássica.** Ela testa a alternativa de autoconsistência de Novikov, não o mecanismo quântico de Hawking.")
     add("  - O mapa sistemático e a certificação intervalar ainda não foram feitos.")
     add("  - O teste de escala que confirmaria a observação deste projeto, de que só v₁T_d/D importa (a observação não é do artigo), ainda não foi feito.")
+    add("")
+    return L
+
+
+def report_section_quick(res):
+    """Markdown lines for the default (quick) run: a small, representative subset of R1-R11. The
+    full reproduction is written by ``python -m chronosim.run --full`` to outputs/phase3_full.md."""
+    L = []
+    add = L.append
+    add("")
+    add("## Fase 3 · Bolas de bilhar (Echeverria, Klinkhammer & Thorne, 1991): execução reduzida")
+    add("")
+    add("Esta é a execução padrão, com um subconjunto pequeno de R1–R11. A reprodução completa está em `outputs/phase3_full.md`, escrita pela última execução de `python -m chronosim.run --full`; os números de lá não foram recalculados nesta execução. Todas as grandezas são **COMPUTED**.")
+    add("")
+    r1 = res["r1"][0][1]
+    add(f"- **R1, eq. 2.1b:** desvio máximo {_f(r1['max_dev'].value)} rad.")
+    c = res["r2"][0][1]["counts"]
+    add(f"- **R2, eqs. 2.2–2.4:** troca de velocidades {c['velocity']}, troca espelhada {c['mirror']}, outra {c['other']}.")
+    rest = res["rest"][0][1]
+    add(f"- **Bola em repouso (p. 1084):** verificador aceita em x = {'; '.join(r['x'].replace('.', ',') for r in rest)}: {'; '.join('sim' if r['ok'] else 'não' for r in rest)}.")
+    r3 = res["r3"][0][1]
+    add(f"- **R3, Fig. 6b** (B = 0,01, R = {r3['R']}): {r3['n']} solução; rapidez menos (1 − 2B): {', '.join(_f(d) for d in r3['dev'].value)}; {r3['unresolved']} intervalos não resolvidos.")
+    arg, r = res["r8"][0]
+    rows = r["rows"]
+    worst = max([x["res"].value for x in rows] + [x["dev_a6"].value for x in rows], default=None)
+    add(f"- **R8, caso central ({'; '.join(a.replace('.', ',') for a in arg)}):** {len(rows)} soluções geométricas ({', '.join(x['class'] for x in rows) or '—'}), "
+        f"{len(r['physical'])} raízes físicas das eqs. 4.2–4.3; maior resíduo das eqs. 4.2–4.3 ou desvio da A6: {_f(worst) if worst is not None else '—'}; "
+        f"sign(β) = sign(d) em {sum(1 for x in rows if x['sign_rule'])}/{len(rows)}; {r['unresolved']} intervalos não resolvidos.")
+    ph, r10 = res["r10"][0]
+    add(f"- **R10, borda superior, φ = {ph.replace('.', ',')}:** β classe I = {'; '.join(_f(b, 5) for b in r10['beta_I']) or 'nenhuma'}; eq. B32 = {_f(r10['b32'], 5) if r10['b32'] is not None else '—'} (B = 10⁻²).")
+    ph, r11 = res["r11"][0]
+    add(f"- **R11, classe II depois da travessia, φ = {ph.replace('.', ',')}:** {r11['n']} soluções; β = {'; '.join(_f(b, 4) for b in r11['beta']) or '—'}.")
+    add("")
+    add("**Não estabelece** nada além destes casos; o que a fase estabelece está em `outputs/phase3_full.md`.")
     add("")
     return L
