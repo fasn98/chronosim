@@ -30,6 +30,21 @@
 4. **Caso (θ, φ) = (0; 0,4), B = 0,3, R/B = 0,45:** entra no mapa como alvo prioritário, incluindo a busca por soluções com duas colisões, se o modelo permitir estender. A redação fica "nenhuma solução encontrada sob [critério]".
 5. **Conferência humana pendente:** a citação da p. 1088 e as duas formas da eq. B20 na p. 1098. As duas ficam pendentes até o usuário confirmar.
 
+## Pedido do usuário, terceira rodada (2026-11-08, item B, branch `feat/fase3-certificacao`)
+
+Registrado aqui a pedido do reviewer (handoff `2026-11-08-reviewer-para-claude-6.md`, B1). O pedido, na conversa, foi:
+
+1. **N-a:** a busca do ângulo de mira registra os descartes.
+2. **Origem CERTIFIED:** implementada como aprovada na segunda rodada, com os dois rótulos e com testes antes de qualquer uso.
+3. **Os 30 intervalos não resolvidos do caso vazio:** "exclusão intervalar ou Krawczyk", relatando quantos foram excluídos, certificados e indecididos. O usuário autorizou assim a exclusão intervalar neste caso antes da etapa 1, que é Krawczyk nas soluções das eqs. 4.2–4.3.
+4. **Se todos forem excluídos, a redação é:** "provado, em aritmética intervalar, que não existe solução de uma colisão para esta condição inicial no modelo de [hipóteses]; soluções com várias colisões não foram examinadas". Para esta forma do enunciado, essa redação substitui "nenhuma solução encontrada sob [critério]" da decisão 4 da segunda rodada.
+5. **Parada** antes do mapa.
+
+Pendentes de decisão do usuário:
+
+- **(a)** O rótulo "exclusão certificada" (`CERT_EXCLUSION`), que é uma proposta deste branch.
+- **(b)** A redação "provado…" apoiada na exclusão de Ω inteiro, na família declarada. Excluir só as caixas dos 30 itens não basta, porque o resto de Ω vem de bracketing (COMPUTED).
+
 Fonte: Echeverria, F., Klinkhammer, G. & Thorne, K. S. (1991), *Phys. Rev. D* 44, 1077–1099, DOI 10.1103/PhysRevD.44.1077. Volume, número (4), data (15 de agosto de 1991) e páginas foram conferidos no PDF (`papers/ECHprd91.pdf`, 23 páginas, lido inteiro). O PDF é um scan sem texto extraível: tudo foi lido como imagem, a 110 dpi, e as eqs. 3.7, 3.8, 4.7 e 4.8 foram relidas a 250 dpi. A página k do PDF é a p. 1076 + k da revista. Abaixo, "p." é sempre a página da revista.
 
 **Status das citações deste plano:** as citações literais abaixo vêm de **uma única leitura**. Elas entram na transcrição dupla da etapa B, com a segunda passada feita por um subagente sem acesso à primeira, antes de qualquer uso em código ou relatório. Os números de equação foram conferidos. As fórmulas não estão reescritas aqui, de propósito: elas só entram em `docs/equation_transcription.md` depois das duas passadas.

@@ -2,7 +2,7 @@
 
 ## Fase 3 · Bolas de bilhar (Echeverria, Klinkhammer & Thorne, 1991): reprodução R1–R11
 
-Todas as grandezas desta seção são **COMPUTED**.
+Todas as grandezas desta seção são **COMPUTED**, exceto a exclusão intervalar do caso vazio, quando ela aparece marcada como CERTIFIED (R8, caso vazio).
 
 - **Modelo independente** (`chronosim/billiards.py`): o modelo exato que o artigo descreve em palavras e figuras.
   - Bocas de raio B identificadas por reflexão no plano x = ½ (Fig. 2).
@@ -14,7 +14,7 @@ Todas as grandezas desta seção são **COMPUTED**.
 - **Unidades:** D = T_d = 1.
 - **Busca:** bracketing unidimensional aninhado, em grades determinísticas, com polimento em mpmath (40 dígitos).
   - Cada solução passa por um verificador que reconstrói a história inteira e confere as leis do modelo, incluindo a ausência de qualquer outra sobreposição entre encarnações.
-  - "Intervalos não resolvidos" são tudo o que o bracketing não conseguiu seguir: trechos de s ou de ν em que o número de raízes mudou e não pôde ser ligado após 12 bisseções, e bisseções (em s ou em ν) que perderam o ramo. Eles são contados, nunca descartados em silêncio.
+  - "Intervalos não resolvidos" são tudo o que o bracketing não conseguiu seguir: trechos de s ou de ν em que o número de raízes mudou e não pôde ser ligado após 12 bisseções, bisseções (em s ou em ν) que perderam o ramo, e colchetes da busca da mira descartados (f indefinida dentro da bisseção, ou troca de sinal rejeitada como salto). Eles são contados, nunca descartados em silêncio, com uma exceção: intervalos da grade da mira com uma ponta indefinida (borda do domínio do laço) não são colchetes e não são registrados.
   - Cruzamentos rejeitados (v₁(s) passando pelo alvo num polo, ou impulso normal ≤ 0) e candidatos recusados pelo verificador entram como "candidatos rejeitados", com o motivo.
 
 **O que estas contagens são.** São soluções com **uma colisão** e o itinerário indicado, encontradas sob as grades `ekt_*` (HEURISTIC). Não são a multiplicidade do problema, e não estabelecem nenhuma afirmação universal.
@@ -56,7 +56,7 @@ A trajetória é perpendicular à linha dos centros e passa pelo ponto médio, c
 | 3 | 4,011271 | 4,0586 | 0 | 0,0% (0,0%) |
 | 4 | 5,064029 | 5,1013 | 0 | 0,0% (0,0%) |
 | 5 | 6,115843 | 6,1467 | 0 | 0,0% (0,0%) |
-| 6 | 7,167124 | 7,1934 | 4341 | 8,66% (0,0309%) |
+| 6 | 7,167124 | 7,1934 | 11207 | 8,66% (0,0309%) |
 
 **v₁ = 2, ψ_A = 0,6, h = 1**, B = 0,05, R = 10⁻⁴, colisão a até 50 D. O n_min da eq. 3.8 é 5,196.
 
@@ -66,11 +66,11 @@ A trajetória é perpendicular à linha dos centros e passa pelo ponto médio, c
 | 2 | nenhuma solução encontrada | — | 18 | 0,00167% (0,00167%) |
 | 3 | nenhuma solução encontrada | — | 24 | 0,00214% (0,00214%) |
 | 4 | nenhuma solução encontrada | — | 34 | 0,271% (0,271%) |
-| 5 | 0,9403691 | -14,374 | 66 | 1,05% (0,213%) |
-| 6 | nenhuma solução encontrada | — | 3832 | 2,47% (0,175%) |
+| 5 | 0,9403691 | -14,374 | 132 | 1,05% (0,213%) |
+| 6 | nenhuma solução encontrada | — | 14010 | 2,47% (0,175%) |
 
 - **Primeiro conjunto:** soluções encontradas para n = 1, 2, 3, 4, 5, 6. A eq. 3.7, avaliada no L medido, dá n mais 1,01 a 1,19 (n ≫ 1, L ≫ 1 é o regime dela). O menor n encontrado é 1; a eq. 3.8, também assintótica, dá 1,125.
-- **Segundo conjunto:** soluções encontradas só para n = 5, com 3976 intervalos não resolvidos no total, sem refinamento; a fração do espaço de busca que cobrem está na tabela, pelas medidas definidas em R8 (caso vazio). A busca é **inconclusiva** aqui: a ausência das outras soluções não é afirmada.
+- **Segundo conjunto:** soluções encontradas só para n = 5, com 14220 intervalos não resolvidos no total, sem refinamento; a fração do espaço de busca que cobrem está na tabela, pelas medidas definidas em R8 (caso vazio). A busca é **inconclusiva** aqui: a ausência das outras soluções não é afirmada.
 
 ### R8: árbitro das eqs. 4.2–4.3 contra a geometria independente
 
@@ -94,28 +94,35 @@ As raízes das eqs. 4.2–4.3 são procuradas só no domínio 0 < α < π, |β| 
 - **Raízes que a eq. 4.6 não lista,** com alguma das distâncias a, a′ ou c do Apêndice A negativa: (θ, φ) = (1,0; 1,05): 1.
   - A geometria não a realiza, porque nenhuma bola percorre distância negativa ao longo do caminho.
   - A lista da eq. 4.6 cobre as raízes introduzidas pelas manipulações do Apêndice A (p. 1097). Esta tem outra origem.
-- **Caso (0,0; 0,4; 0,75; 0,3; 0,135):** a trajetória é perigosa, porque o movimento livre se sobrepõe a si mesmo (distância mínima 0,135 < 2R). Com uma colisão antes da travessia, 1 travessia entre as visitas e as grades `ekt_*` padrão: **nenhuma solução encontrada na região resolvida; 30 intervalos não resolvidos, cobrindo 2,5% do espaço de busca pela medida conservadora (0,000179% pela medida fina).**
+- **Caso (0,0; 0,4; 0,75; 0,3; 0,135):** a trajetória é perigosa, porque o movimento livre se sobrepõe a si mesmo (distância mínima 0,135 < 2R). Com uma colisão antes da travessia, 1 travessia entre as visitas e as grades `ekt_*` padrão: **nenhuma solução encontrada na região resolvida; 424 intervalos não resolvidos, cobrindo 10,4% do espaço de busca pela medida conservadora (0,000179% pela medida fina).**
   - **Espaço de busca:** Ω = [s_min; s_max] × [0; 2π) em (posição da colisão s, ângulo ν da normal de contato); a mira é resolvida dentro de cada ponto de Ω.
   - **Medida fina:** soma das células (s × largura em ν) dos intervalos não resolvidos. Intervalos em ν registrados fora da grade de s (dentro de uma bisseção em s) não têm célula e não entram nela.
   - **Medida conservadora:** fração de s coberta pela união dos intervalos da grade que cada item não resolvido pode estragar, com ν inteiro. Um intervalo em ν não resolvido num ponto da grade pode esconder um ramo de raízes e estragar a ligação de v₁(s) nos dois intervalos vizinhos; um item fora da grade conta com o intervalo que o contém.
-  - A medida conservadora é cota superior da região em que uma solução poderia ter escapado **só sob o critério de bracketing e na grade declarada**. Ela não cobre uma troca de sinal dupla entre dois nós, nem uma perda dentro da busca das raízes da mira que nunca apareça como mudança de contagem.
-  - **Refinamento adaptativo** (até `ekt_refine_max_split` = 30 halvings a mais em cada intervalo): de 260 intervalos não resolvidos (ν, contagem mudou: 256; s, contagem mudou: 4), cobrindo 30,1% pela medida conservadora, sobram 30 (ν, contagem mudou: 22; s, contagem mudou: 8); 12 deles estão fora da grade de s e não entram na medida fina. Motivos dos que sobram: 21: a matched branch changes sign: a middle root the main search did not follow; 8: the middle-root search at a refined end of this leaf logged unresolved nu-intervals; 1: aim-root count changes and C takes both signs at the ends.
+  - A medida conservadora é cota superior da região em que uma solução poderia ter escapado **só sob o critério de bracketing e na grade declarada**. Ela não cobre uma troca de sinal dupla entre dois nós. Os colchetes da busca da mira descartados (f indefinida na bisseção, ou salto) são registrados e contados como itens no ponto (s, ν) em que ocorreram. Não são registrados os intervalos da grade da mira com uma ponta indefinida (a borda do domínio do laço, along ≤ 0): uma raiz entre o último nó definido e essa borda não aparece em contagem nenhuma.
+  - **Refinamento adaptativo** (até `ekt_refine_max_split` = 30 halvings a mais em cada intervalo): de 263 intervalos não resolvidos (mira, colchete perdido (f indefinida na bisseção): 3; ν, contagem mudou: 256; s, contagem mudou: 4), cobrindo 30,1% pela medida conservadora, sobram 424 (mira, colchete perdido (f indefinida na bisseção): 394; ν, contagem mudou: 22; s, contagem mudou: 8); 145 deles estão fora da grade de s e não entram na medida fina. Motivos dos que sobram: 391: aim_bracket_lost: an aim bracket dropped during the refinement; 21: a matched branch changes sign: a middle root the main search did not follow; 8: the middle-root search at a refined end of this leaf logged unresolved nu-intervals; 3: aim_bracket_lost; 1: aim-root count changes and C takes both signs at the ends.
   - Critério de resolvido: num trecho em que a contagem de raízes muda, a grandeza que decide a solução (a troca normal C, em ν; v₁ menos o alvo, em s) tem um único sinal em todas as raízes das duas pontas. É o critério de bracketing da busca principal, não uma prova.
   - Intervalos com bisseção perdida não são refinados e continuam contados. 0 soluções verificadas nesta busca; 1 candidatos rejeitados.
+  - **Certificação intervalar** (`certify.py`, mpmath.iv a 53 bits, arredondamento para fora; enunciado e hipóteses em `docs/phase3_certification.md`).
+    - **Itens não resolvidos depois do refinamento:** 424, sendo 30 do mesmo tipo dos que já eram contados e 394 colchetes da busca da mira descartados (registrados a partir desta versão). Resultado: 424 excluídos (30 dos 30; 394 dos 394), 0 indecididos; nenhuma raiz certificada, porque o teste de Krawczyk não foi implementado nesta versão.
+    - Caixa de cada item: o intervalo em s que ele pode estragar (o da medida conservadora, arredondado para fora) × ν e mira inteiros. 27 caixas distintas, 165343 subcaixas examinadas.
+    - **Ω inteiro, com uma travessia:** 656220 subcaixas em 8 pedaços de s, todas excluídas (miss ≠ 0: 142943; C ≠ 0: 84835; impulso ≤ 0: 68222; V ≠ 0: 24706; bola velha ainda não saiu da boca 1 (along ≤ 0): 4490; entrada na boca 2 impossível (d·n_X ≥ 0): 2918).
+    - **Provado, em aritmética intervalar, que não existe solução de uma colisão para esta condição inicial no modelo de [uma colisão; a bola jovem colide na linha inicial (Fig. 11) antes da boca 2, em s ∈ [-3,0; -0,00135]; exatamente 1 travessia entre as duas visitas (entra na boca 2 e sai da boca 1 uma unidade de tempo antes); entrada transversal na boca 2; a bola velha já fora da boca 1 no instante da colisão; impulso normal > 0; modelo geométrico de billiards.py (EKT 1991, Sec. II A, p. 1081); mpmath.iv a 53 bits, arredondamento para fora]; soluções com várias colisões não foram examinadas.** Origem: CERTIFIED, rótulo “exclusão certificada” (rótulo proposto, à espera de aprovação); soluções na caixa: 0.
+    - **Não coberto pela prova:** duas ou mais travessias entre as visitas, colisão depois de uma travessia, e posições de colisão fora desse intervalo de s. Para esses vale o que a busca por bracketing diz acima e nas variações abaixo (COMPUTED).
+    - Nenhuma caixa ficou indecidida, então nenhuma raiz precisou do teste de Krawczyk; ele não foi implementado nesta versão.
   - Posição da colisão s (distância com sinal ao longo da linha, a partir da entrada na boca 2; s < 0 antes dela) em [-3; -0,00135] antes da travessia, e em [1,0e-6; 3] depois dela. A grade de s tem `ekt_s_grid` pontos uniformes mais aproximações geométricas às pontas; ν e a mira usam `ekt_nu_grid` e `ekt_theta_grid`.
-  - Mesma busca, antes do refinamento: 0 raízes físicas das eqs. 4.2–4.3, 1 candidatos geométricos rejeitados (v1(s) crosses the target across a pole, not a root), 260 intervalos não resolvidos (ν, contagem mudou: 256; s, contagem mudou: 4), cobrindo 30,1% do espaço de busca pela medida conservadora (0,000558% pela medida fina).
+  - Mesma busca, antes do refinamento: 0 raízes físicas das eqs. 4.2–4.3, 1 candidatos geométricos rejeitados (v1(s) crosses the target across a pole, not a root), 263 intervalos não resolvidos (mira, colchete perdido (f indefinida na bisseção): 3; ν, contagem mudou: 256; s, contagem mudou: 4), cobrindo 30,1% do espaço de busca pela medida conservadora (0,000558% pela medida fina).
   - Variações, sem refinamento:
     - Colisão antes da travessia, 2 travessias entre as visitas: 0 soluções, 2 candidatos rejeitados, 735 intervalos não resolvidos (ν, bisseção perdeu o ramo: 7; ν, contagem mudou: 696; s, contagem mudou: 32), cobrindo 57,5% do espaço de busca pela medida conservadora (0,00305% pela medida fina).
     - Colisão antes da travessia, 3 travessias entre as visitas: 0 soluções, 2 candidatos rejeitados, 682 intervalos não resolvidos (ν, bisseção perdeu o ramo: 6; ν, contagem mudou: 648; s, contagem mudou: 28), cobrindo 58,6% do espaço de busca pela medida conservadora (0,00312% pela medida fina).
     - Colisão depois de uma travessia, 1 travessia entre as visitas: 0 soluções, 1 candidatos rejeitados, 230 intervalos não resolvidos (ν, contagem mudou: 228; s, contagem mudou: 2), cobrindo 9,21% do espaço de busca pela medida conservadora (0,000296% pela medida fina).
     - Colisão depois de uma travessia, 2 travessias entre as visitas: 0 soluções, 0 candidatos rejeitados, 186 intervalos não resolvidos (ν, bisseção perdeu o ramo: 7; ν, contagem mudou: 176; s, contagem mudou: 3), cobrindo 9,21% do espaço de busca pela medida conservadora (0,000398% pela medida fina).
-    - Colisão antes da travessia, 1 travessia entre as visitas, grades dobradas (ν, mira e s): 0 soluções, 1 candidatos rejeitados, 346 intervalos não resolvidos (ν, contagem mudou: 344; s, contagem mudou: 2), cobrindo 29,4% do espaço de busca pela medida conservadora (0,000242% pela medida fina).
+    - Colisão antes da travessia, 1 travessia entre as visitas, grades dobradas (ν, mira e s): 0 soluções, 1 candidatos rejeitados, 347 intervalos não resolvidos (mira, colchete perdido (f indefinida na bisseção): 1; ν, contagem mudou: 344; s, contagem mudou: 2), cobrindo 29,4% do espaço de busca pela medida conservadora (0,000242% pela medida fina).
     - Colisão antes da travessia, 2 travessias entre as visitas, grades dobradas (ν, mira e s): 0 soluções, 2 candidatos rejeitados, 796 intervalos não resolvidos (ν, contagem mudou: 760; s, contagem mudou: 36), cobrindo 66,4% do espaço de busca pela medida conservadora (0,00198% pela medida fina).
-    - Colisão antes da travessia, 3 travessias entre as visitas, grades dobradas (ν, mira e s): 0 soluções, 2 candidatos rejeitados, 1644 intervalos não resolvidos (ν, bisseção perdeu o ramo: 6; ν, contagem mudou: 1570; s, contagem mudou: 68), cobrindo 73,1% do espaço de busca pela medida conservadora (0,00353% pela medida fina).
-    - Colisão antes da travessia, 1 travessia entre as visitas, λ₁ = 0,1: 0 soluções, 2 candidatos rejeitados, 260 intervalos não resolvidos (ν, contagem mudou: 256; s, contagem mudou: 4), cobrindo 30,1% do espaço de busca pela medida conservadora (0,000558% pela medida fina).
-    - Colisão antes da travessia, 1 travessia entre as visitas, λ₁ = 0,25: 0 soluções, 1 candidatos rejeitados, 260 intervalos não resolvidos (ν, contagem mudou: 256; s, contagem mudou: 4), cobrindo 30,1% do espaço de busca pela medida conservadora (0,000558% pela medida fina).
-    - Colisão antes da travessia, 1 travessia entre as visitas, λ₁ = 0,5: 0 soluções, 1 candidatos rejeitados, 260 intervalos não resolvidos (ν, contagem mudou: 256; s, contagem mudou: 4), cobrindo 30,1% do espaço de busca pela medida conservadora (0,000558% pela medida fina).
-    - Colisão antes da travessia, 1 travessia entre as visitas, λ₁ = 0,9: 0 soluções, 1 candidatos rejeitados, 260 intervalos não resolvidos (ν, contagem mudou: 256; s, contagem mudou: 4), cobrindo 30,1% do espaço de busca pela medida conservadora (0,000558% pela medida fina).
+    - Colisão antes da travessia, 3 travessias entre as visitas, grades dobradas (ν, mira e s): 0 soluções, 2 candidatos rejeitados, 1646 intervalos não resolvidos (mira, colchete rejeitado como salto: 2; ν, bisseção perdeu o ramo: 6; ν, contagem mudou: 1570; s, contagem mudou: 68), cobrindo 73,1% do espaço de busca pela medida conservadora (0,00353% pela medida fina).
+    - Colisão antes da travessia, 1 travessia entre as visitas, λ₁ = 0,1: 0 soluções, 2 candidatos rejeitados, 263 intervalos não resolvidos (mira, colchete perdido (f indefinida na bisseção): 3; ν, contagem mudou: 256; s, contagem mudou: 4), cobrindo 30,1% do espaço de busca pela medida conservadora (0,000558% pela medida fina).
+    - Colisão antes da travessia, 1 travessia entre as visitas, λ₁ = 0,25: 0 soluções, 1 candidatos rejeitados, 263 intervalos não resolvidos (mira, colchete perdido (f indefinida na bisseção): 3; ν, contagem mudou: 256; s, contagem mudou: 4), cobrindo 30,1% do espaço de busca pela medida conservadora (0,000558% pela medida fina).
+    - Colisão antes da travessia, 1 travessia entre as visitas, λ₁ = 0,5: 0 soluções, 1 candidatos rejeitados, 263 intervalos não resolvidos (mira, colchete perdido (f indefinida na bisseção): 3; ν, contagem mudou: 256; s, contagem mudou: 4), cobrindo 30,1% do espaço de busca pela medida conservadora (0,000558% pela medida fina).
+    - Colisão antes da travessia, 1 travessia entre as visitas, λ₁ = 0,9: 0 soluções, 1 candidatos rejeitados, 263 intervalos não resolvidos (mira, colchete perdido (f indefinida na bisseção): 3; ν, contagem mudou: 256; s, contagem mudou: 4), cobrindo 30,1% do espaço de busca pela medida conservadora (0,000558% pela medida fina).
   - Isto **não** é declarado paradoxo nem multiplicidade zero. Soluções com várias colisões, que o artigo menciona (p. 1080), estão fora do modelo buscado; a grade é finita; e os intervalos não resolvidos acima são lugares onde uma solução poderia ter escapado. É o primeiro alvo do mapa (pergunta Q1).
 
 ### R9: região central do triângulo, eqs. 4.12–4.13 e as duas formas da eq. B20

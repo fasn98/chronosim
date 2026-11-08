@@ -97,6 +97,29 @@ def unresolved_by_kind(unres):
 
 NU_KINDS = ("nu_count_change", "nu_state_lost", "nu_bisect_lost")
 S_KINDS = ("s_count_change", "s_bisect_lost")
+AIM_KINDS = ("aim_bracket_lost", "aim_bracket_jump")  # (kind, P, nu, aim_a, aim_b): at one (s, nu) point
+
+
+def item_span(u, sg, p0, e):
+    """The s-interval an unresolved item can spoil (the piece of the conservative measure of
+    unresolved_fraction), its area in the fine measure, and whether it sits on the grid.
+    ``sg`` is the sorted float grid. Returns (piece or None, area, on_grid)."""
+    if u[0] in S_KINDS:
+        a, b = sorted((float(u[1]), float(u[2])))
+        return (a, b), 0.0, True
+    if u[0] not in NU_KINDS and u[0] not in AIM_KINDS:
+        return None, 0.0, False
+    s_ = float(bl.dot(bl.add(u[1], p0, -1), e))
+    i = min(range(len(sg)), key=lambda j: abs(sg[j] - s_))
+    if abs(sg[i] - s_) <= 1e-12 * (1 + abs(s_)):
+        # the linkage of v1(s) at a grid point is made on both neighbouring grid intervals
+        piece = (sg[max(i - 1, 0)], sg[min(i + 1, len(sg) - 1)])
+        cell = ((sg[i - 1] + sg[i]) / 2 if i else sg[i]) , ((sg[i] + sg[i + 1]) / 2 if i < len(sg) - 1 else sg[i])
+        # an aim item sits at one nu: no area in the fine measure
+        a = (cell[1] - cell[0]) * abs(float(u[3]) - float(u[2])) if u[0] in NU_KINDS else 0.0
+        return piece, a, True
+    j = max(k for k, x in enumerate(sg) if x <= s_) if s_ >= sg[0] else 0
+    return (sg[j], sg[min(j + 1, len(sg) - 1)]), 0.0, False
 
 
 def unresolved_fraction(unres, s_grid, p0, e):
@@ -106,40 +129,34 @@ def unresolved_fraction(unres, s_grid, p0, e):
     - ``fine``: s-intervals count with their full nu range (their union along s); a nu-interval logged at a position of
       the s grid counts with that position's cell (half-way to each neighbour) times its nu width.
       A nu-interval logged off the grid (inside an s-bisection) has no cell of its own; those are
-      counted in ``off_grid`` and add nothing here.
+      counted in ``off_grid`` and add nothing here. An aim bracket dropped at one (s, nu) point
+      (AIM_KINDS) has no nu width and adds nothing here either.
     - ``conservative``: the union, along s, of the grid intervals each unresolved item can spoil,
       with the full nu range. An unresolved nu-interval at a grid point can hide a branch of middle
       roots and so spoil the linkage of v1(s) on both neighbouring grid intervals; an off-grid item
-      counts with the grid interval that contains it. This is an upper bound on the region where a
-      solution could have escaped only under the bracketing criterion and on the declared grid (a
-      double sign change between nodes, or a loss inside the aim-root search that never shows as a
-      count change, is not covered).
+      counts with the grid interval that contains it; so does a dropped aim bracket. This is an
+      upper bound on the region where a solution could have escaped only under the bracketing
+      criterion and on the declared grid (a double sign change between nodes is not covered, nor
+      an aim root between the last defined node and an undefined one, which roots_by_bracketing
+      does not log).
 
     Returns {"fine", "off_grid", "conservative"}."""
     sg = sorted(float(x) for x in s_grid)
     span = sg[-1] - sg[0]
-    mids = [(a + b) / 2 for a, b in zip(sg, sg[1:])]
-    cell_of = {x: ((mids[i - 1] if i else x), (mids[i] if i < len(mids) else x)) for i, x in enumerate(sg)}
-    # the linkage of v1(s) at a grid point is made on both neighbouring grid intervals
-    span_of = {x: (sg[max(i - 1, 0)], sg[min(i + 1, len(sg) - 1)]) for i, x in enumerate(sg)}
     two_pi = 2 * math.pi
     area, off, pieces, s_pieces = 0.0, 0, [], []
     for u in unres:
+        piece, a, on_grid = item_span(u, sg, p0, e)
+        if piece is None:
+            continue
+        pieces.append(piece)
         if u[0] in S_KINDS:
-            a, b = sorted((float(u[1]), float(u[2])))
-            s_pieces.append((a, b))
-            pieces.append((a, b))
-        elif u[0] in NU_KINDS:
-            s_ = float(bl.dot(bl.add(u[1], p0, -1), e))
-            near = min(sg, key=lambda x: abs(x - s_))
-            if abs(near - s_) <= 1e-12 * (1 + abs(s_)):
-                lo, hi = cell_of[near]
-                area += (hi - lo) * abs(float(u[3]) - float(u[2]))
-                pieces.append(span_of[near])
-            else:
-                off += 1
-                j = max(i for i, x in enumerate(sg) if x <= s_) if s_ >= sg[0] else 0
-                pieces.append((sg[j], sg[min(j + 1, len(sg) - 1)]))
+            s_pieces.append(piece)
+        elif on_grid:
+            area += a
+        else:
+            off += 1
+
     def union(ps):
         covered, end = 0.0, -math.inf
         for a, b in sorted(ps):
@@ -207,12 +224,13 @@ def refine_unresolved(case, depth=None):
         for u in before:
             if u[0] == "nu_count_change":
                 for na, nb, why in bl.refine_nu(u[1], 1, case["k"], conv(case["B"]), conv(case["R"]), xm, u[2], u[3], depth):
-                    after.append(("nu_count_change", u[1], na, nb, why))
+                    kind = why.split(":")[0] if why.startswith("aim_") else "nu_count_change"
+                    after.append((kind, u[1], na, nb, why) if kind == "nu_count_change" else (kind, u[1], na, None, None, why))
             elif u[0] == "s_count_change":
                 for sa, sb, why in _refine_s(case, u[1], u[2], depth, xm):
                     after.append(("s_count_change", sa, sb, why))
             else:
-                after.append(u)  # lost brackets are not refined here; they stay unresolved
+                after.append(u)  # lost brackets (s, nu or aim) are not refined here; they stay unresolved
     f0 = unresolved_fraction(before, case["s_grid"], p0f, ef)
     f1 = unresolved_fraction(after, case["s_grid"], p0f, ef)
     reasons = {}
@@ -221,7 +239,47 @@ def refine_unresolved(case, depth=None):
         reasons[key] = reasons.get(key, 0) + 1
     return {"before": len(before), "before_kinds": unresolved_by_kind(before), "fraction_before": f0,
             "after": len(after), "after_kinds": unresolved_by_kind(after), "fraction_after": f1,
-            "reasons_after": reasons, "depth": depth}
+            "reasons_after": reasons, "depth": depth, "items_after": after}
+
+
+CERT_CHUNKS = heuristic("ekt_cert_chunks", 8, "pieces of the s range of the empty case run as separate interval-exclusion tasks (parallelism only)")
+
+
+def certify_items(case_args, items, s_grid, p0, e):
+    """Interval exclusion (certify.exclude) on the box each unresolved item can spoil: its s-interval
+    of the conservative measure (rounded outward) times the whole nu and aim ranges. Items that
+    share an s-interval share the run. Returns per-item verdicts and the totals."""
+    from . import certify as ct
+    sg = sorted(float(x) for x in s_grid)
+    runs, verdicts = {}, []
+    for u in items:
+        piece, _, _ = item_span(u, sg, p0, e)
+        if piece is None:
+            verdicts.append((u[0], None, "sem intervalo em s"))
+            continue
+        span = ct.s_range_outward(*piece)
+        if span not in runs:
+            r = ct.exclude(case_args, span)
+            runs[span] = {"boxes": r["boxes"], "complete": r["complete"], "undecided": len(r["undecided"])}
+        verdicts.append((u[0], span, "excluído" if runs[span]["complete"] else "indecidido"))
+    count = lambda pred: sum(1 for v in verdicts if pred(v))
+    return {"items": len(items), "runs": len(runs), "boxes": sum(r["boxes"] for r in runs.values()),
+            "excluded": count(lambda v: v[2] == "excluído"), "undecided": count(lambda v: v[2] != "excluído"),
+            "excluded_aim": count(lambda v: v[2] == "excluído" and v[0] in AIM_KINDS),
+            "items_aim": count(lambda v: v[0] in AIM_KINDS), "certified_roots": 0, "verdicts": verdicts}
+
+
+def certify_chunk(case_args, i, n):
+    """Interval exclusion on the i-th of n equal pieces of the s range of dangerous(case_args)
+    (before the traversal), times the whole nu and aim ranges."""
+    from . import certify as ct
+    R = mp.mpf(case_args[4])
+    lo, hi = ct.s_range_outward(-S_FAR.value, -R * mp.mpf(S_NEAR_OVER_R.value))
+    a, b = lo + (hi - lo) * i / n, (lo + (hi - lo) * (i + 1) / n if i < n - 1 else hi)
+    r = ct.exclude(case_args, (a, b))
+    return {"case": tuple(case_args), "i": i, "n": n, "s": (a, b), "boxes": r["boxes"], "excluded_by": r["excluded_by"],
+            "undecided": r["undecided"][:20], "n_undecided": len(r["undecided"]), "complete": r["complete"],
+            "range": (lo, hi)}
 
 
 # R1 --------------------------------------------------------------------------------------------
@@ -619,8 +677,13 @@ def _task(name, arg):
                 "fraction": unresolved_fraction(case["unresolved"], case["s_grid"], tuple(float(x) for x in case["p0"]), tuple(float(x) for x in case["e"]))}
     if name == "r8r":
         case = dangerous(*arg)
+        ref = refine_unresolved(case)
+        cert = certify_items(arg, ref["items_after"], case["s_grid"], tuple(float(x) for x in case["p0"]), tuple(float(x) for x in case["e"]))
+        ref.pop("items_after")
         return {"case": arg, "ok": len([x for x in case["sols"] if x["ok"]]), "rejected": [x["fails"] for x in case["sols"] if not x["ok"]],
-                **refine_unresolved(case)}
+                **ref, "cert_items": cert}
+    if name == "r8c":
+        return certify_chunk(R8_CASES[2], *arg)
     if name == "r9":
         return r9_central(Bs=(arg,))
     if name == "r10":
@@ -657,6 +720,7 @@ def full_tasks():
     tasks += [("r8x", ("before", k, True, None)) for k in (1, 2, 3)]
     tasks += [("r8x", ("before", 1, False, lam)) for lam in ("0.1", "0.25", "0.5", "0.9")]
     tasks += [("r8r", R8_CASES[2])]
+    tasks += [("r8c", (i, CERT_CHUNKS.value)) for i in range(CERT_CHUNKS.value)]
     tasks += [("r9", B) for B in R9_BS]
     tasks += [("r10", ph) for ph in R10_PHIS]
     tasks += [("r10x", ph) for ph in ("0.3", "0.9", "1.1")]
@@ -712,6 +776,47 @@ def _order(pairs):
     return sum((x - mx) * (y - my) for x, y in zip(xs, ys)) / sum((x - mx) ** 2 for x in xs)
 
 
+def _certification_lines(arg, ref, chunks):
+    """Report lines of the interval exclusion of the empty case (certify.py)."""
+    from . import certify as ct
+    out = []
+    ci = ref.get("cert_items")
+    if ci:
+        old = ci["items"] - ci["items_aim"]
+        out.append(f"  - **Certificação intervalar** (`certify.py`, mpmath.iv a {ct.CERT_PREC.value} bits, arredondamento para fora; enunciado e hipóteses em `docs/phase3_certification.md`).")
+        out.append(f"    - **Itens não resolvidos depois do refinamento:** {ci['items']}, sendo {old} do mesmo tipo dos que já eram contados e {ci['items_aim']} colchetes da busca da mira descartados (registrados a partir desta versão). "
+                   f"Resultado: {ci['excluded']} excluídos ({ci['excluded'] - ci['excluded_aim']} dos {old}; {ci['excluded_aim']} dos {ci['items_aim']}), {ci['undecided']} indecididos; nenhuma raiz certificada, porque o teste de Krawczyk não foi implementado nesta versão.")
+        out.append(f"    - Caixa de cada item: o intervalo em s que ele pode estragar (o da medida conservadora, arredondado para fora) × ν e mira inteiros. {ci['runs']} caixas distintas, {ci['boxes']} subcaixas examinadas.")
+    if chunks:
+        rs = sorted((r for _, r in chunks), key=lambda r: r["i"])
+        n = rs[0]["n"]
+        lo, hi = rs[0]["range"]
+        # the claim needs every piece, of this case, and pieces that tile [lo, hi] without gaps
+        whole = ([r["i"] for r in rs] == list(range(n)) and all(r["n"] == n and r["range"] == (lo, hi) and tuple(r["case"]) == tuple(arg) for r in rs)
+                 and rs[0]["s"][0] == lo and rs[-1]["s"][1] == hi and all(a["s"][1] == b["s"][0] for a, b in zip(rs, rs[1:])))
+        boxes = sum(r["boxes"] for r in rs)
+        left = sum(r["n_undecided"] for r in rs)
+        by = {}
+        for r in rs:
+            for k, m in r["excluded_by"].items():
+                by[k] = by.get(k, 0) + m
+        q = ct.exclusion_quantity({"complete": whole and left == 0, "boxes": boxes, "undecided": [None] * left},
+                                  tuple(arg), (lo, hi), "caso vazio, Ω inteiro com uma travessia")
+        hyp = ct.HYPOTHESES.format(s=f"[{_f(mp.mpf(lo), 6)}; {_f(mp.mpf(hi), 6)}]", prec=ct.CERT_PREC.value)
+        reasons = "; ".join(f"{k}: {m}" for k, m in sorted(by.items(), key=lambda t: -t[1]))
+        if not whole:
+            out.append(f"    - **Ω inteiro, com uma travessia:** os pedaços da exclusão não cobrem o intervalo de s deste caso ({len(rs)} de {n}, ou de outra condição inicial). Nada é afirmado.")
+        elif q.origin is Origin.CERTIFIED:
+            out.append(f"    - **Ω inteiro, com uma travessia:** {boxes} subcaixas em {n} pedaços de s, todas excluídas ({reasons}).")
+            out.append(f"    - **Provado, em aritmética intervalar, que não existe solução de uma colisão para esta condição inicial no modelo de [{hyp}]; soluções com várias colisões não foram examinadas.** "
+                       f"Origem: {q.origin.name}, rótulo “{q.label}” (rótulo proposto, à espera de aprovação); soluções na caixa: {q.value}.")
+            out.append("    - **Não coberto pela prova:** duas ou mais travessias entre as visitas, colisão depois de uma travessia, e posições de colisão fora desse intervalo de s. Para esses vale o que a busca por bracketing diz acima e nas variações abaixo (COMPUTED).")
+            out.append("    - Nenhuma caixa ficou indecidida, então nenhuma raiz precisou do teste de Krawczyk; ele não foi implementado nesta versão.")
+        else:
+            out.append(f"    - **Ω inteiro, com uma travessia:** {boxes} subcaixas em {n} pedaços de s; {left} indecididas ({q.origin.name}). A exclusão não está completa, e nada é afirmado além da contagem.")
+    return out
+
+
 def report_section(res):
     """Markdown lines for outputs/report.md. Every number here is COMPUTED."""
     L = []
@@ -719,7 +824,7 @@ def report_section(res):
     add("")
     add("## Fase 3 · Bolas de bilhar (Echeverria, Klinkhammer & Thorne, 1991): reprodução R1–R11")
     add("")
-    add("Todas as grandezas desta seção são **COMPUTED**.")
+    add("Todas as grandezas desta seção são **COMPUTED**, exceto a exclusão intervalar do caso vazio, quando ela aparece marcada como CERTIFIED (R8, caso vazio).")
     add("")
     add("- **Modelo independente** (`chronosim/billiards.py`): o modelo exato que o artigo descreve em palavras e figuras.")
     add("  - Bocas de raio B identificadas por reflexão no plano x = ½ (Fig. 2).")
@@ -731,7 +836,7 @@ def report_section(res):
     add("- **Unidades:** D = T_d = 1.")
     add("- **Busca:** bracketing unidimensional aninhado, em grades determinísticas, com polimento em mpmath (40 dígitos).")
     add("  - Cada solução passa por um verificador que reconstrói a história inteira e confere as leis do modelo, incluindo a ausência de qualquer outra sobreposição entre encarnações.")
-    add(f"  - \"Intervalos não resolvidos\" são tudo o que o bracketing não conseguiu seguir: trechos de s ou de ν em que o número de raízes mudou e não pôde ser ligado após {bl.MAX_SPLIT.value} bisseções, e bisseções (em s ou em ν) que perderam o ramo. Eles são contados, nunca descartados em silêncio.")
+    add(f"  - \"Intervalos não resolvidos\" são tudo o que o bracketing não conseguiu seguir: trechos de s ou de ν em que o número de raízes mudou e não pôde ser ligado após {bl.MAX_SPLIT.value} bisseções, bisseções (em s ou em ν) que perderam o ramo, e colchetes da busca da mira descartados (f indefinida dentro da bisseção, ou troca de sinal rejeitada como salto). Eles são contados, nunca descartados em silêncio, com uma exceção: intervalos da grade da mira com uma ponta indefinida (borda do domínio do laço) não são colchetes e não são registrados.")
     add("  - Cruzamentos rejeitados (v₁(s) passando pelo alvo num polo, ou impulso normal ≤ 0) e candidatos recusados pelo verificador entram como \"candidatos rejeitados\", com o motivo.")
     add("")
     add("**O que estas contagens são.** São soluções com **uma colisão** e o itinerário indicado, encontradas sob as grades `ekt_*` (HEURISTIC). Não são a multiplicidade do problema, e não estabelecem nenhuma afirmação universal.")
@@ -841,7 +946,8 @@ def report_section(res):
     add("  - A lista da eq. 4.6 cobre as raízes introduzidas pelas manipulações do Apêndice A (p. 1097). Esta tem outra origem.")
     empty = [(arg, r) for arg, r in res["r8"] if not r["rows"]]
     kind_label = {"s_count_change": "s, contagem mudou", "s_bisect_lost": "s, bisseção perdeu o ramo", "nu_count_change": "ν, contagem mudou",
-                  "nu_state_lost": "ν, estado perdido", "nu_bisect_lost": "ν, bisseção perdeu o ramo"}
+                  "nu_state_lost": "ν, estado perdido", "nu_bisect_lost": "ν, bisseção perdeu o ramo",
+                  "aim_bracket_lost": "mira, colchete perdido (f indefinida na bisseção)", "aim_bracket_jump": "mira, colchete rejeitado como salto"}
 
     def kinds(kd):
         return "; ".join(f"{kind_label.get(k, k)}: {n}" for k, n in sorted(kd.items())) or "nenhum"
@@ -860,13 +966,15 @@ def report_section(res):
         add("  - **Espaço de busca:** Ω = [s_min; s_max] × [0; 2π) em (posição da colisão s, ângulo ν da normal de contato); a mira é resolvida dentro de cada ponto de Ω.")
         add("  - **Medida fina:** soma das células (s × largura em ν) dos intervalos não resolvidos. Intervalos em ν registrados fora da grade de s (dentro de uma bisseção em s) não têm célula e não entram nela.")
         add("  - **Medida conservadora:** fração de s coberta pela união dos intervalos da grade que cada item não resolvido pode estragar, com ν inteiro. Um intervalo em ν não resolvido num ponto da grade pode esconder um ramo de raízes e estragar a ligação de v₁(s) nos dois intervalos vizinhos; um item fora da grade conta com o intervalo que o contém.")
-        add("  - A medida conservadora é cota superior da região em que uma solução poderia ter escapado **só sob o critério de bracketing e na grade declarada**. Ela não cobre uma troca de sinal dupla entre dois nós, nem uma perda dentro da busca das raízes da mira que nunca apareça como mudança de contagem.")
+        add("  - A medida conservadora é cota superior da região em que uma solução poderia ter escapado **só sob o critério de bracketing e na grade declarada**. Ela não cobre uma troca de sinal dupla entre dois nós. Os colchetes da busca da mira descartados (f indefinida na bisseção, ou salto) são registrados e contados como itens no ponto (s, ν) em que ocorreram. Não são registrados os intervalos da grade da mira com uma ponta indefinida (a borda do domínio do laço, along ≤ 0): uma raiz entre o último nó definido e essa borda não aparece em contagem nenhuma.")
         if ref:
             reasons = "; ".join(f"{n}: {why}" for why, n in sorted(ref["reasons_after"].items(), key=lambda t: -t[1]))
             add(f"  - **Refinamento adaptativo** (até `ekt_refine_max_split` = {ref['depth']} halvings a mais em cada intervalo): de {ref['before']} intervalos não resolvidos ({kinds(ref['before_kinds'])}), "
                 f"cobrindo {pct(ref['fraction_before']['conservative'])} pela medida conservadora, sobram {ref['after']} ({kinds(ref['after_kinds'])}); {ref['fraction_after']['off_grid']} deles estão fora da grade de s e não entram na medida fina. Motivos dos que sobram: {reasons}.")
             add("  - Critério de resolvido: num trecho em que a contagem de raízes muda, a grandeza que decide a solução (a troca normal C, em ν; v₁ menos o alvo, em s) tem um único sinal em todas as raízes das duas pontas. É o critério de bracketing da busca principal, não uma prova.")
             add(f"  - Intervalos com bisseção perdida não são refinados e continuam contados. {ref['ok']} soluções verificadas nesta busca; {len(ref['rejected'])} candidatos rejeitados.")
+            for line in _certification_lines(arg, ref, res.get("r8c", [])):
+                add(line)
         add(f"  - Posição da colisão s (distância com sinal ao longo da linha, a partir da entrada na boca 2; s < 0 antes dela) em [{_f(lo, 3)}; {_f(hi, 3)}] antes da travessia, e em [{_f(mp.mpf(S_NEAR_AFTER.value), 3)}; {_f(S_FAR.value, 3)}] depois dela. A grade de s tem `ekt_s_grid` pontos uniformes mais aproximações geométricas às pontas; ν e a mira usam `ekt_nu_grid` e `ekt_theta_grid`.")
         add(f"  - Mesma busca, antes do refinamento: {len(r['physical'])} raízes físicas das eqs. 4.2–4.3, "
             f"{len(r['rejected'])} candidatos geométricos rejeitados{(' (' + '; '.join(sorted(set(f[0] for f in r['rejected'] if f))) + ')') if r['rejected'] else ''}, "

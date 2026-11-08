@@ -165,7 +165,7 @@ def test_nu_interval_with_a_count_change_is_logged_not_skipped():
     """A nu-interval whose aim-root count changes is split, and what is left is logged."""
     calls = []
 
-    def fake_roots(P, nu, m, k, B, R, windows, xm, aim_grid):
+    def fake_roots(P, nu, m, k, B, R, windows, xm, aim_grid, log=None):
         calls.append(nu)
         return [0.1] if nu < 0.3 else [0.1, 0.2]
 
