@@ -399,6 +399,49 @@ def _nu_intervals(P, m, k, B, R, windows, xm, aim_grid, N, log):
     return out
 
 
+def refine_nu(P, m, k, B, R, xm, na, nb, depth, aim_grid=None):
+    """Adaptive refinement of one unresolved nu-interval [na, nb] at the collision point P.
+
+    The interval is halved up to ``depth`` more times. A leaf whose aim-root count still changes is
+    resolved when the exchange condition C has one sign at every aim root at both of its ends: under
+    the bracketing criterion of the main search, no C = 0 can then hide in it. A leaf with equal
+    counts is resolved when no matched branch changes sign. Returns the leaves still unresolved, as
+    (na, nb, reason)."""
+    windows = itinerary_windows(P, m, k, B, xm, aim_grid)
+    left = []
+
+    def cvals(nu, roots):
+        return [_exchange(P, nu, m, a, k, B, R, xm) for a in roots]
+
+    def one_sign(vals):
+        return vals and all(v is not None for v in vals) and len({v > 0 for v in vals}) == 1
+
+    def leaf(na, ra, nb, rb, d):
+        if len(ra) == len(rb):
+            ca, cb = cvals(na, ra), cvals(nb, rb)
+            if any(x is None or y is None or (x > 0) != (y > 0) for x, y in zip(ca, cb)):
+                left.append((na, nb, "a matched branch changes sign: a middle root the main search did not follow"))
+            return
+        elif d >= depth:
+            vals = cvals(na, ra) + cvals(nb, rb)
+            if not (one_sign(vals) or (not ra and not rb)):
+                left.append((na, nb, "aim-root count changes and C takes both signs at the ends"))
+            return
+        nm = (na + nb) / 2
+        if nm == na or nm == nb:
+            left.append((na, nb, "number resolution reached"))
+            return
+        rm = _aim_roots(P, nm, m, k, B, R, windows, xm, aim_grid)
+        leaf(na, ra, nm, rm, d + 1)
+        leaf(nm, rm, nb, rb, d + 1)
+
+    if not windows:
+        return left
+    roots = lambda nu: _aim_roots(P, nu, m, k, B, R, windows, xm, aim_grid)
+    leaf(na, roots(na), nb, roots(nb), 0)
+    return left
+
+
 def middle_roots(P, e, m, k, B, R, xm=FLOAT, nu_grid=None, aim_grid=None, log=None):
     """All (nu, aim) with miss = 0 and C = 0 at the collision point P, found by bracketing on a nu
     grid, with the aim roots linked across grid points by sorted order. Each result carries v1

@@ -157,7 +157,7 @@ Diferenças finitas aplicadas à eq. 66, com λ_N da eq. 61 e prefator lido lite
 | 0.5 | 0.01 | 0.25 | 1e-3 | 1e-6 | 0.999999826384168 | 0.499999913192084 | 4.63e-7 | 0.000455 |
 
 - **Maior desvio do operador sem ½ em relação à eq. 67:** sobre o eixo, 0,00404 (β = 0,9, Δ/D = 1e-2); fora do eixo, 0,00495 (ρ/X = 0,1, Δ/D = 1e-4).
-- **Maior erro de diferenças finitas em T^TT:** 0.0000000000000000000396.
+- **Maior erro de diferenças finitas em T^TT:** 3.96e-20.
 - **Inclinação de log|T^TT| contra log Δ, sobre o eixo (β = 0,5, b/D = 0,01, X/D = 0,25):** −3 com desvio de -4.39e-6 sem ½ e -4.39e-6 com ½.
 
 **Resultado:** Os resultados impressos de Kim & Thorne (eq. 67) são reproduzidos pelo operador da eq. 4a como impresso, sem o fator ½. Portanto o fator é carregado de forma consistente até o resultado final, e os valores impressos ficam 2 vezes acima dos obtidos com a convenção que reproduz o árbitro térmico. A taxa de divergência (Δ⁻³) e a troca de sinal na hipersuperfície não dependem desse fator.
@@ -191,9 +191,9 @@ Diferenças finitas aplicadas à eq. 50, com λ_N da eq. 46, sem usar a eq. 51, 
 | 0.5 | 0.01 | 0.7 | 0.6 | 1e-4 | 1.0 | 0.5 | 2.25e-5 | 0.1209 |
 | 0.5 | 0.01 | 0.7 | 0.6 | 1e-6 | 1.0 | 0.5 | 2.25e-7 | 0.1209 |
 
-- **Maior desvio do operador sem ½, com √(Y²+Z²), em todo o grid:** 0.007757 (Δ/b = 1e-2); em Δ/b = 1e-6, 0.0000007757.
+- **Maior desvio do operador sem ½, com √(Y²+Z²), em todo o grid:** 0.007757 (Δ/b = 1e-2); em Δ/b = 1e-6, 7.757e-07.
 - **Maior desvio com a leitura literal √(X²+Y²):** 0.5779; em Δ/b = 1e-6, 0.5779. Não cai com Δ.
-- **Maior erro de diferenças finitas em T^TT:** 0.000000000000000164.
+- **Maior erro de diferenças finitas em T^TT:** 1.64e-16.
 - **Inclinação de log|T^TT| contra log Δ (β = 0,5, b/D = 0,01, θ = 0,7):** −3 com desvio de -9.6e-13 sem ½ e -9.6e-13 com ½.
 
 **Resultado:** Os resultados impressos de Kim & Thorne (eq. 51) são reproduzidos pelo operador da eq. 4a como impresso, sem o fator ½. Portanto o fator é carregado de forma consistente até o resultado final, e os valores impressos ficam 2 vezes acima dos obtidos com a convenção que reproduz o árbitro térmico. A taxa de divergência (Δ⁻³) e a troca de sinal na hipersuperfície não dependem desse fator.
@@ -279,6 +279,7 @@ As demais quantidades conferem. A densidade de Planck de 10⁹⁴ g/cm³ que Haw
 - `ekt_s_far` = 3: farthest collision position searched, in D, along the incoming line (before the traversal) or the exit line (after)
 - `ekt_s_near_over_R` = '0.01': closest collision position to the line's mouth-2 entry searched before the traversal, as a fraction of R
 - `ekt_s_near_after` = '1e-6': closest collision position to the mouth-1 exit searched after the traversal, in D
+- `ekt_refine_max_split` = 30: further halvings of an unresolved nu- or s-interval in the adaptive refinement of the empty case
 - `ekt_window_grid` = 160: extra collision positions in each refinement window around a known special point
 - `ekt_refine_factor` = 2: grid refinement factor of the stabilization search (empty case)
 - `kt_series_tol` = 1.0e-30: the eqs. 66-67 series stops when (b xi / 2D)^N is below this

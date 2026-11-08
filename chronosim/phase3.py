@@ -19,6 +19,7 @@ S_GRID = heuristic("ekt_s_grid", 240, "points of the uniform part of the outer g
 S_FAR = heuristic("ekt_s_far", 3, "farthest collision position searched, in D, along the incoming line (before the traversal) or the exit line (after)")
 S_NEAR_OVER_R = heuristic("ekt_s_near_over_R", "0.01", "closest collision position to the line's mouth-2 entry searched before the traversal, as a fraction of R")
 S_NEAR_AFTER = heuristic("ekt_s_near_after", "1e-6", "closest collision position to the mouth-1 exit searched after the traversal, in D")
+REFINE_SPLIT = heuristic("ekt_refine_max_split", 30, "further halvings of an unresolved nu- or s-interval in the adaptive refinement of the empty case")
 WINDOW_GRID = heuristic("ekt_window_grid", 160, "extra collision positions in each refinement window around a known special point")
 
 
@@ -92,6 +93,135 @@ def unresolved_by_kind(unres):
     for u in unres:
         counts[u[0]] = counts.get(u[0], 0) + 1
     return counts
+
+
+NU_KINDS = ("nu_count_change", "nu_state_lost", "nu_bisect_lost")
+S_KINDS = ("s_count_change", "s_bisect_lost")
+
+
+def unresolved_fraction(unres, s_grid, p0, e):
+    """Fraction of the search space Omega = [s_lo, s_hi] x [0, 2 pi) covered by unresolved intervals,
+    measured two ways.
+
+    - ``fine``: s-intervals count with their full nu range (their union along s); a nu-interval logged at a position of
+      the s grid counts with that position's cell (half-way to each neighbour) times its nu width.
+      A nu-interval logged off the grid (inside an s-bisection) has no cell of its own; those are
+      counted in ``off_grid`` and add nothing here.
+    - ``conservative``: the union, along s, of the grid intervals each unresolved item can spoil,
+      with the full nu range. An unresolved nu-interval at a grid point can hide a branch of middle
+      roots and so spoil the linkage of v1(s) on both neighbouring grid intervals; an off-grid item
+      counts with the grid interval that contains it. This is an upper bound on the region where a
+      solution could have escaped only under the bracketing criterion and on the declared grid (a
+      double sign change between nodes, or a loss inside the aim-root search that never shows as a
+      count change, is not covered).
+
+    Returns {"fine", "off_grid", "conservative"}."""
+    sg = sorted(float(x) for x in s_grid)
+    span = sg[-1] - sg[0]
+    mids = [(a + b) / 2 for a, b in zip(sg, sg[1:])]
+    cell_of = {x: ((mids[i - 1] if i else x), (mids[i] if i < len(mids) else x)) for i, x in enumerate(sg)}
+    # the linkage of v1(s) at a grid point is made on both neighbouring grid intervals
+    span_of = {x: (sg[max(i - 1, 0)], sg[min(i + 1, len(sg) - 1)]) for i, x in enumerate(sg)}
+    two_pi = 2 * math.pi
+    area, off, pieces, s_pieces = 0.0, 0, [], []
+    for u in unres:
+        if u[0] in S_KINDS:
+            a, b = sorted((float(u[1]), float(u[2])))
+            s_pieces.append((a, b))
+            pieces.append((a, b))
+        elif u[0] in NU_KINDS:
+            s_ = float(bl.dot(bl.add(u[1], p0, -1), e))
+            near = min(sg, key=lambda x: abs(x - s_))
+            if abs(near - s_) <= 1e-12 * (1 + abs(s_)):
+                lo, hi = cell_of[near]
+                area += (hi - lo) * abs(float(u[3]) - float(u[2]))
+                pieces.append(span_of[near])
+            else:
+                off += 1
+                j = max(i for i, x in enumerate(sg) if x <= s_) if s_ >= sg[0] else 0
+                pieces.append((sg[j], sg[min(j + 1, len(sg) - 1)]))
+    def union(ps):
+        covered, end = 0.0, -math.inf
+        for a, b in sorted(ps):
+            if b > end:
+                covered += b - max(a, end)
+                end = b
+        return covered
+
+    fine = union(s_pieces) / span + area / (span * two_pi)
+    return {"fine": min(fine, union(pieces) / span), "off_grid": off, "conservative": union(pieces) / span}
+
+
+def _refine_s(case, sa, sb, depth, xm):
+    """Adaptive refinement of one unresolved s-interval. A leaf whose middle-root count still changes
+    is resolved when v1 - target has one sign at every middle root at both ends; a leaf with equal
+    counts is resolved when no matched branch crosses the target. Returns the leaves left."""
+    conv = float if xm is bl.FLOAT else mp.mpf
+    p0 = (conv(case["p0"][0]), conv(case["p0"][1]))
+    e = (conv(case["e"][0]), conv(case["e"][1]))
+    B, R, k, v1 = conv(case["B"]), conv(case["R"]), case["k"], conv(case["v1"])
+    left = []
+
+    def roots(s_, new=True):
+        log = []
+        rs = bl._dedupe(bl.middle_roots(bl.add(p0, e, s_), e, 1, k, B, R, xm, log=log), xm)
+        return rs, bool(log) and new   # nu-items at the original ends are refined on their own (refine_nu)
+
+    def leaf(sa, ra, sb, rb, d):
+        (ra, fa), (rb, fb) = ra, rb
+        if fa or fb:
+            left.append((sa, sb, "the middle-root search at a refined end of this leaf logged unresolved nu-intervals"))
+            return
+        if len(ra) == len(rb):
+            if any((a["v1"] > v1) != (b["v1"] > v1) for a, b in bl._match(ra, rb)):
+                left.append((sa, sb, "a branch of v1(s) crosses the target: a candidate the main search did not follow"))
+            return
+        if d >= depth:
+            vals = [r["v1"] - v1 for r in ra + rb]
+            if vals and len({x > 0 for x in vals}) != 1:
+                left.append((sa, sb, "middle-root count changes and v1 - target takes both signs at the ends"))
+            return
+        sm = (sa + sb) / 2
+        if sm == sa or sm == sb:
+            left.append((sa, sb, "number resolution reached"))
+            return
+        rm = roots(sm)
+        leaf(sa, (ra, False), sm, rm, d + 1)
+        leaf(sm, rm, sb, (rb, False), d + 1)
+
+    leaf(conv(sa), roots(conv(sa), new=False), conv(sb), roots(conv(sb), new=False), 0)
+    return left
+
+
+def refine_unresolved(case, depth=None):
+    """Refine every unresolved interval of a dangerous() search adaptively (REFINE_SPLIT more
+    halvings), and report what is left and the fraction of the search space it covers."""
+    depth = REFINE_SPLIT.value if depth is None else depth
+    xm, digits = bl.backend_for(case["k"], float(case["B"]))
+    conv = float if xm is bl.FLOAT else mp.mpf
+    p0f = (conv(case["p0"][0]), conv(case["p0"][1]))
+    ef = (conv(case["e"][0]), conv(case["e"][1]))
+    before = case["unresolved"]
+    after = []
+    with mp.workdps(max(mp.mp.dps, digits)):
+        for u in before:
+            if u[0] == "nu_count_change":
+                for na, nb, why in bl.refine_nu(u[1], 1, case["k"], conv(case["B"]), conv(case["R"]), xm, u[2], u[3], depth):
+                    after.append(("nu_count_change", u[1], na, nb, why))
+            elif u[0] == "s_count_change":
+                for sa, sb, why in _refine_s(case, u[1], u[2], depth, xm):
+                    after.append(("s_count_change", sa, sb, why))
+            else:
+                after.append(u)  # lost brackets are not refined here; they stay unresolved
+    f0 = unresolved_fraction(before, case["s_grid"], p0f, ef)
+    f1 = unresolved_fraction(after, case["s_grid"], p0f, ef)
+    reasons = {}
+    for u in after:
+        key = u[-1] if isinstance(u[-1], str) else u[0]
+        reasons[key] = reasons.get(key, 0) + 1
+    return {"before": len(before), "before_kinds": unresolved_by_kind(before), "fraction_before": f0,
+            "after": len(after), "after_kinds": unresolved_by_kind(after), "fraction_after": f1,
+            "reasons_after": reasons, "depth": depth}
 
 
 # R1 --------------------------------------------------------------------------------------------
@@ -255,7 +385,9 @@ def r7_multitraversal(B="0.05", R="1e-4", v1="3", psi_A="0.6", h="0.5", ns=range
         sols, unres = solutions(p0, e, v1, 1, n, B, R, sg)
         good = [s for s in sols if s["ok"]]
         Ls = [-s["sol"][0] for s in good]
+        frac = unresolved_fraction(unres, sg, (float(p0[0]), float(p0[1])), (float(e[0]), float(e[1])))
         rows.append({"n": n, "L": Ls, "unresolved": len(unres), "rejected": [s["fails"] for s in sols if not s["ok"]],
+                     "unresolved_kinds": unresolved_by_kind(unres), "fraction": frac,
                      "n_37": [ekt.multitraversal_n(L, h, v1).value for L in Ls]})
     return {"rows": rows, "n_min_38": ekt.multitraversal_n_min(h, v1).value}
 
@@ -274,7 +406,7 @@ def dangerous(theta, phi, lam1, B, R, k=1, extra_windows=(), on_edge=False):
     sg = grid(mp.mpf(s_range[0]), s_range[1], S_GRID.value, windows)
     sols, unres = solutions(p0, e, v1, 1, k, B, R, sg)
     return {"v1": v1, "p0": p0, "e": e, "s0": s0, "sols": sols, "unresolved": unres, "theta": th, "phi": ph, "B": B, "R": R, "lam1": lam,
-            "s_range": s_range}
+            "s_range": s_range, "s_grid": sg, "k": k}
 
 
 def r8_eq42_43(case):
@@ -378,15 +510,22 @@ def r10_upper_edge(phis, B="0.01", R="1e-5", lam1="0.5"):
     return rows
 
 
-def after_traversal(theta, phi, lam1, B, R, k=1):
-    """Single-collision solutions whose first encounter with the collision is on the collision-free
-    exit line from mouth 1 (after one traversal), with k more traversals between the two visits."""
+def after_traversal_setup(theta, phi, lam1, B, R):
+    """The collision-free exit line from mouth 1 (point, direction), v1 and the s grid used after
+    the traversal."""
     th, ph, lam, Bm, Rm = (mp.mpf(x) for x in (theta, phi, lam1, B, R))
     v1 = ekt.v1_from_lambda(lam, th, ph, Bm, Rm).value
     a0, e0 = line_theta_phi(th, ph, Bm)
     E, w, _ = bl.traverse(a0, e0, 1, Bm)
     sg = grid(mp.mpf(S_NEAR_AFTER.value), mp.mpf(S_FAR.value), S_GRID.value)
-    return solutions(E, w, v1, 1, k, Bm, Rm, sg, origin=(a0, e0))
+    return {"E": E, "w": w, "v1": v1, "s_grid": sg, "origin": (a0, e0), "B": Bm, "R": Rm}
+
+
+def after_traversal(theta, phi, lam1, B, R, k=1):
+    """Single-collision solutions whose first encounter with the collision is on the collision-free
+    exit line from mouth 1 (after one traversal), with k more traversals between the two visits."""
+    a = after_traversal_setup(theta, phi, lam1, B, R)
+    return solutions(a["E"], a["w"], a["v1"], 1, k, a["B"], a["R"], a["s_grid"], origin=a["origin"])
 
 
 def r11_after_traversal(phis, B="0.01", R="1e-5", lam1="0.5"):
@@ -462,16 +601,26 @@ def _task(name, arg):
         finally:
             bl.NU_GRID, bl.THETA_GRID, S_GRID = saved
         s_range = (-S_FAR.value, -float(R) * float(S_NEAR_OVER_R.value)) if kind == "before" else (float(S_NEAR_AFTER.value), S_FAR.value)
+        if kind == "before":
+            frac = unresolved_fraction(unres, case["s_grid"], tuple(float(x) for x in case["p0"]), tuple(float(x) for x in case["e"]))
+        else:
+            a = after_traversal_setup(th, ph, lam, B, R)
+            frac = unresolved_fraction(unres, a["s_grid"], tuple(float(x) for x in a["E"]), tuple(float(x) for x in a["w"]))
         return {"case": R8_CASES[2], "kind": kind, "k": k, "refined": refined, "lam1": lam, "ok": len([x for x in sols if x["ok"]]),
                 "rejected": [x["fails"] for x in sols if not x["ok"]], "unresolved": len(unres),
-                "unresolved_kinds": unresolved_by_kind(unres), "s_range": s_range}
+                "unresolved_kinds": unresolved_by_kind(unres), "s_range": s_range, "fraction": frac}
     if name == "r8":
         case = dangerous(*arg)
         phys, neg = eq42_43_roots(case)
         free_ok, _, overlaps = bl.free_history(bl.add(case["p0"], case["e"], -1), case["e"], case["v1"], case["B"], case["R"])
         return {"args": arg, "v1": case["v1"], "free_consistent": free_ok, "free_min_distance": min(o[2] for o in overlaps) if overlaps else None, "rows": r8_eq42_43(case), "physical": [p[:3] for p in phys],
                 "negative": [(a, b, s, d) for a, b, s, d in neg], "rejected": [s["fails"] for s in case["sols"] if not s["ok"]],
-                "unresolved": len(case["unresolved"]), "unresolved_kinds": unresolved_by_kind(case["unresolved"]), "s_range": case["s_range"]}
+                "unresolved": len(case["unresolved"]), "unresolved_kinds": unresolved_by_kind(case["unresolved"]), "s_range": case["s_range"],
+                "fraction": unresolved_fraction(case["unresolved"], case["s_grid"], tuple(float(x) for x in case["p0"]), tuple(float(x) for x in case["e"]))}
+    if name == "r8r":
+        case = dangerous(*arg)
+        return {"case": arg, "ok": len([x for x in case["sols"] if x["ok"]]), "rejected": [x["fails"] for x in case["sols"] if not x["ok"]],
+                **refine_unresolved(case)}
     if name == "r9":
         return r9_central(Bs=(arg,))
     if name == "r10":
@@ -507,6 +656,7 @@ def full_tasks():
     tasks += [("r8x", (kind, k, False, None)) for kind, k in (("before", 2), ("before", 3), ("after", 1), ("after", 2))]
     tasks += [("r8x", ("before", k, True, None)) for k in (1, 2, 3)]
     tasks += [("r8x", ("before", 1, False, lam)) for lam in ("0.1", "0.25", "0.5", "0.9")]
+    tasks += [("r8r", R8_CASES[2])]
     tasks += [("r9", B) for B in R9_BS]
     tasks += [("r10", ph) for ph in R10_PHIS]
     tasks += [("r10x", ph) for ph in ("0.3", "0.9", "1.1")]
@@ -547,6 +697,10 @@ def reproduce(workers=None, quick=False):
 def _f(x, n=3):
     """Number in Portuguese notation (decimal comma)."""
     return mp.nstr(x, n).replace(".", ",")
+
+
+def _pct(x):
+    return _f(100 * mp.mpf(x), 3) + "%"
 
 
 def _order(pairs):
@@ -626,11 +780,12 @@ def report_section(res):
         nmin = rows[0]["n_min_38"]
         add(f"**{label}**, B = 0,05, R = 10⁻⁴, colisão a até 50 D. O n_min da eq. 3.8 é {_f(nmin, 4)}.")
         add("")
-        add("| n | L medido | n da eq. 3.7 no L medido | intervalos não resolvidos |")
-        add("|---|---|---|---|")
+        add("| n | L medido | n da eq. 3.7 no L medido | intervalos não resolvidos | fração do espaço de busca, conservadora (fina) |")
+        add("|---|---|---|---|---|")
         for r in rows:
             row = r["rows"][0]
-            add(f"| {row['n']} | {'; '.join(_f(x, 7) for x in row['L']) or 'nenhuma solução encontrada'} | {'; '.join(_f(x, 5) for x in row['n_37']) or '—'} | {row['unresolved']} |")
+            fr = row["fraction"]
+            add(f"| {row['n']} | {'; '.join(_f(x, 7) for x in row['L']) or 'nenhuma solução encontrada'} | {'; '.join(_f(x, 5) for x in row['n_37']) or '—'} | {row['unresolved']} | {_pct(fr['conservative'])} ({_pct(fr['fine'])}) |")
         add("")
     first = [r["rows"][0] for _, r in res["r7"]]
     offs = [row["n_37"][0] - row["n"] for row in first if row["n_37"]]
@@ -640,7 +795,7 @@ def report_section(res):
     else:
         add("- **Primeiro conjunto:** nenhuma solução encontrada sob este critério.")
     second = [r["rows"][0] for _, r in res["r7b"]]
-    add(f"- **Segundo conjunto:** soluções encontradas só para n = {', '.join(str(row['n']) for row in second if row['L']) or 'nenhum'}, com {sum(row['unresolved'] for row in second)} intervalos não resolvidos no total. A busca é **inconclusiva** aqui: a ausência das outras soluções não é afirmada.")
+    add(f"- **Segundo conjunto:** soluções encontradas só para n = {', '.join(str(row['n']) for row in second if row['L']) or 'nenhum'}, com {sum(row['unresolved'] for row in second)} intervalos não resolvidos no total, sem refinamento; a fração do espaço de busca que cobrem está na tabela, pelas medidas definidas em R8 (caso vazio). A busca é **inconclusiva** aqui: a ausência das outras soluções não é afirmada.")
     add("")
 
     add("### R8: árbitro das eqs. 4.2–4.3 contra a geometria independente")
@@ -675,7 +830,8 @@ def report_section(res):
         + ("são as mesmas, uma a uma." if all_match else "**não** coincidem em todos os casos (ver a tabela)."))
     if worst is not None:
         add(f"  - O maior resíduo ou desvio entre resíduo das eqs. 4.2–4.3, d (4.4b), v₂ (4.5) e a (A6) é {_f(worst)}.")
-    add(f"  - A regra de sinal sign(β) = sign(d) da eq. 4.6c vale em {'todas' if signs_ok else 'nem todas'} as {len(rows_all)} soluções. A eq. A6 é comparada com a distância PQ medida em cada uma.")
+    if rows_all:
+        add(f"  - A regra de sinal sign(β) = sign(d) da eq. 4.6c vale em {'todas' if signs_ok else 'nem todas'} as {len(rows_all)} soluções. A eq. A6 é comparada com a distância PQ medida em cada uma.")
     if all_match and signs_ok and worst is not None and worst < mp.mpf("1e-30"):
         add("  - Isso confere a transcrição das eqs. 4.2, 4.3, 4.4a, 4.4b, 4.5 e A6, e o modelo da travessia, nestes casos.")
     negs = [(arg, r["negative"]) for arg, r in res["r8"] if r["negative"]]
@@ -690,21 +846,40 @@ def report_section(res):
     def kinds(kd):
         return "; ".join(f"{kind_label.get(k, k)}: {n}" for k, n in sorted(kd.items())) or "nenhum"
 
+    pct = _pct
+
+    def cover(fr):
+        return f"cobrindo {pct(fr['conservative'])} do espaço de busca pela medida conservadora ({pct(fr['fine'])} pela medida fina)"
+
     for arg, r in empty:
         lo, hi = r["s_range"]
-        add(f"- **Caso ({'; '.join(a.replace('.', ',') for a in arg)}):** a trajetória é perigosa, porque o movimento livre se sobrepõe a si mesmo (distância mínima {_f(r['free_min_distance'])} < 2R). Mesmo assim, **nenhuma solução de uma colisão foi encontrada** sob os critérios abaixo.")
+        ref = next((x for _, x in res.get("r8r", []) if tuple(x["case"]) == tuple(arg)), None)
+        n_left, fr = (ref["after"], ref["fraction_after"]) if ref else (r["unresolved"], r["fraction"])
+        add(f"- **Caso ({'; '.join(a.replace('.', ',') for a in arg)}):** a trajetória é perigosa, porque o movimento livre se sobrepõe a si mesmo (distância mínima {_f(r['free_min_distance'])} < 2R). "
+            f"Com uma colisão antes da travessia, 1 travessia entre as visitas e as grades `ekt_*` padrão: **nenhuma solução encontrada na região resolvida; {n_left} intervalos não resolvidos, {cover(fr)}.**")
+        add("  - **Espaço de busca:** Ω = [s_min; s_max] × [0; 2π) em (posição da colisão s, ângulo ν da normal de contato); a mira é resolvida dentro de cada ponto de Ω.")
+        add("  - **Medida fina:** soma das células (s × largura em ν) dos intervalos não resolvidos. Intervalos em ν registrados fora da grade de s (dentro de uma bisseção em s) não têm célula e não entram nela.")
+        add("  - **Medida conservadora:** fração de s coberta pela união dos intervalos da grade que cada item não resolvido pode estragar, com ν inteiro. Um intervalo em ν não resolvido num ponto da grade pode esconder um ramo de raízes e estragar a ligação de v₁(s) nos dois intervalos vizinhos; um item fora da grade conta com o intervalo que o contém.")
+        add("  - A medida conservadora é cota superior da região em que uma solução poderia ter escapado **só sob o critério de bracketing e na grade declarada**. Ela não cobre uma troca de sinal dupla entre dois nós, nem uma perda dentro da busca das raízes da mira que nunca apareça como mudança de contagem.")
+        if ref:
+            reasons = "; ".join(f"{n}: {why}" for why, n in sorted(ref["reasons_after"].items(), key=lambda t: -t[1]))
+            add(f"  - **Refinamento adaptativo** (até `ekt_refine_max_split` = {ref['depth']} halvings a mais em cada intervalo): de {ref['before']} intervalos não resolvidos ({kinds(ref['before_kinds'])}), "
+                f"cobrindo {pct(ref['fraction_before']['conservative'])} pela medida conservadora, sobram {ref['after']} ({kinds(ref['after_kinds'])}); {ref['fraction_after']['off_grid']} deles estão fora da grade de s e não entram na medida fina. Motivos dos que sobram: {reasons}.")
+            add("  - Critério de resolvido: num trecho em que a contagem de raízes muda, a grandeza que decide a solução (a troca normal C, em ν; v₁ menos o alvo, em s) tem um único sinal em todas as raízes das duas pontas. É o critério de bracketing da busca principal, não uma prova.")
+            add(f"  - Intervalos com bisseção perdida não são refinados e continuam contados. {ref['ok']} soluções verificadas nesta busca; {len(ref['rejected'])} candidatos rejeitados.")
         add(f"  - Posição da colisão s (distância com sinal ao longo da linha, a partir da entrada na boca 2; s < 0 antes dela) em [{_f(lo, 3)}; {_f(hi, 3)}] antes da travessia, e em [{_f(mp.mpf(S_NEAR_AFTER.value), 3)}; {_f(S_FAR.value, 3)}] depois dela. A grade de s tem `ekt_s_grid` pontos uniformes mais aproximações geométricas às pontas; ν e a mira usam `ekt_nu_grid` e `ekt_theta_grid`.")
-        add(f"  - Colisão antes da travessia, com 1 travessia entre as visitas, grades `ekt_*` padrão: {len(r['physical'])} raízes físicas das eqs. 4.2–4.3, "
+        add(f"  - Mesma busca, antes do refinamento: {len(r['physical'])} raízes físicas das eqs. 4.2–4.3, "
             f"{len(r['rejected'])} candidatos geométricos rejeitados{(' (' + '; '.join(sorted(set(f[0] for f in r['rejected'] if f))) + ')') if r['rejected'] else ''}, "
-            f"{r['unresolved']} intervalos não resolvidos ({kinds(r['unresolved_kinds'])}).")
+            f"{r['unresolved']} intervalos não resolvidos ({kinds(r['unresolved_kinds'])}), {cover(r['fraction'])}.")
+        add("  - Variações, sem refinamento:")
         for _, x in res["r8x"]:
             if tuple(x["case"]) != tuple(arg):
                 continue
             kind = "Colisão antes da travessia" if x["kind"] == "before" else "Colisão depois de uma travessia"
             trav = "1 travessia" if x["k"] == 1 else f"{x['k']} travessias"
             extra = (", grades dobradas (ν, mira e s)" if x["refined"] else "") + (f", λ₁ = {x['lam1'].replace('.', ',')}" if x["lam1"] != arg[2] else "")
-            add(f"  - {kind}, {trav} entre as visitas{extra}: {x['ok']} soluções, {len(x['rejected'])} candidatos rejeitados, "
-                f"{x['unresolved']} intervalos não resolvidos ({kinds(x['unresolved_kinds'])}).")
+            add(f"    - {kind}, {trav} entre as visitas{extra}: {x['ok']} soluções, {len(x['rejected'])} candidatos rejeitados, "
+                f"{x['unresolved']} intervalos não resolvidos ({kinds(x['unresolved_kinds'])}), {cover(x['fraction'])}.")
         add("  - Isto **não** é declarado paradoxo nem multiplicidade zero. Soluções com várias colisões, que o artigo menciona (p. 1080), estão fora do modelo buscado; a grade é finita; e os intervalos não resolvidos acima são lugares onde uma solução poderia ter escapado. É o primeiro alvo do mapa (pergunta Q1).")
     add("")
 

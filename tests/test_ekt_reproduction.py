@@ -190,3 +190,46 @@ def test_r8_rows_carry_the_eq_A6_and_sign_rule_checks():
     rows = p3.r8_eq42_43(case)
     assert rows and all(r["sign_rule"] for r in rows)
     assert all(r["dev_a6"].value < ROUNDING and r["dev_a6"].origin is Origin.COMPUTED for r in rows)
+
+
+def test_unresolved_fraction_on_a_hand_made_grid():
+    """Grid 0, 1, 2, 3 along e = x: an s-interval [0, 0.5] with full nu, plus a nu-interval of width
+    pi at s = 2 (cell [1.5, 2.5]). fine = 0.5/3 + (1 x pi)/(3 x 2 pi); conservative = (0.5 + 2)/3, since an item at a grid point
+    spoils both neighbouring grid intervals."""
+    sg = [0.0, 1.0, 2.0, 3.0]
+    unres = [("s_count_change", 0.0, 0.5, 1, 0), ("nu_count_change", (2.0, 0.0), 0.0, mp.pi, 1, 2),
+             ("nu_count_change", (2.5, 0.0), 0.0, 1.0, 1, 2)]   # off the grid: counted, no cell
+    f = p3.unresolved_fraction(unres, sg, (0.0, 0.0), (1.0, 0.0))
+    assert abs(f["fine"] - (0.5 / 3 + 1 / 6)) < 1e-12
+    assert abs(f["conservative"] - (0.5 + 2) / 3) < 1e-12   # union of [0, 0.5], [1, 3] (both grid intervals next to s = 2) and [2, 3]
+    assert f["off_grid"] == 1 and f["fine"] <= f["conservative"]
+
+
+def test_refine_nu_resolves_a_fold_with_one_sign_and_keeps_one_with_both(monkeypatch):
+    """Two aim roots appear at nu = 0.3. If C > 0 on both, the fold is resolved; if C changes sign
+    across the two branches, the leaf stays unresolved after the allowed halvings."""
+    monkeypatch.setattr(bl, "itinerary_windows", lambda *a, **k: [(0.0, 1.0)])
+    monkeypatch.setattr(bl, "_aim_roots", lambda P, nu, *a, **k: [0.1] if nu < 0.3 else [0.1, 0.2])
+    monkeypatch.setattr(bl, "_exchange", lambda P, nu, m, aim, *a: 1.0)
+    assert bl.refine_nu((0.5, -0.3), 1, 1, 0.01, 0.001, bl.FLOAT, 0.0, 1.0, 20) == []
+    monkeypatch.setattr(bl, "_exchange", lambda P, nu, m, aim, *a: 1.0 if aim < 0.15 else -1.0)
+    left = bl.refine_nu((0.5, -0.3), 1, 1, 0.01, 0.001, bl.FLOAT, 0.0, 1.0, 20)
+    assert len(left) == 1 and left[0][0] < 0.3 <= left[0][1] and left[0][1] - left[0][0] <= 2 ** -20
+    monkeypatch.setattr(bl, "_aim_roots", lambda P, nu, *a, **k: [0.1])
+    monkeypatch.setattr(bl, "_exchange", lambda P, nu, m, aim, *a: nu - 0.4)
+    left = bl.refine_nu((0.5, -0.3), 1, 1, 0.01, 0.001, bl.FLOAT, 0.0, 1.0, 20)
+    assert len(left) == 1 and "middle root" in left[0][2]
+
+
+def test_refine_s_keeps_a_leaf_whose_new_end_logged_nu_items(monkeypatch):
+    """Reviewer B1-a: a nu-item logged at a point the s-refinement evaluates must not let the leaf
+    pass as resolved."""
+    def fake(P, e, m, k, B, R, xm=bl.FLOAT, nu_grid=None, aim_grid=None, log=None):
+        s_ = P[0]
+        if log is not None and 0.4 < s_ < 0.6:
+            log.append(("nu_count_change", P, 0.0, 0.1, 1, 2))
+        return [{"v1": 5.0, "aim": 0.0, "nu": 0.0, "kick": 1.0}] if s_ < 0.7 else []
+    monkeypatch.setattr(bl, "middle_roots", fake)
+    case = {"p0": (0.0, 0.0), "e": (1.0, 0.0), "B": 0.1, "R": 0.01, "k": 1, "v1": 99.0}
+    left = p3._refine_s(case, 0.0, 1.0, 5, bl.FLOAT)
+    assert any("logged unresolved nu-intervals" in why for _, _, why in left)

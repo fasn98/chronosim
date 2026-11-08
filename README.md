@@ -85,8 +85,8 @@ PDFs de artigos ficam em `papers/`, que não entra no repositório.
 git clone https://github.com/fasn98/chronosim.git
 cd chronosim
 python3 -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
-pip install -r requirements.txt
-python -m pytest            # 496 testes, ~8 min
+pip install -r requirements.txt   # versões fixas: outra versão do mpmath muda a formatação de outputs/report.md
+python -m pytest            # 504 testes, ~4 min
 python -m chronosim.run          # fases 1 e 2 completas e um subconjunto da fase 3; relatório em outputs/ (~4 min; meta de até ~6 min)
 python -m chronosim.run --full   # inclui R1–R11 completos da fase 3 (outputs/phase3_full.md; ~18 min, vários processos)
 ```
