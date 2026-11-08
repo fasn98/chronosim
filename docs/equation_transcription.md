@@ -90,6 +90,14 @@ Verificação humana (Fabio, 2026-11-07), em resposta ao achado I6 do reviewer.
 | m_P ~ 10⁻⁵ g, no texto após a eq. 54 | 3943 | passada 1 e leitura humana | conferido |
 | l_P ~ 10⁻³³ cm | 3930 | passada 1 | não conferido na p. 3930; implicado pela razão l_P/D ~ 10⁻³⁵ com D = 1 m declarada na p. 3935 |
 
+**Conferência da tabela F7 do artigo (2026-11-08, leitura do agente no scan, pp. 3934–3937; não é leitura humana).**
+
+- **Impressos em Kim & Thorne:**
+  - (ΔL/L)_max ≲ 10⁻³⁵, depois da eq. 13 (p. 3935);
+  - l_P/D ~ 10⁻³⁵ e T⁰⁰_max ~ 10⁴⁹ g/cm³, depois da eq. 14 (p. 3935);
+  - Δt ~ 10⁻³⁵ l_P, para D ~ 1 m, como o local de quebra segundo Hawking, DΔt ~ l_P² (p. 3937, coluna da esquerda).
+- **Não impresso nas pp. 3934–3937:** a densidade de Planck m_P/l_P³ aparece só como símbolo, sem valor. O valor 10⁹⁴ g/cc usado em F7 vem de Hawking (1992, p. 603). No artigo de replicação, essa linha fica com "—" na coluna dos valores impressos.
+
 O texto após a eq. 14 (p. 3935) declara T⁰⁰_max como l_P/D ~ 10⁻³⁵ vezes a densidade de Planck m_P/l_P³ e dá o valor ~10⁴⁹ g/cm³. Com as entradas declaradas no próprio artigo (m_P ~ 10⁻⁵ g, l_P/D ~ 10⁻³⁵, D = 1 m), essa expressão dá ~10⁵⁹ g/cm³. O valor impresso é inconsistente com a expressão e as entradas que o acompanham. Trata-se de estimativa de ordem de grandeza; nenhuma conclusão do artigo depende dela.
 
 ## Eq. 52
