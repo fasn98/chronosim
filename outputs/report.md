@@ -298,6 +298,7 @@ As demais quantidades conferem. A densidade de Planck de 10⁹⁴ g/cm³ que Haw
 - `thermal_mode_intervals` = 30: subintervals of the mode integral
 - `thermal_mode_pairs` = 400: image pairs summed in the image-versus-mode comparison
 - `thermal_mode_cutoff` = 60: mode integral stops at k = cutoff / beta, where n_k ~ e^-60
+- `kt_f5_limit_n` = 60: N at which the N -> infinity limits of F5 (eqs. 44a, 63) are evaluated
 
 ## Fase 3 · Bolas de bilhar (Echeverria, Klinkhammer & Thorne, 1991): execução reduzida
 

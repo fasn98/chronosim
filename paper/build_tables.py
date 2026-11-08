@@ -22,29 +22,48 @@ from pathlib import Path
 
 import mpmath as mp
 
-mp.mp.dps = 40  # the CSVs carry 20 significant digits; read them without loss
+DIGITS = 40  # the CSVs carry 20 significant digits; read them without loss (local precision, never global)
 
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "outputs"
 GEN = Path(__file__).resolve().parent / "generated"
 
 
+ORIGINS = ("CITED", "DERIVED", "COMPUTED", "HEURISTIC")
+
+
 def rows(name):
+    """A CSV of outputs/. Every origin column it has must hold a known origin (the text states the
+    origin of each number it quotes; this check makes sure the CSV says the same)."""
     with open(OUT / name, newline="", encoding="utf-8") as fh:
-        return list(csv.DictReader(fh))
+        data = list(csv.DictReader(fh))
+    for col in [c for c in (data[0] if data else {}) if c == "origin" or c.endswith("_origin")]:
+        bad = [r[col] for r in data if not r[col].split(";")[0].strip() in ORIGINS]
+        if bad:
+            raise SystemExit(f"{name}: unknown origin in column {col}: {bad[0]}")
+    return data
+
+
+def computed(data, name):
+    """Rows whose numbers the text labels COMPUTED must say so in the CSV."""
+    if any(not r["origin"].startswith("COMPUTED") for r in data):
+        raise SystemExit(f"{name}: a row is not COMPUTED, but the text labels it so")
+    return data
 
 
 def num(x):
-    return mp.mpf(x)
+    with mp.workdps(DIGITS):
+        return mp.mpf(x)
 
 
 def tex(x, sig=3):
     """A number as LaTeX with sig significant digits: 3.96e-20 -> 3.96\\times10^{-20}; 0.5 -> 0.5;
     exact zero -> 0. Read from the CSV string with mpmath, so no digit is lost on the way."""
-    x = mp.mpf(x)
-    if x == 0:
-        return "0"
-    s = mp.nstr(x, sig, min_fixed=-3, max_fixed=4)
+    with mp.workdps(DIGITS):
+        x = mp.mpf(x)
+        if x == 0:
+            return "0"
+        s = mp.nstr(x, sig, min_fixed=-3, max_fixed=4)
     if "e" not in s:
         return s[:-2] if s.endswith(".0") else s
     m, e = s.split("e")
@@ -131,7 +150,7 @@ def release(require):
     head = git("rev-parse", "HEAD").stdout.strip()
     if tagged.stdout.strip() != head:
         raise SystemExit(f"HEAD {head[:12]} is not the commit of tag {RELEASE_TAG} ({tagged.stdout.strip()[:12]})")
-    if git("status", "--porcelain", "--untracked-files=no").stdout.strip():
+    if git("status", "--porcelain", "--untracked-files=no", "--", ".", ":!paper/generated").stdout.strip():  # generated/ is rewritten by this script
         raise SystemExit("the working tree has uncommitted changes; the paper must be built from the tagged release")
     return f"{RELEASE_TAG} (commit \\texttt{{{head[:12]}}})"
 
@@ -156,6 +175,11 @@ def versions():
 
 
 def main(argv=None):
+    with mp.workdps(DIGITS):
+        return _main(argv)
+
+
+def _main(argv=None):
     import argparse
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--release", action="store_true", help=f"require the tag {RELEASE_TAG} at HEAD (final build)")
@@ -168,15 +192,16 @@ def main(argv=None):
     val = rows("validation.csv")
     M["PhaseOnePoints"] = str(len(val))
     M["PhaseOneWorst"] = tex(S["phase1_worst_rel_error"]["value"])
-    M["PhaseOneSlopeDev"] = tex(num(S["phase1_horizon_slope"]["value"]) + 4)
+    M["PhaseOneSlopeDev"] = tex(abs(num(S["phase1_horizon_slope"]["value"]) + 4))
     zero = [r for r in val if r["b"] == "2pi"]
     worst0 = max(zero, key=lambda r: abs(num(r["rho_computed"])))
     M["PhaseOneTwoPiMax"] = tex(abs(num(worst0["rho_computed"])))
     M["PhaseOneTwoPiXi"] = worst0["xi"]
-    M["PhaseOneTwoPiRel"] = tex(worst0["max_err_over_scale"])
+    xi0 = num(worst0["xi"])
+    M["PhaseOneTwoPiRel"] = tex(abs(num(worst0["rho_computed"])) * 1440 * mp.pi ** 2 * xi0 ** 4)  # |rho| / (1 / (1440 pi^2 xi^4))
 
     # Arbiters
-    th = rows("kt_thermal_arbiter.csv")
+    th = computed(rows("kt_thermal_arbiter.csv"), "kt_thermal_arbiter.csv")
     by = lambda op: [r for r in th if r["operator"] == op]
     M["ThermalTemps"] = ", ".join(r["T"] for r in by("eq4a"))
     M["ThermalEqFourA"] = full(by("eq4a")[0]["rho_over_stefan_boltzmann"])
@@ -184,12 +209,12 @@ def main(argv=None):
     M["ThermalPressureDev"] = tex(max(abs(num(r["worst_3p_over_rho_minus_1"])) for r in th))
     M["ThermalTrace"] = tex(max(abs(num(r["trace_over_rho"])) for r in th))
     M["ThermalFDErr"] = tex(max(abs(num(r["fd_err"])) for r in th))
-    modes = rows("kt_thermal_modes.csv")
+    modes = computed(rows("kt_thermal_modes.csv"), "kt_thermal_modes.csv")
     M["ModesMaxDiff"] = tex(max(num(r["rel_diff"]) for r in modes))
-    un = rows("kt_unruh_arbiter.csv")
+    un = computed(rows("kt_unruh_arbiter.csv"), "kt_unruh_arbiter.csv")
     M["UnruhHalfDev"] = tex(max(abs(num(r["with_half_over_ref"]) - 1) for r in un))
     M["UnruhEqFourADev"] = tex(max(abs(num(r["eq4a_over_ref"]) - 2) for r in un))
-    arb = rows("kt_arbiter_eq4a_vs_eq11.csv")
+    arb = computed(rows("kt_arbiter_eq4a_vs_eq11.csv"), "kt_arbiter_eq4a_vs_eq11.csv")
     M["ArbiterRatioDev"] = tex(max(abs(num(r["worst_ratio_minus_2"])) for r in arb))
     M["ArbiterXis"] = ", ".join(r["xi"] for r in arb)
 
@@ -205,7 +230,7 @@ def main(argv=None):
     M["FOneEqThirtyEightAtEight"] = tex(max(e8))
 
     # F2
-    f2 = rows("kim_thorne_f2.csv")
+    f2 = computed(rows("kim_thorne_f2.csv"), "kim_thorne_f2.csv")
     small = [r for r in f2 if r["b_over_D"] == B_SMALL]
     M["BLarge"], M["BSmall"] = tex(B_LARGE), tex(B_SMALL)
     M["FTwoThroatSmall"] = tex(max(abs(num(r["throat_psi_over_eq47_minus_1"])) for r in small))
@@ -227,8 +252,8 @@ def main(argv=None):
         raise SystemExit(f"F3 on-axis rows use X/D = {xs}; the text describes {X_LINEAR} and {X_HALF}")
     M["FThreeX"], M["FThreeXHalf"] = X_LINEAR, X_HALF
     M["FThreeFD"] = tex(max(num(r["fd_err"]) for r in f3))
-    M["FThreeSlopeDev"] = tex(num(S["f3_slope_eq4a"]["value"]) + 3)
-    M["FThreeSlopeHalfDev"] = tex(num(S["f3_slope_with_half"]["value"]) + 3)
+    M["FThreeSlopeDev"] = tex(abs(num(S["f3_slope_eq4a"]["value"]) + 3))
+    M["FThreeSlopeHalfDev"] = tex(abs(num(S["f3_slope_with_half"]["value"]) + 3))
     off = [r for r in f3 if r["rho_over_X"] != "0"]
     M["FThreeOffAxisMax"] = tex(max(num(r["eq4a_worst_dev"]) for r in off))
 
@@ -240,18 +265,20 @@ def main(argv=None):
     M["FFourHalfRatio"] = tex(max(abs(num(r["with_half_TT_over_eq51"]) - mp.mpf(1) / 2) for r in f4))
     M["DbLarge"], M["DbSmall"] = tex(DB_LARGE), tex(DB_SMALL)
     M["FFourFD"] = tex(max(num(r["fd_err"]) for r in f4))
-    M["FFourSlopeDev"] = tex(num(S["f4_slope_eq4a"]["value"]) + 3)
+    M["FFourSlopeDev"] = tex(abs(num(S["f4_slope_eq4a"]["value"]) + 3))
 
     # F5
     M["FFiveEqFortyThree"] = tex(S["f5_eq43_max_dev"]["value"])
     M["FFiveEqSixtyTwo"] = tex(S["f5_eq62_max_dev"]["value"])
-    f5 = rows("kim_thorne_f5.csv")
+    f5 = computed(rows("kim_thorne_f5.csv"), "kim_thorne_f5.csv")
     M["FFiveLimitN"] = f5[0]["N"]
     M["FFiveFortyFourAMax"] = tex(max(num(r["dev_eq44a"]) for r in f5))
     M["FFiveFortyFourAMin"] = tex(min(num(r["dev_eq44a"]) for r in f5))
+    M["FFiveSixtyThreeMax"] = tex(max(num(r["dev_eq63"]) for r in f5))
+    M["FFiveSixtyThreeMin"] = tex(min(num(r["dev_eq63"]) for r in f5))
 
     # F6
-    f6 = rows("kim_thorne_f6.csv")
+    f6 = computed(rows("kim_thorne_f6.csv"), "kim_thorne_f6.csv")
     q = lambda name: [r for r in f6 if r["quantity"] == name]
     M["FSixEqSixtyNine"] = tex(q("eq69_max_dev")[0]["value"])
     M["FSixEqSixtyEight"] = tex(abs(num(q("eq68_dev")[0]["value"])))

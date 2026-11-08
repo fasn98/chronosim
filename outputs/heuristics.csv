@@ -31,3 +31,4 @@ thermal_mode_dps,30,HEURISTIC,working precision of the mode integral
 thermal_mode_intervals,30,HEURISTIC,subintervals of the mode integral
 thermal_mode_pairs,400,HEURISTIC,image pairs summed in the image-versus-mode comparison
 thermal_mode_cutoff,60,HEURISTIC,"mode integral stops at k = cutoff / beta, where n_k ~ e^-60"
+kt_f5_limit_n,60,HEURISTIC,"N at which the N -> infinity limits of F5 (eqs. 44a, 63) are evaluated"

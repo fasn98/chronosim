@@ -24,7 +24,7 @@ from . import wormhole as wh
 from .config import DPS
 from .misner import closed_form_stress, hadamard_image, self_consistent_b
 from .pointsplit import misner_stress, rindler_part
-from .provenance import reported_heuristics
+from .provenance import heuristic, reported_heuristics
 
 COMPONENTS = ("rho", "p_xi", "p_y", "p_z")
 GRID_XI = ("0.5", "1", "2")
@@ -53,6 +53,7 @@ F2_B = ("1e-2", "1e-4", "1e-6")
 F2_N = (1, 2, 3, 5)
 F5_BETA = ("0.1", "0.5", "0.9")
 F5_N = (1, 2, 5, 20)
+F5_LIMIT_N = heuristic("kt_f5_limit_n", 60, "N at which the N -> infinity limits of F5 (eqs. 44a, 63) are evaluated")
 F6_UNITS = {"D": "1000", "b": "10", "X": "250"}  # Planck units, l_P = m_P = 1
 F6_DT54 = ("1", "0.1", "0.01")
 F6_THICKNESS = ("1e-2", "1e-4", "1e-6")
@@ -343,8 +344,8 @@ def f5_hypersurfaces():
                 T = kt.time_HN_between(N, X, rho, D, xi)
                 out["eq62"] = max(out["eq62"], abs((wh.root_HN_between(N, X, rho, D, bs).value - T) / (T - X)))
         theta, rho = mp.mpf("0.7"), mp.mpf("0.1") * X
-        out["eq44a"].append((bs, abs(wh.root_HN_throat(60, theta, b, bs).value / kt.time_Hminus_throat(theta, b) - 1)))
-        out["eq63"].append((bs, abs((wh.root_HN_between(60, X, rho, D, bs).value - kt.time_Hminus_between(X, rho)) / (rho ** 2 / (2 * X)))))
+        out["eq44a"].append((bs, abs(wh.root_HN_throat(F5_LIMIT_N.value, theta, b, bs).value / kt.time_Hminus_throat(theta, b) - 1)))
+        out["eq63"].append((bs, abs((wh.root_HN_between(F5_LIMIT_N.value, X, rho, D, bs).value - kt.time_Hminus_between(X, rho)) / (rho ** 2 / (2 * X)))))
     return out
 
 
@@ -413,7 +414,7 @@ def write_phase2_tables(out: Path, worst, slope, arb, f1_exact, unruh_rows, f3_s
                [{"b_over_D": r["b_over_D"], "N": N, "throat_psi_over_eq47_minus_1": t, "between_psi_over_eq64_zeta_minus_1": b, "origin": "COMPUTED"}
                 for r in rows for N, t, b in zip(F2_N, r["throat"], r["between"])])
     _write_csv(out / "kim_thorne_f5.csv",
-               [{"beta": a[0], "N": 60, "dev_eq44a": a[1], "dev_eq63": b[1], "origin": "COMPUTED"}
+               [{"beta": a[0], "N": F5_LIMIT_N.value, "dev_eq44a": a[1], "dev_eq63": b[1], "origin": "COMPUTED"}
                 for a, b in zip(f5["eq44a"], f5["eq63"])])
     f6_rows = [{"quantity": "eq69_max_dev", "parameter": "", "value": f6["eq69"]},
                {"quantity": "eq68_dev", "parameter": "Delta T = l_P", "value": f6["eq68"]},

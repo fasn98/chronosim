@@ -112,7 +112,7 @@ As leituras foram feitas por subagentes de busca na web. Os trechos entre aspas 
 
 1. **Segunda submissão com a #143 em andamento.** Pelo que o editor relatou em #121, várias submissões do mesmo autor levam ao adiamento. Ele também pede duas revisões por autor. Isso define o momento da submissão; não está nas regras publicadas.
 2. **Escopo "computational research".** Kim & Thorne (1991) é sobretudo analítico. O que se replica são as derivações e avaliações numéricas das fórmulas fechadas a partir das expressões de partida do próprio artigo. O artigo precisa dizer isso com clareza, porque o ponto 1 do revisor em #143 levanta a mesma questão.
-3. **"Já replicado."** Klinkhammer (1992) e Visser (1993) recalculam a divergência perto da geodésica nula fechada (o análogo da eq. 67) e declaram concordância. Um editor pode ler isso como replicação prévia. O argumento contrário é que os dois obtêm metade da eq. 67 e não reproduzem F1–F7. Isso precisa ser enfrentado no texto, não omitido.
+3. **"Já replicado."** Klinkhammer (1992) e Visser (hep-th/9303023) recalculam a divergência perto da geodésica nula fechada (o análogo da eq. 67) e declaram concordância; Visser (gr-qc/9311026) compara os fatores de van Vleck (eqs. 48 e 64, item F2). Um editor pode ler isso como replicação prévia. O argumento contrário: os dois primeiros obtêm metade da eq. 67, e nas partes lidas nenhum dos três cobre F1, F3–F7. O artigo enfrenta isso na seção "Previous work".
 4. **[Re] e o fator 2.**
    - Os valores impressos são reproduzidos pelo operador como impresso, e o fator 2 é uma inconsistência de convenção diante dos árbitros.
    - Isso sustenta "[Re]" com discrepâncias documentadas. O título pedido já usa "[Re]".
@@ -120,7 +120,7 @@ As leituras foram feitas por subagentes de busca na web. Os trechos entre aspas 
 5. **Contato com Kim e Thorne.** Não é exigido quando não se alega falha, mas /write/ e /edit/ o recomendam ao apontar discrepâncias. Decisão do autor; nenhum agente faz esse contato.
 6. **Repositório público e licença.**
    - Em 2026-11-08, `https://api.github.com/repos/fasn98/chronosim` devolve "Not Found": o repositório está privado ou não foi publicado.
-   - Não há arquivo `LICENSE` na raiz.
+   - Não havia arquivo `LICENSE` na raiz; o branch do artigo acrescentou um, MIT, como no optosim.
    - As duas coisas são obrigatórias antes da submissão.
 7. **Compilação local.** `xelatex`, `latexmk` e `biber` não estão instalados nesta máquina; PyYAML 6.0.3 está. Sem eles, o PDF não pode ser gerado aqui.
 8. **DOI do código.** Pelo template, o DOI vem depois do aceite. A release v0.2.0 e o DOI do Zenodo ficam PENDENTES.

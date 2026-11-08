@@ -20,18 +20,18 @@ Kim and Thorne~\cite{kim1991} asked whether vacuum fluctuations of a quantum fie
 \item the Hadamard function as a sum over closed geodesics (eq.~20) and its geometric-optics form at the throat (eqs.~46 and 50) and between the mouths (eqs.~61 and 66);
 \item the point-splitting operator (eqs.~4a and 4b).
 \end{itemize}
-Every closed form that follows from these is recomputed here by a different numerical route, in arbitrary-precision arithmetic, and compared with the printed result. The closed forms are the covering-space geometry, the defocusing factors, the stress-energy, the polarized hypersurfaces and the four-momentum. This is replication in the sense of ReScience: the derivations are repeated with different technical means (direct numerical evaluation instead of analytic expansion) and checked against the printed numbers and formulas.
+The closed forms listed in Table~\ref{tab:results}, and eq.~31 (section~\ref{sec:discrepancies}), are recomputed here by a different numerical route, in arbitrary-precision arithmetic, and compared with the printed result. They cover the covering-space geometry, the defocusing factors, the stress-energy, the polarized hypersurfaces and the four-momentum, plus the arithmetic of the order-of-magnitude estimates. Two kinds of result are not recomputed: the order-of-magnitude relations of eqs.~10--12 and 15a--b, and the qualitative arguments of the article. This is replication in the sense of ReScience: the derivations are repeated with different technical means (direct numerical evaluation instead of analytic expansion) and checked against the printed numbers and formulas.
 
 The replication does not test whether the starting expressions describe the physical system correctly, since they are inputs. Nor does it take a side between Kim and Thorne and Hawking.
 
 \section{Previous work on the same result}
 \label{sec:previous}
 
-Two later works recompute the analogue of one of Kim and Thorne's results.
+Three later works recompute part of Kim and Thorne's results.
 \begin{itemize}
 \item \textbf{Klinkhammer (1992), PhD thesis~\cite{klinkhammer1992}.}
   \begin{itemize}
-  \item He derives the stress-energy near a closed null geodesic for multiply connected spacetimes (eqs.~3.7 and 3.8, pp.~31--32 of the thesis), using an operator (eq.~3.3, p.~30) that equals the operator of Kim and Thorne's eq.~4b multiplied by $\tfrac12$.
+  \item He derives the stress-energy near a closed null geodesic for multiply connected spacetimes (eqs.~3.7 and 3.8, pp.~31--32 of the thesis), using an operator (eq.~3.3, p.~30) that, for a symmetric $G^{(1)}$ in flat spacetime and on a solution of the wave equation, equals the operator of Kim and Thorne's eq.~4b multiplied by $\tfrac12$. His eq.~3.3 also contains curvature terms, which vanish in that case.
   \item With Kim and Thorne's van Vleck factor (eq.~64) and $e^h = 1/\xi$ (eq.~33), his eq.~3.8 is \emph{exactly half} of Kim and Thorne's eq.~67. This is an algebraic identity, checked by a test in the repository.
   \item He states that their results ``are in perfect agreement with ours'' (thesis, section~4, p.~38) [quotation pending the author's check against the thesis]. He does not comment on the factor.
   \end{itemize}
@@ -41,7 +41,15 @@ Two later works recompute the analogue of one of Kim and Thorne's results.
   \item He states that it ``is consistent with that of Kim and Thorne~[3] --- their equation~(67).'' He does not comment on the factor either.
   \end{itemize}
 \end{itemize}
-Both works therefore recompute only the analogue of eq.~67, obtain half of it, and cover none of the other results replicated here (F1--F7 below). Two limits apply to this comparison. Both transcriptions come from a single reading. The published version of Klinkhammer's work, which Visser cites as Phys.\ Rev.\ D 46, 3388 (1992), was not read.
+\begin{itemize}
+\item \textbf{Visser, van Vleck determinants: traversable wormhole spacetimes~\cite{visser1994}} (arXiv:gr-qc/9311026). Found by the text search of section~\ref{sec:literature}, it compares the van Vleck determinant of its eq.~102 with Kim and Thorne's eqs.~48 and 64, the defocusing factors of item F2. It does not touch the point-splitting operator. Only that comparison was read.
+\end{itemize}
+In the parts that were read, the first two works recompute only the analogue of eq.~67 and obtain half of it, and the third compares only the van Vleck factors of F2. None of the parts read covers the other results replicated here (F1 and F3--F7 below). Three limits apply to this comparison:
+\begin{itemize}
+\item only pp.~29--32 and 38 of the 72-page thesis were read;
+\item all three transcriptions come from a single reading;
+\item the published version of Klinkhammer's work, which Visser cites as Phys.\ Rev.\ D 46, 3388 (1992), was not read.
+\end{itemize}
 
 \section{Methods}
 
@@ -131,9 +139,9 @@ F1 & Covering space: origin (eq.~29), copies (eq.~33), $\sigma_N$ (eq.~34), $\De
 F1 & Approximate interval, eq.~38 (p.~3941) & Relative error against the exact interval: $\FOneEqThirtyEightAtTwo$ at $\epsilon/D = \EpsLarge$, $\FOneEqThirtyEightAtEight$ at $\EpsSmall$; first order in $\epsilon$ (our measurement; the article states no order). \\
 F2 & Defocusing, eqs.~47, 48, 64 (pp.~3942, 3945) & Thin-lens ray transfer. Largest relative deviation $\FTwoThroatLarge$ (throat) and $\FTwoBetweenLarge$ (between) at $b/D = \BLarge$; $\FTwoThroatSmall$ and $\FTwoBetweenSmall$ at $\BSmall$. \\
 F2 & Lapse, eq.~57 (p.~3944) & Against the exact lapse from the covering space: $\FTwoLapse$. \\
-F3 & $\langle T^{\mu\nu}\rangle$ between the mouths, eq.~67 (p.~3945) & Finite differences on eq.~66 with the operator as printed. On the axis, largest deviation $\FThreeDevLarge$ at $\Delta/D = \DeltaLarge$ and $\FThreeDevSmall$ at $\DeltaSmall$. Off the axis, up to $\FThreeOffAxisMax$. With $\tfrac12$: ratio $\tfrac12$ to within $\FThreeHalfSmall$. Slope $-3$ to within $\FThreeSlopeDev$. \\
-F4 & $\langle T^{\mu\nu}\rangle$ at the throat, eq.~51 (p.~3943) & Finite differences on eq.~50 with the operator as printed and $\hat\rho$ from $\rho=\sqrt{Y^2+Z^2}$. Largest deviation $\FFourDevLarge$ at $\Delta/b = \DbLarge$ and $\FFourDevSmall$ at $\DbSmall$. With $\tfrac12$: ratio $\tfrac12$ in every digit stored ($\FFourHalfRatio$ difference). Slope $-3$ to within $\FFourSlopeDev$. \\
-F5 & Polarized hypersurfaces and Cauchy horizon, eqs.~43, 44a, 62, 63 (pp.~3941, 3944) & Roots of $\lambda_N(x,x)=0$. Largest deviations $\FFiveEqFortyThree$ (eq.~43) and $\FFiveEqSixtyTwo$ (eq.~62). At $N = \FFiveLimitN$, eq.~44a is approached to within $\FFiveFortyFourAMin$--$\FFiveFortyFourAMax$, like $\xi^N$. \\
+F3 & $\langle T^{\mu\nu}\rangle$ between the mouths, eq.~67 (p.~3945) & Finite differences on eq.~66 with the operator as printed. On the axis, largest deviation $\FThreeDevLarge$ at $\Delta/D = \DeltaLarge$ and $\FThreeDevSmall$ at $\DeltaSmall$. Off the axis, up to $\FThreeOffAxisMax$. With $\tfrac12$, on the axis: ratio $\tfrac12$ to within $\FThreeHalfSmall$ at $\Delta/D = \DeltaSmall$. Slope differs from $-3$ by $\FThreeSlopeDev$. \\
+F4 & $\langle T^{\mu\nu}\rangle$ at the throat, eq.~51 (p.~3943) & Finite differences on eq.~50 with the operator as printed and $\hat\rho$ from $\rho=\sqrt{Y^2+Z^2}$. Largest deviation $\FFourDevLarge$ at $\Delta/b = \DbLarge$ and $\FFourDevSmall$ at $\DbSmall$. With $\tfrac12$: ratio $\tfrac12$ in every digit stored ($\FFourHalfRatio$ difference). Slope differs from $-3$ by $\FFourSlopeDev$. \\
+F5 & Polarized hypersurfaces and Cauchy horizon, eqs.~43, 44a, 62, 63 (pp.~3941, 3944) & Roots of $\lambda_N(x,x)=0$. Largest deviations $\FFiveEqFortyThree$ (eq.~43) and $\FFiveEqSixtyTwo$ (eq.~62). At $N = \FFiveLimitN$, eq.~44a is approached to within $\FFiveFortyFourAMin$--$\FFiveFortyFourAMax$ and eq.~63 to within $\FFiveSixtyThreeMin$--$\FFiveSixtyThreeMax$, like $\xi^N$. \\
 F6 & Four-momentum, eqs.~53, 54, 68, 69 (pp.~3943, 3945--3946) & Quadrature of eqs.~51 and 67. Eq.~69: $\FSixEqSixtyNine$. Eq.~68: $\FSixEqSixtyEight$. Eq.~54, a leading term: $\FSixEqFiftyFourFirst$ at $\Delta T/b = \FSixEqFiftyFourFirstAt$ down to $\FSixEqFiftyFourLast$ at $\FSixEqFiftyFourLastAt$. Coefficient of $\ln(b/a)$ in eq.~53: $\FSixEqFiftyThree$. \\
 F7 & Order-of-magnitude estimates, eqs.~9, 13, 14 (pp.~3934--3937) & Arithmetic from the inputs printed in the article: Table~\ref{tab:f7}. Only the arithmetic is checked, not the estimates. \\
 \bottomrule
@@ -143,12 +151,13 @@ F7 & Order-of-magnitude estimates, eqs.~9, 13, 14 (pp.~3934--3937) & Arithmetic 
 \end{table}
 
 \begin{itemize}
-\item \textbf{The residuals have the form of the neglected terms.}
+\item \textbf{What the residuals are.} The closed forms are leading-order results, and the residuals behave as follows.
   \begin{itemize}
-  \item At the throat (F4), the residual falls linearly with $\Delta/b$. It is the term with the transverse second derivatives of $\lambda_N$, which eq.~51 does not contain: its analytic expression reproduces the residual in the $YY$, $YZ$ and $ZZ$ components, and the other components sit at the level of the numerical error.
-  \item Between the mouths (F3), the residual falls linearly with $\Delta$ on the axis at $X/D = \FThreeX$. At $X/D = \FThreeXHalf$ the first derivative of the prefactor of eq.~66 vanishes: $T^{TT}$ and $T^{TX}$ sit at the level of the numerical error, and only $T^{XX}$ deviates, quadratically. Off the axis it grows like $(\rho/X)^2$ in the $kk$ component and like $\rho/X$ in the others: the fractional correction the text says it ignores (p.~3945).
+  \item At the throat (F4), the residual falls linearly with $\Delta/b$. It is identified analytically as the term with the transverse second derivatives of $\lambda_N$, which eq.~51 does not contain: its analytic expression reproduces the residual in the $YY$, $YZ$ and $ZZ$ components, and the other components sit at the level of the numerical error.
+  \item Between the mouths (F3), the residual falls linearly with $\Delta$ on the axis at $X/D = \FThreeX$. At $X/D = \FThreeXHalf$ the first derivative of the prefactor of eq.~66 vanishes: $T^{TT}$ and $T^{TX}$ sit at the level of the numerical error, and only $T^{XX}$ deviates, quadratically. Off the axis the residual grows like $(\rho/X)^2$ in the $kk$ component and like $\rho/X$ in the others, which is the fractional correction the text says it ignores (p.~3945).
+  \item For eq.~38 (F1), the defocusing factors (F2), the limits of F5 and eqs.~53 and 54 (F6), the residual falls with the small parameter ($\epsilon/D$, $b/D$, $\xi^N$, $\Delta T/b$ for eq.~54 and $a/b$ for eq.~53), as expected of a leading term. It was not identified term by term; for eq.~38 the article states no order, and the first order in $\epsilon$ is our measurement.
   \end{itemize}
-  This is the main reason to regard the closed forms as replicated, rather than merely approximated.
+  For F4, the analytic identification of the residual, and for F3 off the axis, its agreement in scaling with the correction the text declares, are the main reasons to regard these closed forms as replicated rather than merely approximated.
 \item \textbf{The $\Delta^{-3}$ rate} (slope $-3$) is independent of the operator's normalization.
 \item \textbf{Numerical error.} The largest finite-difference error estimates are $\FThreeFD$ (F3) and $\FFourFD$ (F4), far below every deviation in the table.
 \item \textbf{Figures.} Figure~\ref{fig:divergence} shows the divergence with both operators, and Figure~\ref{fig:cutoffs} shows the two proposed cutoffs side by side.
@@ -238,7 +247,7 @@ For each discrepancy, the subsection gives what is printed, what the computation
 
 \paragraph{Why the factor of two is a normalization issue, not a failure of replication.}
 \begin{itemize}
-\item \textbf{The question a replication asks:} whether the article's results follow from its stated starting points by its stated methods. For every closed form examined here they do: eqs.~51 and 67 follow from eqs.~50 and 66 through the operator of eq.~4a exactly as printed.
+\item \textbf{The question a replication asks:} whether the article's results follow from its stated starting points by its stated methods. For the closed forms examined here they do, with the exceptions of section~\ref{sec:discrepancies}: eq.~31 has the opposite sign of the coefficient the construction gives, and eq.~51 follows only with $\hat\rho$ read as in eq.~39. In particular, eqs.~51 and 67 follow from eqs.~50 and 66 through the operator of eq.~4a exactly as printed.
 \item \textbf{What the factor is.} It sits in one overall constant, the normalization of the operator relative to the normalization of $G^{(1)}$. That constant multiplies every stress-energy value of the article uniformly.
 \item \textbf{What the arbiters decide.} The primary arbiter, the thermal state in Minkowski space, decides which value of the constant reproduces known physics: the value with $\tfrac12$. Li and Gott's operator and the secondary Unruh comparison (source not read) agree with it.
 \item \textbf{What the factor does not touch.} It does not affect the $\Delta^{-3}$ rate, the sign change at the polarized hypersurface, the location of the hypersurfaces, the geometry, or the defocusing. An order-of-magnitude argument such as eqs.~9--14 is not moved by it.
@@ -255,7 +264,7 @@ Eq.~31 is not used later. Eq.~52 must be read with $\sqrt{Y^2+Z^2}$ for eq.~51 t
 
 \paragraph{What this replication establishes.}
 \begin{itemize}
-\item The closed forms of the article (F1--F6) follow from its starting expressions. Their residuals have the form of the terms the article neglects.
+\item The closed forms recomputed here (F1--F6) follow from the article's starting expressions, except eq.~31, and except eq.~52 as printed (eq.~51 follows with $\hat\rho$ read as in eq.~39). At the throat the residual is identified analytically with a term eq.~51 does not contain. Between the mouths it falls linearly with $\Delta$ on the axis and, off the axis, scales like the correction the text says it ignores. Elsewhere it falls with the small parameter, as expected of a leading term.
 \item The geometry and the defocusing reproduce independently.
 \item The operator convention that matches the Stefan--Boltzmann density of a thermal state is the one with $\tfrac12$ (the secondary Unruh comparison, source not read, agrees).
 \end{itemize}
@@ -268,6 +277,7 @@ Eq.~31 is not used later. Eq.~52 must be read with $\sqrt{Y^2+Z^2}$ for eq.~51 t
 \end{itemize}
 
 \section{Literature check}
+\label{sec:literature}
 
 \begin{itemize}
 \item \textbf{The question.} Has anyone reported the factor of two, or issued an erratum?
@@ -293,6 +303,7 @@ Eq.~31 is not used later. Eq.~52 must be read with $\sqrt{Y^2+Z^2}$ for eq.~51 t
 \item \textbf{Hiscock and Konkowski (1982)}~\cite{hiscock1982}, on the Minkowski vacuum in Misner space, is unavailable. The corresponding part of the project is blocked and outside this paper.
 \item \textbf{The Planck length} enters as \textsc{derived} from the printed ratio $l_P/D$ with $D = 1$\,m (p.~3935; Table~\ref{tab:f7}). The printed value on p.~3930 was not checked by the author.
 \item \textbf{Transcriptions.} Klinkhammer and Visser were read once. Kim and Thorne received two model passes and a human reading of the equations listed in section~\ref{sec:transcription}, not of all equations.
+\item \textbf{Printed values of F7.} Two of the printed values in Table~\ref{tab:f7}, $(\delta L/L)_{\max}$ after eq.~13 and Hawking's $\Delta t$ on p.~3937, were checked on the scan only by the agent, without a second pass or a human reading.
 \item \textbf{Grids and step sizes} are \textsc{heuristic}. They are printed on every run.
 \end{itemize}
 
