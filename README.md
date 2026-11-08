@@ -111,4 +111,10 @@ python -m chronosim.run --full   # inclui R1–R11 completos da fase 3 (outputs/
 - Kay, B. S., Radzikowski, M. J. & Wald, R. M. (1997). Quantum field theory on spacetimes with a compactly generated Cauchy horizon. *Commun. Math. Phys.* 183, 533. arXiv:gr-qc/9603012
 - Misner, C. W. (1967). Taub-NUT space as a counterexample to almost anything. *Lectures in Applied Mathematics* 8, 160.
 
+## Licença
+
+- **Código:** MIT (`LICENSE`). Inclui `paper/build_tables.py`.
+- **Texto do artigo em `paper/`:** CC BY 4.0 (`paper/LICENSE`).
+- Arquivos do template da ReScience C, se forem copiados para o repositório, mantêm a licença própria deles, registrada à parte junto a eles.
+
 **Autor:** Fabio Augusto Sales Nogueira · ORCID [0009-0001-9303-8707](https://orcid.org/0009-0001-9303-8707)
