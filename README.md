@@ -69,6 +69,7 @@ A origem só pode **piorar** numa computação. Não existe caminho de código q
 |---|---|
 | Li & Gott (1998) | Transcrito da versão arXiv gr-qc/9711074. A comparação com a versão publicada (PRL 80, 2980) está **PENDENTE** por falta de acesso. |
 | Kim & Thorne (1991) | Lido na versão publicada, em scan. Transcrições duplas em `docs/equation_transcription.md`. |
+| Echeverria, Klinkhammer & Thorne (1991) | Lido inteiro na versão publicada, em scan. As equações usadas foram transcritas duas vezes (a segunda passada cega), e as 20 citações de lacunas do plano também, em `docs/equation_transcription.md`. A citação da p. 1088 aguarda conferência humana. |
 | Hawking (1992) | Lido; título, volume e página conferidos no próprio PDF. |
 | Klinkhammer (1992), tese | Lida (eqs. 3.3, 3.7, 3.8), ver `docs/literature_check_factor2.md`. |
 | Visser, hep-th/9303023 | Lido no arXiv (eqs. 10 e 34). Versão publicada não conferida. |
@@ -84,16 +85,20 @@ PDFs de artigos ficam em `papers/`, que não entra no repositório.
 git clone https://github.com/fasn98/chronosim.git
 cd chronosim
 python3 -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
-pip install -r requirements.txt
-python -m pytest            # 411 testes, ~3,5 min
-python -m chronosim.run     # validação completa, figuras e relatório em outputs/ (~5 min)
+pip install -r requirements.txt   # versões fixas: outra versão do mpmath muda a formatação de outputs/report.md
+python -m pytest            # 504 testes, ~4 min
+python -m chronosim.run          # fases 1 e 2 completas e um subconjunto da fase 3; relatório em outputs/ (~4 min; meta de até ~6 min)
+python -m chronosim.run --full   # inclui R1–R11 completos da fase 3 (outputs/phase3_full.md; ~18 min, vários processos)
 ```
 
 ## Roteiro
 
 1. ✅ **Misner, vácuo de Li-Gott:** soma de imagens contra a forma fechada.
-2. **Máquina do tempo de buraco de minhoca (Kim & Thorne, 1991):** o tensor ⟨T_ab⟩ perto do horizonte de Cauchy e a estimativa de onde a gravidade quântica passa a dominar. 🟡 Cálculo completo (F1 a F7, árbitros, figuras); falta a revisão do squad antes do merge. Resultados em `outputs/report.md`; plano em `docs/phase2_plan.md`.
-3. **Bolas de bilhar (Echeverria, Klinkhammer & Thorne, 1991):** mecânica clássica em buracos de minhoca com curvas fechadas tipo tempo e busca de soluções autoconsistentes.
+2. ✅ **Máquina do tempo de buraco de minhoca (Kim & Thorne, 1991):** o tensor ⟨T_ab⟩ perto do horizonte de Cauchy e a estimativa de onde a gravidade quântica passa a dominar (F1 a F7, árbitros, figuras). Resultados em `outputs/report.md`; plano em `docs/phase2_plan.md`.
+3. 🟡 **Bolas de bilhar (Echeverria, Klinkhammer & Thorne, 1991):** mecânica clássica em buracos de minhoca com curvas fechadas tipo tempo e busca de soluções autoconsistentes. Testa a alternativa de autoconsistência de Novikov; não testa o mecanismo quântico de Hawking.
+   - Feito: a reprodução R1–R11, com um modelo geométrico exato e independente (`chronosim/billiards.py`) e um árbitro contra as eqs. 4.2–4.3 do artigo. Os resultados completos estão em `outputs/phase3_full.md` (`--full`); `outputs/report.md` traz o subconjunto da execução padrão.
+   - Feito: revisão de scalpel e reviewer da reprodução, com os bloqueantes aplicados.
+   - Falta: o mapa sistemático e a certificação intervalar. O plano está em `docs/phase3_plan.md`.
 4. 🔒 **Misner, vácuo de Minkowski com imagens (Hiscock & Konkowski, 1982):** bloqueada até o PDF do artigo ser obtido.
 
 ## Referências

@@ -266,6 +266,22 @@ As demais quantidades conferem. A densidade de Planck de 10⁹⁴ g/cm³ que Haw
 
 ## Constantes numéricas escolhidas por nós (HEURISTIC)
 
+- `ekt_theta_grid` = 64: grid points on the visible arc of a mouth in the inner (aim) search
+- `ekt_nu_grid` = 48: grid points of the contact-normal angle in the middle search
+- `ekt_polish_dps` = 40: working precision when a bracketed root is polished with findroot
+- `ekt_verify_tol` = 1.0e-25: tolerance of the verifier (distances, speeds, residuals) at polish precision
+- `ekt_max_split` = 12: halvings of an s-interval whose root count changes before it is reported as unresolved
+- `ekt_jump_ratio` = 1e-06: a bracketed sign change is a root only if the refined |f| falls below this fraction of the end values (rejects jumps)
+- `ekt_bisect_rel_tol` = 1e-13: bisection stops at this fraction of the bracket width (floats); with mpmath, 10^-(dps-8)
+- `ekt_float_depth` = 11: floats are used while k log10(2/B) is below this; mpmath above (itinerary windows ~ (B/2)^k)
+- `ekt_future_traversals` = 6: traversals followed after the collision when the verifier builds the history
+- `ekt_s_grid` = 240: points of the uniform part of the outer grid of collision positions
+- `ekt_s_far` = 3: farthest collision position searched, in D, along the incoming line (before the traversal) or the exit line (after)
+- `ekt_s_near_over_R` = '0.01': closest collision position to the line's mouth-2 entry searched before the traversal, as a fraction of R
+- `ekt_s_near_after` = '1e-6': closest collision position to the mouth-1 exit searched after the traversal, in D
+- `ekt_refine_max_split` = 30: further halvings of an unresolved nu- or s-interval in the adaptive refinement of the empty case
+- `ekt_window_grid` = 160: extra collision positions in each refinement window around a known special point
+- `ekt_refine_factor` = 2: grid refinement factor of the stabilization search (empty case)
 - `kt_series_tol` = 1.0e-30: the eqs. 66-67 series stops when (b xi / 2D)^N is below this
 - `dps` = 80: working precision in decimal digits (mpmath)
 - `delta` = 1.0e-10: point-splitting distance along z, units of length
@@ -282,3 +298,18 @@ As demais quantidades conferem. A densidade de Planck de 10⁹⁴ g/cm³ que Haw
 - `thermal_mode_intervals` = 30: subintervals of the mode integral
 - `thermal_mode_pairs` = 400: image pairs summed in the image-versus-mode comparison
 - `thermal_mode_cutoff` = 60: mode integral stops at k = cutoff / beta, where n_k ~ e^-60
+
+## Fase 3 · Bolas de bilhar (Echeverria, Klinkhammer & Thorne, 1991): execução reduzida
+
+Esta é a execução padrão, com um subconjunto pequeno de R1–R11. A reprodução completa está em `outputs/phase3_full.md`, escrita pela última execução de `python -m chronosim.run --full`; os números de lá não foram recalculados nesta execução. Todas as grandezas são **COMPUTED**.
+
+- **R1, eq. 2.1b:** desvio máximo 1,38e-40 rad.
+- **R2, eqs. 2.2–2.4:** troca de velocidades 144, troca espelhada 144, outra 0.
+- **Bola em repouso (p. 1084):** verificador aceita em x = 0,3; 0,5; 0,7: sim; sim; sim.
+- **R3, Fig. 6b** (B = 0,01, R = 1e-4): 1 solução; rapidez menos (1 − 2B): -0,000178; 3 intervalos não resolvidos.
+- **R8, caso central (0,2; 0,6; 0,5; 0,01; 0,001):** 3 soluções geométricas (I, II, II), 3 raízes físicas das eqs. 4.2–4.3; maior resíduo das eqs. 4.2–4.3 ou desvio da A6: 1,48e-37; sign(β) = sign(d) em 3/3; 0 intervalos não resolvidos.
+- **R10, borda superior, φ = 0,8:** β classe I = 0,00023052; eq. B32 = 0,00023069 (B = 10⁻²).
+- **R11, classe II depois da travessia, φ = 0,85:** 1 soluções; β = -0,0007575.
+
+**Não estabelece** nada além destes casos; o que a fase estabelece está em `outputs/phase3_full.md`.
+

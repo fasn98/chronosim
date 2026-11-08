@@ -1,7 +1,9 @@
 """Phase 1: validate Li & Gott (1998) eq. 12 against the eq. 8 image sum.
 Phase 2: Kim & Thorne (1991), arbiters of eq. 4a and items F1 to F7.
+Phase 3: Echeverria, Klinkhammer & Thorne (1991), reproduction R1 to R11 (parallel worker processes).
 
-    python -m chronosim.run            # writes outputs/
+    python -m chronosim.run            # phases 1-2 in full, a small phase 3 subset; writes outputs/
+    python -m chronosim.run --full     # also R1-R11 in full: outputs/phase3_full.md, ekt_r8.csv, fig5
 """
 
 from __future__ import annotations
@@ -12,7 +14,9 @@ from pathlib import Path
 
 import mpmath as mp
 
+from . import ekt
 from . import estimates
+from . import phase3
 from . import kim_thorne as kt
 from . import thermal
 from . import unruh
@@ -435,6 +439,42 @@ def figures_phase2(out: Path):
     plt.close(fig)
 
 
+def figure_phase3(out: Path, res):
+    """Phase 3: class-I deflection on the upper edge (cf. Fig. 14 of EKT 1991)."""
+    import matplotlib
+
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    import numpy as np
+
+    blue, ink, muted = "#2a78d6", "#0b0b0b", "#52514e"
+    B, R, lam = mp.mpf("0.01"), mp.mpf("1e-5"), mp.mpf("0.5")
+    phis = np.linspace(0.02, 1.55, 300)
+    b32, b414, b415 = [], [], []
+    for ph in phis:
+        v = ekt.b30_b32(mp.mpf(ph), mp.mpf(ph), lam, B, R).value["beta"]
+        b32.append(float(v) if v is not None and v > 0 else np.nan)
+        u = ekt.upper_edge_414_415(mp.mpf(ph), lam, B, R).value
+        b414.append(float(u["4.14"][0]) if u["4.14"][0] > 0 else np.nan)
+        b415.append(float(u["4.15"][0]) if u["4.15"][0] > 0 else np.nan)
+    fig, ax = plt.subplots(figsize=(6.4, 4.6), constrained_layout=True)
+    ax.semilogy(phis, b32, color=muted, lw=1.4, label="eq. B32 impressa (DERIVED)")
+    ax.semilogy(phis, b414, color=muted, lw=1, ls="--", label="eq. 4.14 (DERIVED)")
+    ax.semilogy(phis, b415, color=muted, lw=1, ls=":", label="eq. 4.15 (DERIVED)")
+    pts = [(float(ph), float(r["beta_I"][0])) for ph, r in res["r10"] if r["beta_I"]]
+    ax.semilogy([p[0] for p in pts], [p[1] for p in pts], "o", color=blue, ms=7, mfc="none", mew=2,
+                label="modelo geométrico independente (COMPUTED)")
+    ax.axvline(float(mp.pi / 4), color=ink, lw=0.8, ls="-.")
+    ax.set_xlabel("φ = θ  (borda superior do triângulo perigoso)", color=ink)
+    ax.set_ylabel("β, classe I", color=ink)
+    ax.set_title("Echeverria, Klinkhammer & Thorne: B = 10⁻², R = 10⁻⁵, λ₁ = ½ (cf. Fig. 14)", color=ink, fontsize=10)
+    ax.set_ylim(1e-5, 1e-2)
+    ax.legend(fontsize=8, frameon=False, loc="lower left")
+    ax.grid(alpha=0.25, which="both")
+    fig.savefig(out / "fig5_ekt_upper_edge.png", dpi=130)
+    plt.close(fig)
+
+
 def _br(text):
     """Decimal comma for numbers written into the Portuguese report, e.g. 0.9 -> 0,9 and 1e-1 -> 0,1."""
     value = mp.mpf(text)
@@ -824,13 +864,16 @@ def report(out: Path, rows, worst, slope, arb, f1_rows, f1_exact, unruh_rows, f3
 
 
 def main(argv=None) -> int:
-    p = argparse.ArgumentParser(description="chronosim phase 1: Misner space validation")
+    p = argparse.ArgumentParser(description="chronosim: phases 1-3 (Misner, Kim & Thorne, Echeverria-Klinkhammer-Thorne)")
     p.add_argument("--out", default="outputs")
     p.add_argument("--no-figures", action="store_true")
+    p.add_argument("--full", action="store_true", help="run R1-R11 of phase 3 in full (~15 min); the default runs a small subset")
     args = p.parse_args(argv)
     mp.mp.dps = DPS.value  # all comparisons at full working precision
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
+
+    p3_handle = phase3.start(quick=not args.full)  # phase 3 runs in worker processes meanwhile
 
     rows = []
     worst = validate(rows)
@@ -870,6 +913,24 @@ def main(argv=None) -> int:
         figures_phase2(out)
     report(out, rows, worst, slope, arb, f1_rows, f1_exact, unruh_rows, f3_rows, f3_slopes, thermal_rows, mode_rows, f4_rows, f4_slopes, f2, f5, f6, f7)
 
+    p3_res = phase3.collect(p3_handle)
+    section = phase3.report_section(p3_res) if args.full else phase3.report_section_quick(p3_res)
+    with open(out / "report.md", "a", encoding="utf-8") as fh:
+        fh.write("\n".join(section) + "\n")
+    if args.full:
+        (out / "phase3_full.md").write_text("# chronosim · fase 3, reprodução completa (`python -m chronosim.run --full`)\n" + "\n".join(section) + "\n", encoding="utf-8")
+        with open(out / "ekt_r8.csv", "w", newline="", encoding="utf-8") as fh:
+            w = csv.writer(fh)
+            w.writerow(["theta", "phi", "lambda1", "B", "R", "class", "s", "alpha", "beta", "eps", "d", "residual_4.2_4.3", "dev_d_4.4b", "dev_v2_4.5",
+                        "sign_rule_4.6c", "dev_a_A6", "origin"])
+            for arg, r in p3_res["r8"]:
+                for x in r["rows"]:
+                    w.writerow(list(arg) + [x["class"], mp.nstr(x["s"], 20), mp.nstr(x["alpha"], 20), mp.nstr(x["beta"], 20), mp.nstr(x["eps"], 20),
+                                            mp.nstr(x["d"], 20), mp.nstr(x["res"].value, 5), mp.nstr(x["dev_d"].value, 5), mp.nstr(x["dev_v2"].value, 5),
+                                            x["sign_rule"], mp.nstr(x["dev_a6"].value, 5), "COMPUTED"])
+        if not args.no_figures:
+            figure_phase3(out, p3_res)
+
     print(f"pior erro relativo à escala: {mp.nstr(worst, 3)} [COMPUTED]")
     print(f"inclinação perto do horizonte: {mp.nstr(slope, 15)} [COMPUTED] (eq. 12: -4)")
     print("fase 2, árbitro: eq. 4a de Kim & Thorne / eq. 11 de Li & Gott no vácuo de Rindler, maior desvio de 2: "
@@ -892,6 +953,10 @@ def main(argv=None) -> int:
     print(f"fase 2, F6: eq. 69 {mp.nstr(f6['eq69'], 3)}, eq. 68 {mp.nstr(f6['eq68'], 3)}, eq. 53 (ln) {mp.nstr(f6['eq53_slope'], 3)}, "
           f"eq. 54 em ΔT/b = 1e-3: {mp.nstr(f6['eq54'][-1][1], 3)} [COMPUTED]")
     print(f"fase 2, F7: T00_max impresso 1e49 g/cm^3, recalculado {mp.nstr(f7[3][3].value, 3)} g/cm^3 (ordem de grandeza)")
+    r8_res = [x["res"].value for _, r in p3_res["r8"] for x in r["rows"]]
+    print(f"fase 3 ({'completa, --full' if args.full else 'execução reduzida; a completa é --full'}):")
+    print(f"fase 3, R8: maior resíduo das eqs. 4.2-4.3 nas soluções geométricas: {mp.nstr(max(r8_res), 3)} [COMPUTED]")
+    print(f"fase 3, R1: eq. 2.1b reproduzida com desvio {mp.nstr(p3_res['r1'][0][1]['max_dev'].value, 3)} rad [COMPUTED]")
     print("constantes HEURISTIC usadas:")
     for k, v in reported_heuristics().items():
         print(f"  {k} = {mp.nstr(v.value, 5)}  ({v.source})")
