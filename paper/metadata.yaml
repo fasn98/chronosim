@@ -1,0 +1,108 @@
+# To be filled by the author(s) at the time of submission
+# -------------------------------------------------------
+
+# Title of the article:
+#  - For a successful replication, it should be prefixed with "[Re]"
+#  - For a failed replication, it should be prefixed with "[¬Re]"
+#  - For other article types, no instruction (but please, not too long)
+title: "[Re] Do vacuum fluctuations prevent the creation of closed timelike curves?"
+
+# List of authors with name, orcid number, email and affiliation
+# Affiliation "*" means contact author (required even for single-authored papers)
+# To include author suffix format name as Last Suffix, First M.I. (e.g. Schackart III, Kenneth E.)
+authors:
+  - name: Fabio Augusto Sales Nogueira
+    orcid: 0009-0001-9303-8707
+    email: fasn98@gmail.com
+    affiliations: 1,*      # * is for contact author
+
+# List of affiliations with code (corresponding to author affiliations), name
+# and address. You can also use these affiliations to add text such as "Equal
+# contributions" as name (with no address).
+affiliations:
+  - code:    1
+    name:    Independent researcher
+    address: São Paulo, Brazil
+
+
+# List of keywords (adding the programming language might be a good idea)
+keywords: semiclassical gravity, closed timelike curves, wormholes, vacuum polarization, point splitting, chronology protection, reproducibility, provenance, Python
+
+# Code URL and DOI/SWH (url is mandatory for replication, doi after acceptance)
+# You can get a DOI for your code from Zenodo, or an SWH identifier from
+# Software Heritage.
+#   see https://guides.github.com/activities/citable-code/
+code:
+  - url: https://github.com/fasn98/chronosim
+  - doi:      # PENDING: Zenodo DOI of release v0.2.0
+  - swh:
+
+# Data URL and DOI (optional if no data)
+data:
+  - url:
+  - doi:
+
+# Information about the original article that has been replicated
+replication:
+ - cite: "Kim, S.-W. & Thorne, K. S. (1991). Do vacuum fluctuations prevent the creation of closed timelike curves? Physical Review D 43, 3929-3947."
+ - bib:  kim1991
+ - url:  https://doi.org/10.1103/PhysRevD.43.3929
+ - doi:  10.1103/PhysRevD.43.3929
+
+# Don't forget to surround abstract with double quotes
+abstract: "Kim and Thorne (1991) computed the renormalized stress-energy of a conformally coupled massless scalar field near the Cauchy horizon of a two-mouth wormhole time machine and found that it diverges as the inverse cube of the distance to the horizon. This paper replicates the computational part of that work: every closed-form result the article derives (the covering-space geometry, the defocusing factors, the stress-energy at the throat and between the mouths, the polarized hypersurfaces and the four-momentum) is recomputed by an independent numerical route from the article's own starting expressions, with arbitrary-precision arithmetic, and compared with the printed result. All of them are reproduced, with residuals that have the form of the terms the article declares neglected. Three inconsistencies in the printed text are documented. The point-splitting operator as printed (eq. 4a) lacks a factor 1/2 relative to the convention that reproduces both a thermal state and the Unruh value; the printed results carry that normalization consistently, so they are reproduced by the operator as printed and lie a factor of two above the arbiters' convention. Two equations (31 and 52) are inconsistent with their own context, and one order-of-magnitude value after eq. 14 does not follow from the inputs printed beside it. None of these changes the article's qualitative conclusions. Every number in this paper carries a machine-checked origin (cited, derived, computed or heuristic), and a test forbids any random number generator in the package."
+
+# Bibliography file (yours)
+bibliography: bibliography.bib
+
+# Type of the article
+# Type can be:
+#  * Editorial
+#  * Letter
+#  * Replication
+type: Replication
+
+# Scientific domain of the article (e.g. Computational Neuroscience)
+#  (one domain only & try to be not overly specific)
+domain: Gravitation
+
+# Coding language (main one only if several)
+language: Python
+
+
+# To be filled by the author(s) after acceptance
+# -----------------------------------------------------------------------------
+
+# For example, the URL of the GitHub issue where review actually occured
+review:
+  - url:
+
+contributors:
+  - name:
+    orcid:
+    role: editor
+  - name:
+    orcid:
+    role: reviewer
+  - name:
+    orcid:
+    role: reviewer
+
+# This information will be provided by the editor
+dates:
+  - received:
+  - accepted:
+  - published:
+
+# This information will be provided by the editor
+article:
+  - number: # Article number will be automatically assigned during publication
+  - doi:    # DOI from Zenodo
+  - url:    # Final PDF URL (Zenodo or rescience website?)
+
+# This information will be provided by the editor
+journal:
+  - name:   "ReScience C"
+  - issn:   2430-3658
+  - volume:
+  - issue:

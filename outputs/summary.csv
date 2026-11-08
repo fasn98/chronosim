@@ -1,0 +1,15 @@
+key,value,origin,description
+phase1_worst_rel_error,5.4958789775648844614e-16,COMPUTED,"Li & Gott eq. 8 + eq. 11 against eq. 12, relative to 1/(1440 pi^2 xi^4)"
+phase1_horizon_slope,-4.0000000000000038437,COMPUTED,log|rho| against log xi; eq. 12 predicts -4
+f1_eq33,3.8995448859403465219e-70,COMPUTED,"max deviation, covering space against the equation"
+f1_eq34,1.4847285379995540725e-70,COMPUTED,"max deviation, covering space against the equation"
+f1_eq37,1.4594044673725130023e-70,COMPUTED,"max deviation, covering space against the equation"
+f1_fixed_point,2.1084395886461046449e-81,COMPUTED,"max deviation, covering space against the equation"
+f1_eq31,7.379538560261366257e-80,COMPUTED,"max deviation, covering space against the equation"
+f2_eq57_lapse_dev,4.2168791772922092897e-81,COMPUTED,eq. 57 against the exact lapse on the horizon
+f3_slope_eq4a,-3.0000043888597978963,COMPUTED,"log|T^TT| against log Delta, between the mouths"
+f3_slope_with_half,-3.0000043888597978963,COMPUTED,"same, operator with 1/2"
+f4_slope_eq4a,-3.0000000000009596335,COMPUTED,"log|T^TT| against log Delta, at the throat"
+f4_slope_with_half,-3.0000000000009596335,COMPUTED,"same, operator with 1/2"
+f5_eq43_max_dev,1.0542197943230523224e-80,COMPUTED,"root of lambda_N(x, x) = 0 against eq. 43"
+f5_eq62_max_dev,1.811356463694544249e-77,COMPUTED,"root of lambda_N(x, x) = 0 against eq. 62, relative to T_HN - X"

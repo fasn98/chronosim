@@ -388,6 +388,61 @@ def f7_estimates():
     ]
 
 
+def _cell(x):
+    """CSV cell: 20 significant digits for mpmath numbers, as is for the rest."""
+    return mp.nstr(x, 20) if isinstance(x, mp.mpf) else x
+
+
+def _write_csv(path: Path, rows):
+    with open(path, "w", newline="", encoding="utf-8") as fh:
+        w = csv.DictWriter(fh, fieldnames=list(rows[0]))
+        w.writeheader()
+        w.writerows({k: _cell(v) for k, v in r.items()} for r in rows)
+
+
+def write_phase2_tables(out: Path, worst, slope, arb, f1_exact, unruh_rows, f3_slopes, thermal_rows, mode_rows, f4_slopes, f2, f5, f6, f7):
+    """The tables that otherwise exist only inside report.md, as CSV (read by paper/build_tables.py).
+    Every row carries its origin."""
+    _write_csv(out / "kt_arbiter_eq4a_vs_eq11.csv", [{**r, "origin": "COMPUTED"} for r in arb])
+    _write_csv(out / "kt_thermal_arbiter.csv", [{**r, "origin": "COMPUTED"} for r in thermal_rows])
+    _write_csv(out / "kt_thermal_modes.csv", [{**r, "origin": "COMPUTED"} for r in mode_rows])
+    _write_csv(out / "kt_unruh_arbiter.csv",
+               [{**r, "origin": "COMPUTED; reference HEURISTIC (Candelas & Deutsch 1977 not read)"} for r in unruh_rows])
+    rows, lapse = f2
+    _write_csv(out / "kim_thorne_f2.csv",
+               [{"b_over_D": r["b_over_D"], "N": N, "throat_psi_over_eq47_minus_1": t, "between_psi_over_eq64_zeta_minus_1": b, "origin": "COMPUTED"}
+                for r in rows for N, t, b in zip(F2_N, r["throat"], r["between"])])
+    _write_csv(out / "kim_thorne_f5.csv",
+               [{"beta": a[0], "N": 60, "dev_eq44a": a[1], "dev_eq63": b[1], "origin": "COMPUTED"}
+                for a, b in zip(f5["eq44a"], f5["eq63"])])
+    f6_rows = [{"quantity": "eq69_max_dev", "parameter": "", "value": f6["eq69"]},
+               {"quantity": "eq68_dev", "parameter": "Delta T = l_P", "value": f6["eq68"]},
+               *[{"quantity": "eq54_dev", "parameter": f"Delta T / b = {mp.nstr(mp.mpf(dt) / mp.mpf(F6_UNITS['b']), 3)}", "value": v}
+                 for dt, v in f6["eq54"]],
+               *[{"quantity": "eq53_total_ratio", "parameter": f"a / b = {t}", "value": v} for t, v in f6["eq53_ratio"]],
+               {"quantity": "eq53_ln_coefficient_dev", "parameter": "", "value": f6["eq53_slope"]}]
+    _write_csv(out / "kim_thorne_f6.csv", [{**r, "origin": "COMPUTED"} for r in f6_rows])
+    _write_csv(out / "kim_thorne_f7.csv",
+               [{"quantity": name, "formula": formula, "printed": printed.value, "printed_origin": printed.origin.name,
+                 "printed_source": printed.source, "recomputed": value.value, "recomputed_origin": value.origin.name,
+                 "unit": value.unit} for name, formula, printed, value in f7])
+    summary = [
+        ("phase1_worst_rel_error", worst, "COMPUTED", "Li & Gott eq. 8 + eq. 11 against eq. 12, relative to 1/(1440 pi^2 xi^4)"),
+        ("phase1_horizon_slope", slope, "COMPUTED", "log|rho| against log xi; eq. 12 predicts -4"),
+        *[(f"f1_{k}", v, "COMPUTED", "max deviation, covering space against the equation") for k, v in f1_exact.items()],
+        ("f2_eq57_lapse_dev", lapse, "COMPUTED", "eq. 57 against the exact lapse on the horizon"),
+        ("f3_slope_eq4a", f3_slopes["eq4a"], "COMPUTED", "log|T^TT| against log Delta, between the mouths"),
+        ("f3_slope_with_half", f3_slopes["with_half"], "COMPUTED", "same, operator with 1/2"),
+        ("f4_slope_eq4a", f4_slopes["eq4a"], "COMPUTED", "log|T^TT| against log Delta, at the throat"),
+        ("f4_slope_with_half", f4_slopes["with_half"], "COMPUTED", "same, operator with 1/2"),
+        ("f5_eq43_max_dev", f5["eq43"], "COMPUTED", "root of lambda_N(x, x) = 0 against eq. 43"),
+        ("f5_eq62_max_dev", f5["eq62"], "COMPUTED", "root of lambda_N(x, x) = 0 against eq. 62, relative to T_HN - X"),
+    ]
+    _write_csv(out / "summary.csv", [{"key": k, "value": v, "origin": o, "description": d} for k, v, o, d in summary])
+    _write_csv(out / "heuristics.csv", [{"name": k, "value": v.value, "origin": v.origin.name, "why": v.source}
+                                        for k, v in reported_heuristics().items()])
+
+
 def figures_phase2(out: Path):
     """Phase 2 figures: the divergence with both operators, and the two proposed cutoffs."""
     import matplotlib
@@ -912,6 +967,7 @@ def main(argv=None) -> int:
     if not args.no_figures:
         figures_phase2(out)
     report(out, rows, worst, slope, arb, f1_rows, f1_exact, unruh_rows, f3_rows, f3_slopes, thermal_rows, mode_rows, f4_rows, f4_slopes, f2, f5, f6, f7)
+    write_phase2_tables(out, worst, slope, arb, f1_exact, unruh_rows, f3_slopes, thermal_rows, mode_rows, f4_slopes, f2, f5, f6, f7)
 
     p3_res = phase3.collect(p3_handle)
     section = phase3.report_section(p3_res) if args.full else phase3.report_section_quick(p3_res)

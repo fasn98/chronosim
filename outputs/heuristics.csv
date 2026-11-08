@@ -1,0 +1,33 @@
+name,value,origin,why
+ekt_theta_grid,64,HEURISTIC,grid points on the visible arc of a mouth in the inner (aim) search
+ekt_nu_grid,48,HEURISTIC,grid points of the contact-normal angle in the middle search
+ekt_polish_dps,40,HEURISTIC,working precision when a bracketed root is polished with findroot
+ekt_verify_tol,1.0000000000000000385e-25,HEURISTIC,"tolerance of the verifier (distances, speeds, residuals) at polish precision"
+ekt_max_split,12,HEURISTIC,halvings of an s-interval whose root count changes before it is reported as unresolved
+ekt_jump_ratio,1e-06,HEURISTIC,a bracketed sign change is a root only if the refined |f| falls below this fraction of the end values (rejects jumps)
+ekt_bisect_rel_tol,1e-13,HEURISTIC,"bisection stops at this fraction of the bracket width (floats); with mpmath, 10^-(dps-8)"
+ekt_float_depth,11,HEURISTIC,floats are used while k log10(2/B) is below this; mpmath above (itinerary windows ~ (B/2)^k)
+ekt_future_traversals,6,HEURISTIC,traversals followed after the collision when the verifier builds the history
+ekt_s_grid,240,HEURISTIC,points of the uniform part of the outer grid of collision positions
+ekt_s_far,3,HEURISTIC,"farthest collision position searched, in D, along the incoming line (before the traversal) or the exit line (after)"
+ekt_s_near_over_R,0.01,HEURISTIC,"closest collision position to the line's mouth-2 entry searched before the traversal, as a fraction of R"
+ekt_s_near_after,1e-6,HEURISTIC,"closest collision position to the mouth-1 exit searched after the traversal, in D"
+ekt_refine_max_split,30,HEURISTIC,further halvings of an unresolved nu- or s-interval in the adaptive refinement of the empty case
+ekt_window_grid,160,HEURISTIC,extra collision positions in each refinement window around a known special point
+ekt_refine_factor,2,HEURISTIC,grid refinement factor of the stabilization search (empty case)
+kt_series_tol,1.0000000000000000833e-30,HEURISTIC,the eqs. 66-67 series stops when (b xi / 2D)^N is below this
+dps,80,HEURISTIC,working precision in decimal digits (mpmath)
+delta,1.0000000000000000364e-10,HEURISTIC,"point-splitting distance along z, units of length"
+h,9.999999999999999395e-12,HEURISTIC,"finite-difference step (must be < delta), units of length"
+n_terms,24,HEURISTIC,image pairs summed explicitly before the Kummer tail
+kt_split_ratio,1.0000000000000000364e-10,HEURISTIC,"point-splitting distance / distance to the horizon, Kim & Thorne runs"
+kt_step_ratio,9.999999999999999395e-12,HEURISTIC,"finite-difference step / distance to the horizon, Kim & Thorne runs"
+kt_quad_dps,15,HEURISTIC,working precision of the F6 integrals
+kt_throat_thickness,9.9999999999999995475e-7,HEURISTIC,"a / b, angular cutoff tan(theta) < b / a for eqs. 53-54"
+thermal_n_terms,24,HEURISTIC,imaginary-time image pairs summed explicitly before the Kummer tail
+thermal_split_ratio,1.0000000000000000364e-10,HEURISTIC,point-splitting distance / beta in the thermal arbiter
+thermal_step_ratio,9.999999999999999395e-12,HEURISTIC,finite-difference step / beta in the thermal arbiter
+thermal_mode_dps,30,HEURISTIC,working precision of the mode integral
+thermal_mode_intervals,30,HEURISTIC,subintervals of the mode integral
+thermal_mode_pairs,400,HEURISTIC,image pairs summed in the image-versus-mode comparison
+thermal_mode_cutoff,60,HEURISTIC,"mode integral stops at k = cutoff / beta, where n_k ~ e^-60"

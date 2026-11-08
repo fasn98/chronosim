@@ -1,0 +1,6 @@
+quantity,formula,printed,printed_origin,printed_source,recomputed,recomputed_origin,unit
+l_P / D (D = 1 m),l_P / D,1.0000000000000000079e-35,CITED,"Kim & Thorne (1991), p. 3935, after eq. 14",1.000000000000000056e-35,DERIVED,
+"(δL/L)_max, eq. 13, N − 1 = 0",l_P / D,1.0000000000000000079e-35,CITED,"Kim & Thorne (1991), p. 3935, after eq. 13",1.000000000000000056e-35,DERIVED,
+densidade de Planck m_P/l_P³,m_P / l_P³,1.0000000000000000202e+94,CITED,"Hawking (1992), p. 603: 10^94 g/cc",9.999999999999999139e+93,DERIVED,g/cm^3
+"T⁰⁰_max, eq. 14",(l_P/D)(m_P/l_P³),9.9999999999999994649e+48,CITED,"Kim & Thorne (1991), p. 3935, after eq. 14",9.9999999999999996987e+58,DERIVED,g/cm^3
+"Δt do corte de Hawking (δg^VP = 1, eq. 9c)","l_P² / D, em l_P",1.0000000000000000079e-35,CITED,"Kim & Thorne (1991), p. 3937: Delta t ~ 10^-35 l_P",1.000000000000000056e-35,DERIVED,l_P
