@@ -444,7 +444,8 @@ def write_phase2_tables(out: Path, worst, slope, arb, f1_exact, unruh_rows, f3_s
 
 
 def figures_phase2(out: Path):
-    """Phase 2 figures: the divergence with both operators, and the two proposed cutoffs."""
+    """Phase 2 figures, the divergence with both operators and the two proposed cutoffs, in
+    Portuguese and in English (suffix _en), from the same data. Returns the plotted data."""
     import matplotlib
 
     matplotlib.use("Agg")
@@ -454,44 +455,66 @@ def figures_phase2(out: Path):
     blue, orange, ink, muted = "#2a78d6", "#eb6834", "#0b0b0b", "#52514e"
     D, b, X = mp.mpf(1), mp.mpf("0.01"), mp.mpf("0.25")
     xi = kt.doppler_xi(mp.mpf("0.5"))
+    plotted = {}
 
-    # 3. Divergence near H_1 between the mouths, on the axis.
-    fig, ax = plt.subplots(figsize=(6.4, 4.6), constrained_layout=True)
     deltas = [mp.mpf(d) for d in FIG_DELTA]
     nums = [wh.stress_between_numeric(X - d, X, mp.mpf(0), D, b, "0.5", d) for d in deltas]
     grid = np.logspace(-5, -2, 200)
     n_terms = nums[0]["n_terms"]
     curve = [float(abs(kt.stress_between_kk(X - mp.mpf(g), X, mp.mpf(0), D, b, xi, n_terms).value)) for g in grid]
-    ax.loglog(grid, curve, color=muted, lw=1.2, ls="--", label="eq. 67 impressa, série truncada (COMPUTED)")
-    ax.loglog([float(d) for d in deltas], [float(abs(n["eq4a"]["TT"].value)) for n in nums], "o", color=blue, ms=8, mfc="none", mew=2,
-              label="eq. 4a impressa, sem ½ (COMPUTED)")
-    ax.loglog([float(d) for d in deltas], [float(abs(n["with_half"]["TT"].value)) for n in nums], "s", color=orange, ms=8, mfc="none", mew=2,
-              label="com ½, convenção do árbitro térmico (COMPUTED)")
-    ax.set_xlabel("Δ  (distância a H₁, unidades de D)", color=ink)
-    ax.set_ylabel("|T^TT|", color=ink)
-    ax.set_title("Kim & Thorne: divergência Δ⁻³; os dois operadores diferem por 2", color=ink, fontsize=10)
-    ax.legend(fontsize=8, frameon=False)
-    ax.grid(alpha=0.25, which="both")
-    fig.savefig(out / "fig3_kt_divergence.png", dpi=130)
-    plt.close(fig)
-
-    # 4. Metric perturbation, eq. 9c with N - 1 = 0 and D = 1 m, and the two cutoffs.
-    fig, ax = plt.subplots(figsize=(6.4, 4.6), constrained_layout=True)
+    dx = [float(d) for d in deltas]
+    y4a = [float(abs(n["eq4a"]["TT"].value)) for n in nums]
+    yhalf = [float(abs(n["with_half"]["TT"].value)) for n in nums]
     lpD = float(estimates.lp_over_D().value)
     dt = np.logspace(-40, 3, 300)
-    ax.loglog(dt, lpD / dt, color=blue, lw=2, label="δg^VP ~ (l_P/D)(l_P/Δt), eq. 9c")
-    ax.axvline(1, color=ink, lw=1.2, ls="--")
-    ax.text(0.3, 1e-15, "corte de Kim & Thorne\nΔt ~ l_P", color=ink, fontsize=8, ha="right")
-    ax.axvline(float(estimates.hawking_cutoff_dt().value), color=ink, lw=1.2, ls=":")
-    ax.text(3e-35, 1e-30, "corte de Hawking\nDΔt ~ l_P²", color=ink, fontsize=8)
-    ax.axhline(1, color=muted, lw=0.8)
-    ax.set_xlabel("Δt / l_P  (tempo próprio até H₁)", color=ink)
-    ax.set_ylabel("δg^VP  (ordem de grandeza)", color=ink)
-    ax.set_title("D = 1 m: δg^VP ~ 10⁻³⁵ no corte de Kim & Thorne, ~ 1 no de Hawking", color=ink, fontsize=10)
-    ax.legend(fontsize=8, frameon=False, loc="upper right")
-    ax.grid(alpha=0.25, which="both")
-    fig.savefig(out / "fig4_kt_cutoffs.png", dpi=130)
-    plt.close(fig)
+    hawking = float(estimates.hawking_cutoff_dt().value)
+    text = {
+        "pt": {"l67": "eq. 67 impressa, série truncada (COMPUTED)", "l4a": "eq. 4a impressa, sem ½ (COMPUTED)",
+               "lhalf": "com ½, convenção do árbitro térmico (COMPUTED)", "x3": "Δ  (distância a H₁, unidades de D)",
+               "t3": "Kim & Thorne: divergência Δ⁻³; os dois operadores diferem por 2",
+               "kt": "corte de Kim & Thorne\nΔt ~ l_P", "hk": "corte de Hawking\nDΔt ~ l_P²",
+               "x4": "Δt / l_P  (tempo próprio até H₁)", "y4": "δg^VP  (ordem de grandeza)",
+               "t4": "D = 1 m: δg^VP ~ 10⁻³⁵ no corte de Kim & Thorne, ~ 1 no de Hawking"},
+        "en": {"l67": "eq. 67 as printed, truncated series (COMPUTED)", "l4a": "eq. 4a as printed, without ½ (COMPUTED)",
+               "lhalf": "with ½, thermal-arbiter convention (COMPUTED)", "x3": "Δ  (distance to H₁, units of D)",
+               "t3": "Kim & Thorne: Δ⁻³ divergence; the two operators differ by 2",
+               "kt": "Kim & Thorne cutoff\nΔt ~ l_P", "hk": "Hawking cutoff\nDΔt ~ l_P²",
+               "x4": "Δt / l_P  (proper time to H₁)", "y4": "δg^VP  (order of magnitude)",
+               "t4": "D = 1 m: δg^VP ~ 10⁻³⁵ at the Kim & Thorne cutoff, ~ 1 at Hawking's"},
+    }
+    for lang, suffix in LANGS.items():
+        T = text[lang]
+        # 3. Divergence near H_1 between the mouths, on the axis.
+        fig, ax = plt.subplots(figsize=(6.4, 4.6), constrained_layout=True)
+        ax.loglog(grid, curve, color=muted, lw=1.2, ls="--", label=T["l67"])
+        ax.loglog(dx, y4a, "o", color=blue, ms=8, mfc="none", mew=2, label=T["l4a"])
+        ax.loglog(dx, yhalf, "s", color=orange, ms=8, mfc="none", mew=2, label=T["lhalf"])
+        ax.set_xlabel(T["x3"], color=ink)
+        ax.set_ylabel("|T^TT|", color=ink)
+        ax.set_title(T["t3"], color=ink, fontsize=10)
+        ax.legend(fontsize=8, frameon=False)
+        ax.grid(alpha=0.25, which="both")
+        fig.savefig(out / f"fig3_kt_divergence{suffix}.png", dpi=130)
+        plotted.setdefault("fig3", {})[lang] = _plotted(ax)
+        plt.close(fig)
+
+        # 4. Metric perturbation, eq. 9c with N - 1 = 0 and D = 1 m, and the two cutoffs.
+        fig, ax = plt.subplots(figsize=(6.4, 4.6), constrained_layout=True)
+        ax.loglog(dt, lpD / dt, color=blue, lw=2, label="δg^VP ~ (l_P/D)(l_P/Δt), eq. 9c")
+        ax.axvline(1, color=ink, lw=1.2, ls="--")
+        ax.text(0.3, 1e-15, T["kt"], color=ink, fontsize=8, ha="right")
+        ax.axvline(hawking, color=ink, lw=1.2, ls=":")
+        ax.text(3e-35, 1e-30, T["hk"], color=ink, fontsize=8)
+        ax.axhline(1, color=muted, lw=0.8)
+        ax.set_xlabel(T["x4"], color=ink)
+        ax.set_ylabel(T["y4"], color=ink)
+        ax.set_title(T["t4"], color=ink, fontsize=10)
+        ax.legend(fontsize=8, frameon=False, loc="upper right")
+        ax.grid(alpha=0.25, which="both")
+        fig.savefig(out / f"fig4_kt_cutoffs{suffix}.png", dpi=130)
+        plotted.setdefault("fig4", {})[lang] = _plotted(ax)
+        plt.close(fig)
+    return plotted
 
 
 def figure_phase3(out: Path, res):
@@ -537,50 +560,79 @@ def _br(text):
     return plain.replace(".", ",")
 
 
+LANGS = {"pt": "", "en": "_en"}  # figure file suffix per language; the data are computed once
+
+
+def _plotted(ax):
+    """The data of every line drawn on an axis, to check that both languages plot the same values."""
+    return [(list(map(float, l.get_xdata())), list(map(float, l.get_ydata()))) for l in ax.lines]
+
+
 def figures(out: Path):
+    """Phase 1 figures, in Portuguese and in English (suffix _en), from the same data. Returns the
+    plotted data per figure and language."""
     import matplotlib
 
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
     import numpy as np
 
-    # 1. Divergence at the chronology horizon
-    fig, ax = plt.subplots(figsize=(6.4, 4.6), constrained_layout=True)
+    plotted = {}
     xs = np.logspace(-3, 0.5, 200)
+    pts1 = [_num(x) for x in SCALING_XI]
+    series1 = []
     for bs, color in (("1", "#1f4e79"), ("3", "#2e86c1"), ("10", "#c0392b")):
         b = _num(bs)
         C = float(abs(3 * ((2 * mp.pi / b) ** 4 - 1) / (1440 * mp.pi ** 2)))
-        ax.loglog(xs, C / xs ** 4, color=color, lw=1.4, label=f"b = {bs}  (eq. 12, DERIVED)")
-        pts = [_num(x) for x in SCALING_XI]
-        ax.loglog([float(p) for p in pts], [float(abs(misner_stress(p, b)["rho"].value)) for p in pts],
-                  "o", color=color, mfc="none", ms=7)
-    ax.plot([], [], "o", color="gray", mfc="none", label="soma de imagens (COMPUTED)")
-    ax.set_xlabel("ξ  (distância ao horizonte da cronologia)")
-    ax.set_ylabel("|ρ|  densidade de energia do vácuo")
-    ax.set_title("Espaço de Misner: |ρ| ∝ ξ⁻⁴ perto do horizonte")
-    ax.legend(fontsize=8)
-    ax.grid(alpha=0.3, which="both")
-    fig.savefig(out / "fig1_horizon_divergence.png", dpi=130)
-    plt.close(fig)
-
-    # 2. The self-consistent value b = 2 pi
-    fig, ax = plt.subplots(figsize=(6.4, 4.6), constrained_layout=True)
+        series1.append((bs, color, C / xs ** 4, [float(abs(misner_stress(p, b)["rho"].value)) for p in pts1]))
     bb = np.linspace(0.8, 20, 400)
-    ax.plot(bb, 3 * ((2 * np.pi / bb) ** 4 - 1) / (1440 * np.pi ** 2), color="#1f4e79", lw=1.4,
-            label="ξ⁴ρ, eq. 12 (DERIVED)")
-    pts = [_num(s) for s in SCAN_B]
-    ax.plot([float(p) for p in pts], [float(misner_stress(1, p)["rho"].value) for p in pts], "o",
-            color="#c0392b", mfc="none", ms=7, label="soma de imagens, ξ = 1 (COMPUTED)")
-    ax.axhline(0, color="black", lw=0.8)
-    ax.axvline(float(self_consistent_b().value), color="#27ae60", ls="--", lw=1, label="b = 2π (Li & Gott)")
-    ax.set_yscale("symlog", linthresh=1e-6)
-    ax.set_xlabel("b  (rapidez do boost que identifica os pontos)")
-    ax.set_ylabel("ξ⁴ ρ")
-    ax.set_title("A energia do vácuo se anula em b = 2π")
-    ax.legend(fontsize=8)
-    ax.grid(alpha=0.3)
-    fig.savefig(out / "fig2_self_consistent_b.png", dpi=130)
-    plt.close(fig)
+    curve2 = 3 * ((2 * np.pi / bb) ** 4 - 1) / (1440 * np.pi ** 2)
+    pts2 = [_num(s) for s in SCAN_B]
+    vals2 = [float(misner_stress(1, p)["rho"].value) for p in pts2]
+    b_sc = float(self_consistent_b().value)
+    text = {
+        "pt": {"images": "soma de imagens (COMPUTED)", "x1": "ξ  (distância ao horizonte da cronologia)",
+               "y1": "|ρ|  densidade de energia do vácuo", "t1": "Espaço de Misner: |ρ| ∝ ξ⁻⁴ perto do horizonte",
+               "images2": "soma de imagens, ξ = 1 (COMPUTED)", "x2": "b  (rapidez do boost que identifica os pontos)",
+               "t2": "A energia do vácuo se anula em b = 2π"},
+        "en": {"images": "image sum (COMPUTED)", "x1": "ξ  (distance to the chronology horizon)",
+               "y1": "|ρ|  vacuum energy density", "t1": "Misner space: |ρ| ∝ ξ⁻⁴ near the horizon",
+               "images2": "image sum, ξ = 1 (COMPUTED)", "x2": "b  (rapidity of the boost that identifies points)",
+               "t2": "The vacuum energy vanishes at b = 2π"},
+    }
+    for lang, suffix in LANGS.items():
+        T = text[lang]
+        # 1. Divergence at the chronology horizon
+        fig, ax = plt.subplots(figsize=(6.4, 4.6), constrained_layout=True)
+        for bs, color, curve, vals in series1:
+            ax.loglog(xs, curve, color=color, lw=1.4, label=f"b = {bs}  (eq. 12, DERIVED)")
+            ax.loglog([float(p) for p in pts1], vals, "o", color=color, mfc="none", ms=7)
+        ax.plot([], [], "o", color="gray", mfc="none", label=T["images"])
+        ax.set_xlabel(T["x1"])
+        ax.set_ylabel(T["y1"])
+        ax.set_title(T["t1"])
+        ax.legend(fontsize=8)
+        ax.grid(alpha=0.3, which="both")
+        fig.savefig(out / f"fig1_horizon_divergence{suffix}.png", dpi=130)
+        plotted.setdefault("fig1", {})[lang] = _plotted(ax)
+        plt.close(fig)
+
+        # 2. The self-consistent value b = 2 pi
+        fig, ax = plt.subplots(figsize=(6.4, 4.6), constrained_layout=True)
+        ax.plot(bb, curve2, color="#1f4e79", lw=1.4, label="ξ⁴ρ, eq. 12 (DERIVED)")
+        ax.plot([float(p) for p in pts2], vals2, "o", color="#c0392b", mfc="none", ms=7, label=T["images2"])
+        ax.axhline(0, color="black", lw=0.8)
+        ax.axvline(b_sc, color="#27ae60", ls="--", lw=1, label="b = 2π (Li & Gott)")
+        ax.set_yscale("symlog", linthresh=1e-6)
+        ax.set_xlabel(T["x2"])
+        ax.set_ylabel("ξ⁴ ρ")
+        ax.set_title(T["t2"])
+        ax.legend(fontsize=8)
+        ax.grid(alpha=0.3)
+        fig.savefig(out / f"fig2_self_consistent_b{suffix}.png", dpi=130)
+        plotted.setdefault("fig2", {})[lang] = _plotted(ax)
+        plt.close(fig)
+    return plotted
 
 
 def report(out: Path, rows, worst, slope, arb, f1_rows, f1_exact, unruh_rows, f3_rows, f3_slopes, thermal_rows, mode_rows, f4_rows, f4_slopes, f2, f5, f6, f7):

@@ -23,4 +23,4 @@ Rascunho de "[Re] Do vacuum fluctuations prevent the creation of closed timelike
 - **Arquivos do template** (https://github.com/ReScience/template): `article.tex`, `rescience.cls`, `yaml-to-latex.py`, `Makefile` e as pastas de fontes. Eles ainda não foram copiados para cá; o template é GPL-3+, e as fontes são OFL.
 - **Ferramentas:** XeLaTeX, latexmk e biber, que não estão instalados na máquina em que o rascunho foi escrito.
 
-**Figuras:** vêm de `outputs/`, com rótulos em português (pendente; ver a seção Limitations do artigo).
+**Figuras:** vêm de `outputs/`, nas versões em inglês (`*_en.png`). Elas são desenhadas a partir dos mesmos dados das versões em português, e `tests/test_figures_lang.py` confere isso.
