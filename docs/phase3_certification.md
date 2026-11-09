@@ -6,9 +6,9 @@ Este documento registra o enunciado, a função, a caixa e o critério do teste 
 
 - **Ordem:** CITED < DERIVED < CERTIFIED < COMPUTED < HEURISTIC, aprovada pelo usuário em 2026-11-07.
 - **Rótulo obrigatório:** toda quantidade CERTIFIED tem um rótulo, e só ela tem.
-  - "raiz certificada das eqs. 4.2–4.3": quando só o teste de Krawczyk passou (aprovado).
+  - "raiz certificada", quando só o teste de Krawczyk passou. Leva sempre o nome do sistema: "raiz certificada das eqs. 4.2–4.3" ou "raiz certificada do modelo geométrico (billiards.py)" (decisão de 2026-11-09). Um rótulo "raiz certificada" sem o nome do sistema é recusado, e há teste para isso. Uma raiz certificada não é "solução física certificada".
   - "solução física certificada": `certified()` recusa o rótulo sem as duas provas intervalares, (a) a, a′, c > 0 e (b) ausência de colisões extras (aprovado). Sem (b), `physical_solution()` devolve COMPUTED, com a lista do que foi e do que não foi provado.
-  - "exclusão certificada": nenhuma raiz das equações declaradas na caixa declarada. **Proposto neste branch; aguarda aprovação.**
+  - "exclusão certificada": nenhuma raiz das equações declaradas na caixa declarada. Aprovado em 2026-11-08 como rótulo próprio, distinto dos outros dois.
 - **Combinação:** `combine()` nunca devolve CERTIFIED. Com COMPUTED dá COMPUTED, como decidido. Com CITED ou DERIVED também dá COMPUTED, porque a aritmética de `combine()` não faz parte de uma prova intervalar. Essa segunda regra é escolha deste branch, mais restritiva que a decisão.
 - **Sem promoção:** `degrade()` não leva nada para CERTIFIED, nem a partir de DERIVED. Só `certified()` cria a origem.
 
@@ -66,4 +66,12 @@ As três desigualdades são condições necessárias de uma solução do modelo.
 
 Para essas famílias vale só a busca por bracketing, cuja origem é COMPUTED.
 
-**Krawczyk.** Não foi implementado nesta versão. No caso vazio, nenhuma caixa ficou indecidida, e não houve raiz a certificar.
+**Krawczyk** (`certify.krawczyk`): K(X) = x̃ − Y·F(x̃) + (I − Y·J(X))·(X − x̃). J(X) é envolvido por diferenciação automática em intervalos, e Y é o inverso do jacobiano no ponto médio. Se K ⊂ int X, há uma única raiz em X; se K ∩ X = ∅, não há nenhuma. No caso vazio, nenhuma caixa ficou indecidida, e não houve raiz a certificar.
+
+**Controle positivo** (decisão do usuário de 2026-11-08). A mesma máquina, com o mesmo código, a mesma precisão e as mesmas hipóteses, roda sobre os casos com soluções conhecidas no mesmo submodelo: R8 #0, #1, #3, #4 e #5, e a Fig. 7(b) com B = 0,04, 0,02, 0,01 e 0,005. Isso é feito por `phase3.control_piece` e `control_summary`, na execução `--full`.
+- Critério: nenhuma caixa que contenha uma solução conhecida pode ser excluída, nem uma cópia periódica dela (ν ± 2π, mira ± 2π) que caia na caixa. Cada cópia é vigiada, mas a solução é contada uma vez.
+- **Resolução:** o espaço de cada caso é dividido em pedaços de s, que só servem para paralelizar e relatar. A largura mínima das caixas é medida contra 1/`ekt_cert_chunks` do intervalo de s e contra ν e mira inteiros, a mesma escala dos pedaços do caso vazio (parâmetro `scale` de `exclude`).
+- **Orçamento:** pedaços com solução conhecida param em `ekt_cert_control_sol_budget` caixas, e os outros em `ekt_cert_control_budget`. O que sobra é relatado como não examinado, com a fração do volume.
+- **Krawczyk:** roda nas caixas indecididas que a máquina examinou. Uma solução certificada em todas as suas cópias recebe CERTIFIED com o rótulo "raiz certificada do modelo geométrico (billiards.py)".
+
+O resultado está em `outputs/phase3_full.md`.

@@ -58,6 +58,17 @@ def ivprec(bits):
         iv.prec = saved
 
 
+def inputs(case, xm=iv):
+    """case_inputs for either form of a case: the (theta, phi, lam1, B, R) tuple of the dangerous
+    triangle, or a dict {"p0": (x, y), "e": (x, y), "v1": v, "B": B, "R": R} of decimal strings for a
+    line given directly (the symmetric trajectory of Figs. 6 and 7: p0 = (0.5, 0), e = (0, 1))."""
+    if isinstance(case, dict):
+        f = xm.mpf
+        return {"p0": (f(case["p0"][0]), f(case["p0"][1])), "e": (f(case["e"][0]), f(case["e"][1])),
+                "v1": f(case["v1"]), "B": f(case["B"]), "R": f(case["R"])}
+    return case_inputs(*case, xm=xm)
+
+
 def case_inputs(theta, phi, lam1, B, R, xm=iv):
     """The initial condition as numbers of ``xm`` (mpmath.iv or mpmath): p0 and e of the initial line
     (phase3.line_theta_phi), v1 of eqs. 4.8 and 4.10 (ekt.v1_range, ekt.v1_from_lambda), B and R.
@@ -117,22 +128,72 @@ def _reason(box, c):
     return None
 
 
-def exclude(case, s_range, nu_range=None, aim_range=None, max_boxes=None):
-    """Branch and bound over the box s_range x nu_range x aim_range (floats). ``case`` is the
-    (theta, phi, lam1, B, R) tuple of decimal strings. Returns {"boxes", "excluded_by", "undecided",
-    "complete"}: ``complete`` is True when every box was excluded."""
-    nu_range = nu_range or (-NU_PAD.value, 2 * math.pi + NU_PAD.value)
-    aim_range = aim_range or (-AIM_PAD.value, AIM_PAD.value)
+def normalize(point):
+    """(s, nu, aim) with nu in [0, 2 pi) and aim in [-pi, pi), inside the default root box."""
+    s, nu, aim = (mp.mpf(x) for x in point)
+    return (s, nu % (2 * mp.pi), (aim + mp.pi) % (2 * mp.pi) - mp.pi)
+
+
+def _inside(point, box):
+    return all(lo <= x <= hi for x, (lo, hi) in zip(point, box))
+
+
+def default_ranges():
+    """(nu_range, aim_range) of the default root box (supersets of the circle)."""
+    return (-NU_PAD.value, 2 * math.pi + NU_PAD.value), (-AIM_PAD.value, AIM_PAD.value)
+
+
+def periodic_copies(point, nu_range=None, aim_range=None):
+    """The point, normalized, and its copies at nu +- 2 pi and aim +- 2 pi that fall in the nu and
+    aim ranges of the root box. They are the same solution, and each is a root of the conditions
+    in the box, so a positive control watches all of them."""
+    dnu, daim = default_ranges()
+    nu_range, aim_range = nu_range or dnu, aim_range or daim
+    s, nu, aim = normalize(point)
+    out = []
+    for i in (0, -1, 1):
+        for j in (0, -1, 1):
+            q = (s, nu + i * 2 * mp.pi, aim + j * 2 * mp.pi)
+            if nu_range[0] <= q[1] <= nu_range[1] and aim_range[0] <= q[2] <= aim_range[1]:
+                out.append(q)
+    return out
+
+
+def exclude(case, s_range, nu_range=None, aim_range=None, max_boxes=None, watch=(), scale=None):
+    """Branch and bound over the box s_range x nu_range x aim_range (floats). ``case`` is a case of
+    inputs(). Returns {"boxes", "excluded_by", "undecided", "complete", "watch"}: ``complete`` is True
+    when every box was excluded.
+
+    ``watch`` (positive control) is a list of points (s, nu, aim) known to be solutions; it does not
+    change the search. A point whose nu and aim lie in the root box is watched as given (so that
+    periodic copies can be watched); any other point is normalized first. For each point, "watch" lists the excluded boxes that contain it (each one a
+    failure of the test: an excluded box cannot contain a solution) and the indices of the undecided
+    boxes that contain it.
+
+    ``scale`` (three widths, default: the sides of the root box) is what the sides are measured
+    against when the widest side is chosen and when a box is small enough to stop
+    (ekt_cert_min_width). A run on a piece of a larger box passes the scale of that box, so that the
+    piece is resolved as finely as the whole, no more and no less."""
+    dnu, daim = default_ranges()
+    nu_range, aim_range = nu_range or dnu, aim_range or daim
     root = (tuple(s_range), tuple(nu_range), tuple(aim_range))
-    widths = [hi - lo for lo, hi in root]
-    if min(widths) <= 0:
+    if min(hi - lo for lo, hi in root) <= 0:
         raise ValueError(f"every side of the root box must have positive width: {root}")
+    widths = list(scale) if scale else [hi - lo for lo, hi in root]
+    if len(widths) != 3:
+        raise ValueError(f"scale needs three widths (s, nu, aim): {widths}")
+    if min(widths) <= 0:
+        raise ValueError(f"every scale width must be positive: {widths}")
     max_boxes = max_boxes or CERT_MAX_BOXES.value
+    points = [tuple(mp.mpf(x) for x in p) for p in watch]
+    points = [p if _inside(p[1:], root[1:]) else normalize(p) for p in points]
+    hits = [{"excluded_in": [], "undecided_in": []} for _ in points]
     with ivprec(CERT_PREC.value):
-        c = case_inputs(*case)
-        stack, n, by, undecided = [root], 0, {}, []
+        c = inputs(case)
+        stack, n, by, undecided, unexamined = [root], 0, {}, [], 0
         while stack:
             if n >= max_boxes:
+                unexamined = len(stack)  # never examined: reported as undecided, never as excluded
                 undecided += stack
                 break
             box = stack.pop()
@@ -140,6 +201,9 @@ def exclude(case, s_range, nu_range=None, aim_range=None, max_boxes=None):
             why = _reason(box, c)
             if why:
                 by[why] = by.get(why, 0) + 1
+                for p, h in zip(points, hits):
+                    if _inside(p, box):
+                        h["excluded_in"].append((box, why))
                 continue
             rel = [(hi - lo) / w for (lo, hi), w in zip(box, widths)]
             i = max(range(3), key=lambda j: rel[j])
@@ -152,7 +216,10 @@ def exclude(case, s_range, nu_range=None, aim_range=None, max_boxes=None):
                 b = list(box)
                 b[i] = half
                 stack.append(tuple(b))
-    return {"boxes": n, "excluded_by": by, "undecided": undecided, "complete": not undecided}
+    for p, h in zip(points, hits):
+        h["undecided_in"] = [i for i, b in enumerate(undecided) if _inside(p, b)]
+    return {"boxes": n, "excluded_by": by, "undecided": undecided, "complete": not undecided, "watch": hits,
+            "unexamined": unexamined}
 
 
 def s_range_outward(lo, hi):
@@ -177,3 +244,120 @@ def exclusion_quantity(result, case, s_range, what):
                f"{result['boxes']} subcaixas, todas excluídas; hipóteses: {hyp}")
         return certified(0, CERT_EXCLUSION, src)
     return Quantity(len(result["undecided"]), Origin.COMPUTED, f"{what}: caixas indecididas da exclusão intervalar; {hyp}")
+
+
+# Krawczyk test --------------------------------------------------------------------------------
+#
+# For F = (miss, C, V) of conditions() on a box X with midpoint x~, any real matrix Y and the
+# interval Jacobian J(X):  K(X) = x~ - Y F(x~) + (I - Y J(X)) (X - x~).
+# Theorem (Krawczyk 1969; Moore 1977): if K(X) lies in the interior of X, F has exactly one zero
+# in X; if K(X) and X are disjoint, F has none. J(X) is enclosed by forward-mode automatic
+# differentiation on intervals (the class _D below), so the derivatives are those of the very
+# expressions of conditions(). The scaled F of conditions() has the same zeros as the conditions
+# of the model wherever L0 > 0 and along > 0, which is checked on X with the inequalities.
+
+
+class _D:
+    """Interval value with its gradient in (s, nu, aim)."""
+
+    __slots__ = ("v", "d")
+
+    def __init__(self, v, d=(0, 0, 0)):
+        self.v, self.d = v, tuple(d)
+
+    @staticmethod
+    def lift(x):
+        return x if isinstance(x, _D) else _D(x)
+
+    def __add__(self, o):
+        o = _D.lift(o)
+        return _D(self.v + o.v, (a + b for a, b in zip(self.d, o.d)))
+
+    __radd__ = __add__
+
+    def __neg__(self):
+        return _D(-self.v, (-a for a in self.d))
+
+    def __sub__(self, o):
+        return self + (-_D.lift(o))
+
+    def __rsub__(self, o):
+        return _D.lift(o) + (-self)
+
+    def __mul__(self, o):
+        o = _D.lift(o)
+        return _D(self.v * o.v, (a * o.v + self.v * b for a, b in zip(self.d, o.d)))
+
+    __rmul__ = __mul__
+
+    def __truediv__(self, o):
+        o = _D.lift(o)
+        q = self.v / o.v
+        return _D(q, ((a - q * b) / o.v for a, b in zip(self.d, o.d)))
+
+    def __rtruediv__(self, o):
+        return _D.lift(o) / self
+
+    def __pow__(self, k):
+        if k != 2:
+            raise ValueError("only squares are used")
+        return _D(self.v ** 2, (2 * self.v * a for a in self.d))
+
+
+class _DX:
+    """The functions conditions() needs, on _D numbers over mpmath.iv."""
+
+    @staticmethod
+    def cos(x):
+        return _D(iv.cos(x.v), (-iv.sin(x.v) * a for a in x.d))
+
+    @staticmethod
+    def sin(x):
+        return _D(iv.sin(x.v), (iv.cos(x.v) * a for a in x.d))
+
+    @staticmethod
+    def sqrt(x):
+        r = iv.sqrt(x.v)
+        return _D(r, (a / (2 * r) for a in x.d))
+
+
+def jacobian(box, c):
+    """Interval enclosure of the Jacobian of (miss, C, V) over the box, and the inequality values."""
+    xs = [_D(iv.mpf([lo, hi]), tuple(1 if j == i else 0 for j in range(3))) for i, (lo, hi) in enumerate(box)]
+    cd = {k: (tuple(_D(x) for x in v) if isinstance(v, tuple) else _D(v)) for k, v in c.items()}  # iv cannot add a _D
+    q = conditions(*xs, cd, xm=_DX)
+    return [list(q[k].d) for k in ("miss", "C", "V")], {k: q[k].v for k in ("dn", "along", "kick")}
+
+
+def krawczyk(case, box):
+    """Krawczyk test of (miss, C, V) = 0 on a box (three (lo, hi) float pairs). Returns
+    {"verdict": "root" | "none" | "undecided", "K": the K(X) intervals as (lo, hi), "inequalities":
+    True when d.n_X < 0, along > 0 and kick > 0 hold on the whole box}."""
+    with ivprec(CERT_PREC.value):
+        c = inputs(case)
+        X = [iv.mpf([lo, hi]) for lo, hi in box]
+        mid = [(lo + hi) / 2 for lo, hi in box]
+        Fm = conditions(*(iv.mpf(m) for m in mid), c)
+        F = [Fm[k] for k in ("miss", "C", "V")]
+        J, ineq = jacobian(box, c)
+        Jmid = mp.matrix([[float(J[i][j].mid) for j in range(3)] for i in range(3)])
+        try:
+            Yf = Jmid ** -1
+        except ZeroDivisionError:
+            return {"verdict": "undecided", "K": None, "inequalities": False}
+        Y = [[iv.mpf(float(Yf[i, j])) for j in range(3)] for i in range(3)]
+        K = []
+        for i in range(3):
+            k = iv.mpf(mid[i]) - sum(Y[i][j] * F[j] for j in range(3))
+            for j in range(3):
+                m = (1 if i == j else 0) - sum(Y[i][l] * J[l][j] for l in range(3))
+                k = k + m * (X[j] - mid[j])
+            K.append(k)
+        ok_ineq = ineq["dn"].b < 0 and ineq["along"].a > 0 and ineq["kick"].a > 0
+        if all(lo < k.a and k.b < hi for k, (lo, hi) in zip(K, box)):
+            verdict = "root"
+        elif any(k.b < lo or k.a > hi for k, (lo, hi) in zip(K, box)):
+            verdict = "none"
+        else:
+            verdict = "undecided"
+        return {"verdict": verdict, "K": [(float(k.a), float(k.b)) for k in K], "inequalities": ok_ineq}

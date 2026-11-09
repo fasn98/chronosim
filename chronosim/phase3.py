@@ -282,6 +282,148 @@ def certify_chunk(case_args, i, n):
             "range": (lo, hi)}
 
 
+# Positive control of the exclusion (user decision of 2026-11-08, docs/phase3_plan.md): the same
+# machine on cases of the same sub-model (one traversal, collision before mouth 2) whose solutions
+# are known; no box that contains a known solution may be excluded. Krawczyk on what is left.
+
+FIG7B_R, FIG7B_V1, FIG7B_LO = "1e-7", "0.5", "-1.5"   # r4_r5_r6 and symmetric(): R, v1 and the low end of s
+CERT_CONTROL_BUDGET = heuristic("ekt_cert_control_budget", 300_000, "boxes per piece of s in the positive control when the piece holds no known solution (the rest is reported as not examined)")
+CERT_CONTROL_SOL_BUDGET = heuristic("ekt_cert_control_sol_budget", 10_000_000, "boxes per piece of s in the positive control when the piece holds a known solution (the rest is reported as not examined)")
+
+
+def control_case(spec):
+    """(case for certify, outward s range, label) of a positive-control case: an R8 case of the
+    dangerous triangle, or the symmetric trajectory of Fig. 7(b) (one traversal)."""
+    from . import certify as ct
+    kind, a = spec
+    if kind == "r8":
+        case = R8_CASES[a]
+        R = mp.mpf(case[4])
+        return case, ct.s_range_outward(-S_FAR.value, -R * mp.mpf(S_NEAR_OVER_R.value)), f"R8 ({'; '.join(x.replace('.', ',') for x in case)})"
+    case = {"p0": ("0.5", "0"), "e": ("0", "1"), "v1": FIG7B_V1, "B": a, "R": FIG7B_R}
+    return case, ct.s_range_outward(FIG7B_LO, -mp.mpf(FIG7B_R) / 10), f"Fig. 7(b), B = {a.replace('.', ',')}, R = 1e-7, v₁ = 0,5"
+
+
+def control_known(spec):
+    """Verified single-collision solutions (s, nu, aim) of a control case, from the bracketing search."""
+    kind, a = spec
+    if kind == "r8":
+        sols = [x for x in dangerous(*R8_CASES[a])["sols"] if x["ok"]]
+    else:
+        sols = symmetric(a, FIG7B_R, FIG7B_V1, 1)[0]
+    return [tuple(x["sol"]) for x in sols]
+
+
+def control_pieces(lo, hi):
+    """Pieces of [lo, hi] (lo < hi < 0) halving |s| from |lo| towards |hi|: the work concentrates
+    near the mouth."""
+    e = [lo]
+    while e[-1] / 2 < hi:
+        e.append(e[-1] / 2)
+    e.append(hi)
+    return list(zip(e, e[1:]))
+
+
+def control_piece(spec, a, b, sols):
+    """Exclusion on one piece of s of a control case, at the resolution of the empty-case proof
+    (sides measured against 1/CERT_CHUNKS of the s range and the whole nu and aim ranges), with every periodic copy of the known solutions
+    in the box watched, then the Krawczyk test on every undecided box the machine examined (boxes
+    left on the stack by the budget are not tested). A piece that holds a known solution gets
+    ekt_cert_control_sol_budget boxes; the others get ekt_cert_control_budget."""
+    from . import certify as ct
+    case, (lo, hi), _ = control_case(spec)
+    inside = [x for x in sols if a <= ct.normalize(x)[0] <= b]
+    nu, aim = ct.default_ranges()
+    # the resolution of the empty-case proof: there each piece is 1/CERT_CHUNKS of the s range
+    scale = ((hi - lo) / CERT_CHUNKS.value, nu[1] - nu[0], aim[1] - aim[0])
+    copies = [(k, q) for k, x in enumerate(inside) for q in ct.periodic_copies(x)]
+    budget = (CERT_CONTROL_SOL_BUDGET if inside else CERT_CONTROL_BUDGET).value
+    r = ct.exclude(case, (a, b), max_boxes=budget, watch=[q for _, q in copies], scale=scale)
+    n_ex = len(r["undecided"]) - r["unexamined"]
+    examined, left = r["undecided"][:n_ex], r["undecided"][n_ex:]
+
+    def vol(bx):
+        return math.prod(hi - lo for lo, hi in bx)
+
+    kraw = [ct.krawczyk(case, box) for box in examined]
+    watch = [{"sol": inside[k], "copy": tuple(float(t) for t in q), "excluded_in": len(h["excluded_in"]),
+              "undecided_in": [i for i in h["undecided_in"] if i < n_ex], "unexamined_in": sum(1 for i in h["undecided_in"] if i >= n_ex)}
+             for (k, q), h in zip(copies, r["watch"])]
+    return {"spec": spec, "s": (a, b), "boxes": r["boxes"], "excluded_by": r["excluded_by"], "undecided": examined,
+            "unexamined": r["unexamined"], "volume": vol(((a, b), nu, aim)), "unexamined_volume": sum(vol(bx) for bx in left),
+            "krawczyk": [(k["verdict"], k["inequalities"]) for k in kraw], "holds_solution": bool(inside), "watch": watch}
+
+
+def control_summary(spec, known, pieces):
+    """Per case: pieces of s examined to the end, fraction of the volume examined, boxes excluded,
+    undecided and never examined, and, per known solution (counted once; its periodic copies in the
+    box are listed with it), the piece of s, the box and the Krawczyk verdict. ``passed`` is False when
+    the case has no known solution, or as soon as a copy of a known solution lies in an excluded box or
+    in no box at all, or Krawczyk says "no root" in a box that holds one;
+    ``complete_near_solutions`` says whether, besides, every copy ended in an examined undecided box
+    (those stop at ekt_cert_min_width). A certified copy gives a CERTIFIED quantity labelled CERT_ROOT_MODEL; it is not a
+    physical solution (no interval proof of the absence of extra collisions)."""
+    from . import certify as ct
+    from .provenance import CERT_ROOT_MODEL, certified
+    two_pi = 2 * math.pi
+    boxes = sum(p["boxes"] for p in pieces)
+    undecided = sum(len(p["undecided"]) for p in pieces)
+    unexamined = sum(p["unexamined"] for p in pieces)
+    excluded = sum(n for p in pieces for n in p["excluded_by"].values())
+    volume = sum(p.get("volume", 0) for p in pieces)
+    examined_fraction = 1 - sum(p.get("unexamined_volume", 0) for p in pieces) / volume if volume else (1.0 if not unexamined else 0.0)
+    complete_pieces = sum(1 for p in pieces if p["unexamined"] == 0)
+    sol_pieces = [p for p in pieces if p.get("holds_solution")]
+    roots = [(p, i) for p in pieces for i, (v, ineq) in enumerate(p["krawczyk"]) if v == "root" and ineq]
+    # Krawczyk verdicts on the boxes that hold no known solution (copy), apart from those that do
+    holding = [{i for w in p["watch"] for i in w["undecided_in"]} for p in pieces]
+    other = [(v, ineq) for p, h in zip(pieces, holding) for i, (v, ineq) in enumerate(p["krawczyk"]) if i not in h]
+    none = sum(1 for v, _ in other if v == "none")
+    kraw_undecided = sum(1 for v, _ in other if v == "undecided")
+
+    def matches(box, x):  # a root box holds a known solution, or one of its copies at nu +- 2 pi, aim +- 2 pi
+        s_, nu, aim = (float(t) for t in ct.normalize(x))
+        return any(box[0][0] <= s_ <= box[0][1] and box[1][0] <= nu + i * two_pi <= box[1][1] and box[2][0] <= aim + j * two_pi <= box[2][1]
+                   for i in (-1, 0, 1) for j in (-1, 0, 1))
+
+    sols = []
+    for x in known:
+        key = tuple(float(t) for t in ct.normalize(x))
+        cps = [(p, w) for p in pieces for w in p["watch"] if tuple(float(t) for t in ct.normalize(w["sol"])) == key]
+        sol_boxes = [p["undecided"][i] for p, w in cps for i in w["undecided_in"]]
+        widths = [max(hi - lo for lo, hi in bx[1:]) for bx in sol_boxes]
+        verdicts = [p["krawczyk"][i] for p, w in cps for i in w["undecided_in"]]
+        # every copy in an examined undecided box: those stop at ekt_cert_min_width (relative)
+        refined = bool(cps) and all(w["undecided_in"] for _, w in cps)
+        lost = sum(1 for _, w in cps if not w["undecided_in"] and not w["unexamined_in"] and not w["excluded_in"])  # in no box at all
+        in_excluded = sum(w["excluded_in"] for _, w in cps)
+        none_here = sum(1 for v, _ in verdicts if v == "none")  # "no root" where a known solution lies: a contradiction
+        cert = refined and all(any(p["krawczyk"][i] == ("root", True) for i in w["undecided_in"]) for p, w in cps)
+        boxes_txt = "; ".join("[" + ", ".join(f"[{lo!r}, {hi!r}]" for lo, hi in bx) + "]" for bx in sol_boxes)
+        q = (certified(tuple(sol_boxes), CERT_ROOT_MODEL,
+                       f"Krawczyk (K(X) no interior de X) em cada caixa (s, ν, mira) {boxes_txt}: uma única raiz de (miss, C, V) em cada uma, "
+                       f"com d·n_X < 0, along > 0 e kick > 0 em toda a caixa; cópias periódicas da mesma solução; hipóteses: "
+                       + ct.HYPOTHESES.format(s=f"[{_f(mp.mpf(cps[0][0]['s'][0]), 6)}; {_f(mp.mpf(cps[0][0]['s'][1]), 6)}]", prec=ct.CERT_PREC.value)
+                       + f"; controle positivo de {spec}. O valor são as caixas; o ponto do bracketing ({key}) é COMPUTED")
+             if cert else None)
+        sols.append({"sol": key, "piece": cps[0][0]["s"] if cps else None, "copies": len(cps), "in_excluded": in_excluded,
+                     "lost": lost, "none_here": none_here,
+                     "unexamined": any(w["unexamined_in"] for _, w in cps), "refined": refined, "certified": cert, "quantity": q,
+                     "width": max(widths) if widths else None, "verdicts": sorted(set(v for v, _ in verdicts))})
+    root_boxes = [p["undecided"][i] for p, i in roots]
+    unmatched = [bx for bx in root_boxes if not any(matches(bx, x) for x in known)]
+    passed = (len(known) > 0 and all(x["copies"] for x in sols) and sum(x["in_excluded"] + x["lost"] + x["none_here"] for x in sols) == 0)
+    return {"spec": spec, "boxes": boxes, "excluded": excluded, "undecided": undecided, "unexamined": unexamined,
+            "pieces": len(pieces), "complete_pieces": complete_pieces, "solution_pieces": len(sol_pieces),
+            "solution_pieces_complete": sum(1 for p in sol_pieces if p["unexamined"] == 0), "examined_fraction": examined_fraction,
+            "known": len(known), "copies": sum(x["copies"] for x in sols), "in_excluded": sum(x["in_excluded"] for x in sols),
+            "lost": sum(x["lost"] for x in sols), "none_in_solution_boxes": sum(x["none_here"] for x in sols),
+            "refined": sum(x["refined"] for x in sols), "certified": sum(x["certified"] for x in sols),
+            "root_boxes": len(root_boxes), "unmatched_roots": len(unmatched), "none": none, "kraw_undecided": kraw_undecided,
+            "passed": passed, "complete_near_solutions": passed and all(x["refined"] for x in sols),
+            "sols": sols}
+
+
 # R1 --------------------------------------------------------------------------------------------
 
 def r1_traversal_rule(n=25):
@@ -613,6 +755,8 @@ R8_CASES = (
 R9_BS = ("0.04", "0.02", "0.01", "0.005")
 REFINE_FACTOR = heuristic("ekt_refine_factor", 2, "grid refinement factor of the stabilization search (empty case)")
 R46_BS = ("0.04", "0.02", "0.01", "0.005")
+# positive control of the exclusion (see control_case): the five R8 cases with solutions, and Fig. 7(b)
+CONTROL_CASES = tuple(("r8", i) for i in (0, 1, 3, 4, 5)) + tuple(("fig7b", B) for B in R46_BS)
 R10_PHIS = ("0.05", "0.1", "0.2", "0.3", "0.5", "0.7", "0.75", "0.78", "0.8", "0.82", "0.9", "1.1", "1.3", "1.5")
 R11_PHIS = ("0.7", "0.75", "0.78", "0.79", "0.82", "0.85")
 
@@ -684,6 +828,10 @@ def _task(name, arg):
                 **ref, "cert_items": cert}
     if name == "r8c":
         return certify_chunk(R8_CASES[2], *arg)
+    if name == "r8pk":
+        return control_known(arg)
+    if name == "r8p":
+        return control_piece(*arg)
     if name == "r9":
         return r9_central(Bs=(arg,))
     if name == "r10":
@@ -721,6 +869,7 @@ def full_tasks():
     tasks += [("r8x", ("before", 1, False, lam)) for lam in ("0.1", "0.25", "0.5", "0.9")]
     tasks += [("r8r", R8_CASES[2])]
     tasks += [("r8c", (i, CERT_CHUNKS.value)) for i in range(CERT_CHUNKS.value)]
+    tasks += [("r8pk", spec) for spec in CONTROL_CASES]   # each one submits its r8p pieces when done (start)
     tasks += [("r9", B) for B in R9_BS]
     tasks += [("r10", ph) for ph in R10_PHIS]
     tasks += [("r10x", ph) for ph in ("0.3", "0.9", "1.1")]
@@ -733,20 +882,50 @@ def start(quick=False, workers=None):
     handle for collect(); the caller can do other work meanwhile. Deterministic grids only; each
     task is a pure function of its arguments."""
     from concurrent.futures import ProcessPoolExecutor
+    import threading
     tasks = list(QUICK_TASKS) if quick else full_tasks()
     ex = ProcessPoolExecutor(max_workers=workers, initializer=_init_worker)
-    return ex, tasks, [ex.submit(_task, n, a) for n, a in tasks]
+    follow, lock, submitted = [], threading.Lock(), []
+
+    def pieces_of(spec, ready):  # positive control: the exclusion pieces of a case, once its known solutions exist
+        def submit(fut):
+            try:
+                if fut.exception() is None:  # otherwise collect() raises it
+                    _, s_range, _ = control_case(spec)
+                    with lock:
+                        for a, b in control_pieces(*s_range):
+                            arg = (spec, a, b, fut.result())
+                            follow.append((("r8p", arg), ex.submit(_task, "r8p", arg)))
+            finally:
+                ready.set()
+        return submit
+
+    futures = []
+    for n, a in tasks:
+        f = ex.submit(_task, n, a)
+        if n == "r8pk":
+            ready = threading.Event()
+            submitted.append(ready)
+            f.add_done_callback(pieces_of(a, ready))
+        futures.append(f)
+    return ex, tasks, futures, (follow, submitted)
 
 
 def collect(handle):
-    """Results of start(), as a dict of (argument, result) lists keyed by task, in task order."""
-    ex, tasks, futures = handle
+    """Results of start(), as a dict of (argument, result) lists keyed by task, in task order; the
+    pieces of the positive control (r8p) follow, in submission order."""
+    ex, tasks, futures, (follow, submitted) = handle
     try:
         done = [f.result() for f in futures]
+        for ready in submitted:  # every callback has submitted its pieces
+            ready.wait()
+        later = [(t, f.result()) for t, f in list(follow)]
     finally:
         ex.shutdown()
     res = {}
     for (n, a), r in zip(tasks, done):
+        res.setdefault(n, []).append((a, r))
+    for (n, a), r in later:
         res.setdefault(n, []).append((a, r))
     return res
 
@@ -776,16 +955,89 @@ def _order(pairs):
     return sum((x - mx) * (y - my) for x, y in zip(xs, ys)) / sum((x - mx) ** 2 for x in xs)
 
 
-def _certification_lines(arg, ref, chunks):
-    """Report lines of the interval exclusion of the empty case (certify.py)."""
+def control_summaries(res):
+    """control_summary of every positive-control case of a --full result."""
+    known = dict(res.get("r8pk", []))
+    pieces = {}
+    for _, r in res.get("r8p", []):
+        pieces.setdefault(r["spec"], []).append(r)
+    return [control_summary(spec, known[spec], pieces.get(spec, [])) for spec in CONTROL_CASES if spec in known]
+
+
+def _control_lines(summaries):
+    """The positive control, as report lines, and whether it passed (every copy of every known
+    solution in an examined undecided box of the minimum width, none in an excluded box)."""
+    if not summaries:
+        return ["    - **Controle positivo:** não rodado nesta execução; sem ele a frase de prova não é usada."], False
+    from .provenance import CERT_ROOT_MODEL
+    passed = all(x["passed"] for x in summaries)
+    refined = all(x["complete_near_solutions"] for x in summaries)
+    def pct(v):  # never rounded up to 100 %: as many digits as it takes to show what is missing
+        if v >= 1:
+            return "100 %"
+        d = 3
+        while f"{100 * v:.{d}g}" == "100" and d < 15:
+            d += 1
+        return f"{100 * v:.{d}g} %".replace(".", ",")
+    out = ["    - **Controle positivo** (a mesma máquina, com o mesmo código, a mesma precisão e as mesmas hipóteses, só com os parâmetros do caso; o espaço de busca de cada caso é dividido em pedaços de s; critério: nenhuma caixa que contenha uma solução conhecida, ou uma cópia periódica dela, pode ser excluída):",
+           "",
+           "      | caso | pedaços de s examinados até o fim | com solução: examinados até o fim | volume examinado | caixas examinadas | excluídas | indecididas (largura mínima) | não examinadas (orçamento) | soluções conhecidas | em caixa excluída | Krawczyk: raiz única | Krawczyk nas caixas sem solução conhecida: sem raiz / indecidido / raiz sem solução conhecida |",
+           "      |---|---|---|---|---|---|---|---|---|---|---|---|"]
+    for x in summaries:
+        _, _, label = control_case(x["spec"])
+        out.append(f"      | {label} | {x['complete_pieces']} de {x['pieces']} | {x['solution_pieces_complete']} de {x['solution_pieces']} | {pct(x['examined_fraction'])} | {x['boxes']} | {x['excluded']} | {x['undecided']} | {x['unexamined']} | {x['known']} | {x['in_excluded']} | {x['certified']} de {x['known']} | {x['none']} / {x['kraw_undecided']} / {x['unmatched_roots']} |")
+    out += ["", "      Onde estão as soluções conhecidas (cada solução contada uma vez):", "",
+            "      | caso | solução (s; ν; mira) | pedaço de s | cópias periódicas na caixa | em caixa excluída | caixa indecidida (maior lado em ν, mira) | Krawczyk |",
+            "      |---|---|---|---|---|---|---|"]
+    for x in summaries:
+        _, _, label = control_case(x["spec"])
+        for y in x["sols"]:
+            sol = "; ".join(_f(mp.mpf(t), 8) for t in y["sol"])
+            piece = f"[{_f(mp.mpf(y['piece'][0]), 4)}; {_f(mp.mpf(y['piece'][1]), 4)}]" if y["piece"] else "nenhum"
+            box = (_f(mp.mpf(y["width"]), 2) if y["refined"] else ("não examinada (orçamento)" if y["unexamined"] else "nenhuma")) if y["copies"] else "nenhuma"
+            kr = f"raiz única em cada cópia, {CERT_ROOT_MODEL} (CERTIFIED)" if y["certified"] else ("; ".join(y["verdicts"]) or "não testada")
+            out.append(f"      | {label} | {sol} | {piece} | {y['copies']} | {y['in_excluded']} | {box} | {kr} |")
+    out.append("")
+    if not passed:
+        why = []
+        if any(x["known"] == 0 for x in summaries):
+            why.append("caso sem solução conhecida: " + "; ".join(control_case(x["spec"])[2] for x in summaries if x["known"] == 0))
+        if sum(x["in_excluded"] for x in summaries):
+            why.append(f"{sum(x['in_excluded'] for x in summaries)} cópia(s) de solução conhecida em caixa excluída")
+        if sum(x.get("lost", 0) for x in summaries):
+            why.append(f"{sum(x['lost'] for x in summaries)} cópia(s) de solução conhecida fora de toda caixa")
+        if sum(x.get("none_in_solution_boxes", 0) for x in summaries):
+            why.append(f"Krawczyk diz “sem raiz” em {sum(x['none_in_solution_boxes'] for x in summaries)} caixa(s) que contêm solução conhecida")
+        out.append(f"      - **O controle falhou** ({'; '.join(why) or 'solução conhecida sem caixa'}). A prova do caso vazio é inválida, e a frase de prova não é usada.")
+    elif not refined:
+        out.append("      - Nenhuma solução conhecida caiu em caixa excluída, mas nem todas foram examinadas até a largura mínima. O controle está incompleto, e a frase de prova não é usada.")
+    else:
+        out.append(f"      - **O controle passou:** nenhuma das {sum(x['known'] for x in summaries)} soluções conhecidas ({sum(x['copies'] for x in summaries)} pontos, contando as cópias periódicas) caiu em caixa excluída; todas ficaram em caixas indecididas de largura mínima, e o Krawczyk provou raiz única em {sum(x['certified'] for x in summaries)} delas, em todas as cópias.")
+    partial = [control_case(x["spec"])[2] for x in summaries if x["solution_pieces_complete"] == x["solution_pieces"] and x["complete_pieces"] < x["pieces"]]
+    if partial:
+        out.append(f"      - **Só os pedaços com solução foram examinados até o fim** em: {'; '.join(partial)}. Nos outros pedaços desses casos, o orçamento acabou antes, e o que sobrou está na coluna “não examinadas”; ali nada é afirmado, nem exclusão nem raiz.")
+    from . import certify as ct
+    (n0, n1), (a0, a1) = ct.default_ranges()
+    out.append(f"      - **Cópias periódicas:** a caixa cobre ν ∈ [{_f(mp.mpf(n0), 4)}; {_f(mp.mpf(n1), 6)}] e mira ∈ [{_f(mp.mpf(a0), 4)}; {_f(mp.mpf(a1), 4)}], além de [0; 2π) e [−π; π). Uma solução com ν perto de 0 ou de 2π, ou com mira perto de ±π, aparece duas vezes na caixa (quatro, se as duas coisas valem); cada cópia é vigiada e testada, mas a solução é contada uma vez.")
+    out.append(f"      - **Rótulo:** cada solução certificada recebe a origem CERTIFIED com o rótulo “{CERT_ROOT_MODEL}”. É raiz de (miss, C, V) com as três desigualdades válidas na caixa, e não “solução física certificada”: a ausência de colisões extras não foi provada em intervalos, e vem do verificador (COMPUTED).")
+    out.append("      - **Caixas examinadas** inclui as que foram divididas ao meio; cada uma delas termina excluída, dividida, indecidida na largura mínima ou não examinada.")
+    out.append("      - **Krawczyk:** foi aplicado só às caixas indecididas que a máquina examinou. As caixas que ficaram na pilha por orçamento não foram testadas.")
+    out.append("      - **Orçamento:** pedaços sem solução conhecida param em `ekt_cert_control_budget` caixas, e pedaços com solução em `ekt_cert_control_sol_budget`.")
+    return out, passed and refined
+
+
+def _certification_lines(arg, ref, chunks, control=None):
+    """Report lines of the interval exclusion of the empty case (certify.py). The proof sentence is
+    used only when the exclusion is complete and the positive control passed."""
     from . import certify as ct
     out = []
+    control_out, control_ok = _control_lines(control or [])
     ci = ref.get("cert_items")
     if ci:
         old = ci["items"] - ci["items_aim"]
         out.append(f"  - **Certificação intervalar** (`certify.py`, mpmath.iv a {ct.CERT_PREC.value} bits, arredondamento para fora; enunciado e hipóteses em `docs/phase3_certification.md`).")
         out.append(f"    - **Itens não resolvidos depois do refinamento:** {ci['items']}, sendo {old} do mesmo tipo dos que já eram contados e {ci['items_aim']} colchetes da busca da mira descartados (registrados a partir desta versão). "
-                   f"Resultado: {ci['excluded']} excluídos ({ci['excluded'] - ci['excluded_aim']} dos {old}; {ci['excluded_aim']} dos {ci['items_aim']}), {ci['undecided']} indecididos; nenhuma raiz certificada, porque o teste de Krawczyk não foi implementado nesta versão.")
+                   f"Resultado: {ci['excluded']} excluídos ({ci['excluded'] - ci['excluded_aim']} dos {old}; {ci['excluded_aim']} dos {ci['items_aim']}), {ci['undecided']} indecididos; o teste de Krawczyk não foi aplicado a esses itens.")
         out.append(f"    - Caixa de cada item: o intervalo em s que ele pode estragar (o da medida conservadora, arredondado para fora) × ν e mira inteiros. {ci['runs']} caixas distintas, {ci['boxes']} subcaixas examinadas.")
     if chunks:
         rs = sorted((r for _, r in chunks), key=lambda r: r["i"])
@@ -806,12 +1058,16 @@ def _certification_lines(arg, ref, chunks):
         reasons = "; ".join(f"{k}: {m}" for k, m in sorted(by.items(), key=lambda t: -t[1]))
         if not whole:
             out.append(f"    - **Ω inteiro, com uma travessia:** os pedaços da exclusão não cobrem o intervalo de s deste caso ({len(rs)} de {n}, ou de outra condição inicial). Nada é afirmado.")
+        elif q.origin is Origin.CERTIFIED and not control_ok:
+            out.append(f"    - **Ω inteiro, com uma travessia:** {boxes} subcaixas em {n} pedaços de s, todas excluídas ({reasons}). A frase de prova não é usada, porque o controle positivo abaixo não passou ou está incompleto.")
+            out += control_out
         elif q.origin is Origin.CERTIFIED:
             out.append(f"    - **Ω inteiro, com uma travessia:** {boxes} subcaixas em {n} pedaços de s, todas excluídas ({reasons}).")
             out.append(f"    - **Provado, em aritmética intervalar, que não existe solução de uma colisão para esta condição inicial no modelo de [{hyp}]; soluções com várias colisões não foram examinadas.** "
-                       f"Origem: {q.origin.name}, rótulo “{q.label}” (rótulo proposto, à espera de aprovação); soluções na caixa: {q.value}.")
+                       f"Origem: {q.origin.name}, rótulo “{q.label}”; soluções na caixa: {q.value}.")
+            out += control_out
             out.append("    - **Não coberto pela prova:** duas ou mais travessias entre as visitas, colisão depois de uma travessia, e posições de colisão fora desse intervalo de s. Para esses vale o que a busca por bracketing diz acima e nas variações abaixo (COMPUTED).")
-            out.append("    - Nenhuma caixa ficou indecidida, então nenhuma raiz precisou do teste de Krawczyk; ele não foi implementado nesta versão.")
+            out.append("    - Nenhuma caixa ficou indecidida, então nenhuma raiz precisou do teste de Krawczyk neste caso; o Krawczyk aparece no controle positivo acima.")
         else:
             out.append(f"    - **Ω inteiro, com uma travessia:** {boxes} subcaixas em {n} pedaços de s; {left} indecididas ({q.origin.name}). A exclusão não está completa, e nada é afirmado além da contagem.")
     return out
@@ -824,7 +1080,7 @@ def report_section(res):
     add("")
     add("## Fase 3 · Bolas de bilhar (Echeverria, Klinkhammer & Thorne, 1991): reprodução R1–R11")
     add("")
-    add("Todas as grandezas desta seção são **COMPUTED**, exceto a exclusão intervalar do caso vazio, quando ela aparece marcada como CERTIFIED (R8, caso vazio).")
+    add("Todas as grandezas desta seção são **COMPUTED**, exceto as marcadas como CERTIFIED: a exclusão intervalar do caso vazio e as raízes do controle positivo certificadas pelo Krawczyk (R8, caso vazio), cada uma com o seu rótulo.")
     add("")
     add("- **Modelo independente** (`chronosim/billiards.py`): o modelo exato que o artigo descreve em palavras e figuras.")
     add("  - Bocas de raio B identificadas por reflexão no plano x = ½ (Fig. 2).")
@@ -973,7 +1229,7 @@ def report_section(res):
                 f"cobrindo {pct(ref['fraction_before']['conservative'])} pela medida conservadora, sobram {ref['after']} ({kinds(ref['after_kinds'])}); {ref['fraction_after']['off_grid']} deles estão fora da grade de s e não entram na medida fina. Motivos dos que sobram: {reasons}.")
             add("  - Critério de resolvido: num trecho em que a contagem de raízes muda, a grandeza que decide a solução (a troca normal C, em ν; v₁ menos o alvo, em s) tem um único sinal em todas as raízes das duas pontas. É o critério de bracketing da busca principal, não uma prova.")
             add(f"  - Intervalos com bisseção perdida não são refinados e continuam contados. {ref['ok']} soluções verificadas nesta busca; {len(ref['rejected'])} candidatos rejeitados.")
-            for line in _certification_lines(arg, ref, res.get("r8c", [])):
+            for line in _certification_lines(arg, ref, res.get("r8c", []), control_summaries(res)):
                 add(line)
         add(f"  - Posição da colisão s (distância com sinal ao longo da linha, a partir da entrada na boca 2; s < 0 antes dela) em [{_f(lo, 3)}; {_f(hi, 3)}] antes da travessia, e em [{_f(mp.mpf(S_NEAR_AFTER.value), 3)}; {_f(S_FAR.value, 3)}] depois dela. A grade de s tem `ekt_s_grid` pontos uniformes mais aproximações geométricas às pontas; ν e a mira usam `ekt_nu_grid` e `ekt_theta_grid`.")
         add(f"  - Mesma busca, antes do refinamento: {len(r['physical'])} raízes físicas das eqs. 4.2–4.3, "

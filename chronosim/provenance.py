@@ -39,13 +39,16 @@ class Origin(IntEnum):
     HEURISTIC = 4
 
 
-# What a CERTIFIED quantity proves. The first two are the labels approved by the user; the third
-# is a proposal of this branch, pending approval: an interval exclusion (no root of the stated
-# equations in the stated box).
-CERT_ROOT = "raiz certificada das eqs. 4.2–4.3"
+# What a CERTIFIED quantity proves; distinct labels, all approved by the user: a root certified by
+# Krawczyk, always naming its system of equations (decision of 2026-11-09: "raiz certificada" alone
+# is refused), a physical solution (with both interval proofs of PHYSICAL_PROOFS), and an interval
+# exclusion (no root of the stated equations in the stated box; approved on 2026-11-08).
+CERT_ROOT_PREFIX = "raiz certificada"
+CERT_ROOT = CERT_ROOT_PREFIX + " das eqs. 4.2–4.3"
+CERT_ROOT_MODEL = CERT_ROOT_PREFIX + " do modelo geométrico (billiards.py)"
 CERT_PHYSICAL = "solução física certificada"
 CERT_EXCLUSION = "exclusão certificada"
-CERT_LABELS = (CERT_ROOT, CERT_PHYSICAL, CERT_EXCLUSION)
+CERT_LABELS = (CERT_ROOT, CERT_ROOT_MODEL, CERT_PHYSICAL, CERT_EXCLUSION)
 # CERT_PHYSICAL needs both, proven by intervals: (a) and (b) of the user decision.
 PHYSICAL_PROOFS = ("positividade de a, a′ e c", "ausência de colisões extras")
 

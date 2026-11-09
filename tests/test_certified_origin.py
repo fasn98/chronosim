@@ -12,7 +12,7 @@ These tests come before any use of the label.
 
 import pytest
 
-from chronosim.provenance import (CERT_EXCLUSION, CERT_LABELS, CERT_PHYSICAL, CERT_ROOT, PHYSICAL_PROOFS, Origin, Quantity,
+from chronosim.provenance import (CERT_EXCLUSION, CERT_LABELS, CERT_PHYSICAL, CERT_ROOT, CERT_ROOT_MODEL, PHYSICAL_PROOFS, Origin, Quantity,
                                   certified, combine, physical_solution)
 
 
@@ -23,7 +23,24 @@ def test_order_is_cited_derived_certified_computed_heuristic():
 def test_the_two_approved_labels_are_spelled_as_approved():
     assert CERT_ROOT == "raiz certificada das eqs. 4.2–4.3"
     assert CERT_PHYSICAL == "solução física certificada"
-    assert set(CERT_LABELS) == {CERT_ROOT, CERT_PHYSICAL, CERT_EXCLUSION}
+    assert CERT_ROOT_MODEL == "raiz certificada do modelo geométrico (billiards.py)"
+    assert set(CERT_LABELS) == {CERT_ROOT, CERT_ROOT_MODEL, CERT_PHYSICAL, CERT_EXCLUSION}
+
+
+@pytest.mark.parametrize("label", ["raiz certificada", "raiz certificada ", "Raiz certificada das eqs. 4.2–4.3",
+                                   "raiz certificada de outro sistema"])
+def test_a_certified_root_must_name_its_system_of_equations(label):
+    """User decision of 2026-11-09: "raiz certificada" always names the system it is a root of."""
+    with pytest.raises(ValueError):
+        certified(1, label, "Krawczyk")
+    with pytest.raises(ValueError):
+        Quantity(1, Origin.CERTIFIED, "Krawczyk", label=label)
+
+
+def test_a_root_of_the_geometric_model_is_not_a_physical_solution():
+    q = certified(1, CERT_ROOT_MODEL, "Krawczyk")
+    assert q.label != CERT_PHYSICAL
+    assert physical_solution(1, "sol", proofs=("Krawczyk",)).origin is Origin.COMPUTED
 
 
 def test_a_certified_root_carries_its_label():

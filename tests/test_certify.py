@@ -185,10 +185,10 @@ def _chunks(left, case=EMPTY, n=2, drop=None):
 
 def test_report_uses_the_proof_wording_only_when_the_exclusion_is_complete():
     ref = {"cert_items": {"items": 3, "items_aim": 1, "excluded": 3, "excluded_aim": 1, "certified_roots": 0, "undecided": 0, "runs": 2, "boxes": 7}}
-    done = "\n".join(p3._certification_lines(EMPTY, ref, _chunks(0)))
+    done = "\n".join(p3._certification_lines(EMPTY, ref, _chunks(0), [_summary()]))
     assert "Provado, em aritmética intervalar, que não existe solução de uma colisão para esta condição inicial no modelo de [" in done
     assert "soluções com várias colisões não foram examinadas" in done and "Não coberto pela prova" in done
-    assert "Origem: CERTIFIED" in done and "soluções na caixa: 0" in done and "Krawczyk não foi implementado" in done
+    assert "Origem: CERTIFIED" in done and "soluções na caixa: 0" in done and "Krawczyk não foi implementado" not in done
     partial = "\n".join(p3._certification_lines(EMPTY, ref, _chunks(2)))
     assert "Provado" not in partial and "2 indecididas" in partial
 
@@ -209,4 +209,196 @@ def test_the_section_header_does_not_deny_the_certified_line():
     import inspect
     src = inspect.getsource(p3.report_section)
     assert "Todas as grandezas desta seção são **COMPUTED**." not in src
-    assert "exceto a exclusão intervalar do caso vazio" in src
+    assert "exceto as marcadas como CERTIFIED: a exclusão intervalar do caso vazio e as raízes do controle positivo" in src
+
+
+
+def _summary(**kw):
+    x = {"spec": ("r8", 0), "boxes": 100, "excluded": 90, "undecided": 10, "unexamined": 0, "known": 3, "in_excluded": 0,
+         "refined": 3, "certified": 3, "root_boxes": 3, "unmatched_roots": 0, "none": 7, "passed": True,
+         "complete_near_solutions": True, "pieces": 4, "sols": [], "complete_pieces": 4, "solution_pieces": 1,
+         "solution_pieces_complete": 1, "examined_fraction": 1.0, "copies": 3, "kraw_undecided": 0}
+    x.update(kw)
+    return x
+
+
+@pytest.mark.parametrize("control, why", [
+    ([], "não rodado"),
+    ([_summary(in_excluded=1, passed=False)], "O controle falhou"),
+    ([_summary(refined=2, complete_near_solutions=False)], "O controle está incompleto"),
+])
+def test_no_proof_wording_without_a_passing_positive_control(control, why):
+    ref = {"cert_items": {"items": 0, "items_aim": 0, "excluded": 0, "excluded_aim": 0, "certified_roots": 0, "undecided": 0, "runs": 0, "boxes": 0}}
+    text = "\n".join(p3._certification_lines(EMPTY, ref, _chunks(0), control))
+    assert "Provado" not in text and why in text
+
+
+def test_proof_wording_comes_with_the_control_table():
+    ref = {"cert_items": {"items": 0, "items_aim": 0, "excluded": 0, "excluded_aim": 0, "certified_roots": 0, "undecided": 0, "runs": 0, "boxes": 0}}
+    text = "\n".join(p3._certification_lines(EMPTY, ref, _chunks(0), [_summary()]))
+    assert text.index("Provado") < text.index("Controle positivo") and "O controle passou" in text
+
+
+def test_control_pieces_tile_the_range_and_halve_towards_the_mouth():
+    ps = p3.control_pieces(-3.0, -1e-5)
+    assert ps[0][0] == -3.0 and ps[-1][1] == -1e-5 and all(a[1] == b[0] for a, b in zip(ps, ps[1:]))
+    assert all(b - a > 0 for a, b in ps)
+
+
+def _piece(watch, undecided, krawczyk, s=(-1.0, -0.5), unexamined=0, unexamined_volume=0.0, holds=True, excluded=None):
+    return {"spec": ("r8", 0), "s": s, "boxes": 5, "excluded_by": excluded or {"miss ≠ 0": 4}, "undecided": undecided,
+            "unexamined": unexamined, "volume": 1.0, "unexamined_volume": unexamined_volume, "krawczyk": krawczyk,
+            "holds_solution": holds, "watch": watch}
+
+
+SOL = (-0.6, 1.0, 2.0)
+SOL_BOX = ((-0.6, -0.6 + 1e-9), (1.0, 1.0 + 1e-9), (2.0, 2.0 + 1e-9))
+
+
+def test_control_summary_flags_a_known_solution_in_an_excluded_box():
+    w = {"sol": SOL, "copy": SOL, "excluded_in": 1, "undecided_in": [0], "unexamined_in": 0}
+    piece = _piece([w], [SOL_BOX], [("root", True)])
+    x = p3.control_summary(("r8", 0), [SOL], [piece])
+    assert not x["passed"] and x["in_excluded"] == 1
+    w["excluded_in"] = 0
+    x = p3.control_summary(("r8", 0), [SOL], [piece])
+    assert x["passed"] and x["complete_near_solutions"] and x["certified"] == 1 and x["unmatched_roots"] == 0 and x["excluded"] == 4
+
+
+def test_a_certified_control_root_names_the_geometric_model_and_is_not_physical():
+    from chronosim.provenance import CERT_PHYSICAL, CERT_ROOT_MODEL
+    w = {"sol": SOL, "copy": SOL, "excluded_in": 0, "undecided_in": [0], "unexamined_in": 0}
+    q = p3.control_summary(("r8", 0), [SOL], [_piece([w], [SOL_BOX], [("root", True)])])["sols"][0]["quantity"]
+    assert q.origin is Origin.CERTIFIED and q.label == CERT_ROOT_MODEL != CERT_PHYSICAL
+
+
+def test_a_periodic_copy_of_a_known_root_is_not_an_unmatched_root():
+    box_copy = ((-0.6, -0.6 + 1e-9), (1.0 + 2 * math.pi, 1.0 + 2 * math.pi + 1e-9), (2.0, 2.0 + 1e-9))
+    x = p3.control_summary(("r8", 0), [SOL], [_piece([], [box_copy], [("root", True)], holds=False)])
+    assert x["root_boxes"] == 1 and x["unmatched_roots"] == 0
+
+
+def test_periodic_copies_inside_the_root_box():
+    assert len(ct.periodic_copies((-0.3, 6.2831852, -2.6))) == 2       # nu near 2 pi: also near 0
+    assert len(ct.periodic_copies((-0.3, 3.0, -3.14159265358979))) == 2  # aim near -pi: also near pi
+    assert len(ct.periodic_copies((-0.3, 3.0, 1.0))) == 1
+
+
+def test_a_solution_with_two_periodic_copies_is_counted_once():
+    sol = (-0.26, 2 * math.pi - 1e-7, -2.6)
+    c0, c1 = [tuple(float(t) for t in q) for q in ct.periodic_copies(sol)]
+    boxes = [tuple((v, v + 1e-9) for v in c) for c in (c0, c1)]
+    ws = [{"sol": sol, "copy": c, "excluded_in": 0, "undecided_in": [i], "unexamined_in": 0} for i, c in enumerate((c0, c1))]
+    x = p3.control_summary(("fig7b", "0.04"), [sol], [_piece(ws, boxes, [("root", True), ("root", True)])])
+    assert x["known"] == 1 and x["copies"] == 2 and x["certified"] == 1 and x["root_boxes"] == 2 and x["unmatched_roots"] == 0
+    ws[1]["excluded_in"] = 1                                    # a copy in an excluded box fails the control
+    assert not p3.control_summary(("fig7b", "0.04"), [sol], [_piece(ws, boxes, [("root", True), ("root", True)])])["passed"]
+
+
+def test_the_watch_follows_a_periodic_copy_given_inside_the_root_box():
+    """A point with nu > 2 pi inside the root box is watched as given; normalized, it would fall
+    outside this box and be found in no box at all."""
+    p = (-0.41, 2 * math.pi + 0.05, -2.54)
+    r = ct.exclude(CENTRAL, (-0.42, -0.40), (6.2, 6.4), (-2.6, -2.5), max_boxes=50, watch=[p])
+    h = r["watch"][0]
+    assert h["excluded_in"] or h["undecided_in"]
+
+
+def test_control_lines_say_when_only_the_solution_pieces_were_completed():
+    x = _summary(complete_pieces=2, pieces=19, solution_pieces=1, solution_pieces_complete=1, examined_fraction=0.4)
+    text = "\n".join(p3._control_lines([x])[0])
+    assert "Só os pedaços com solução foram examinados até o fim" in text and "2 de 19" in text
+
+
+def test_unexamined_volume_lowers_the_examined_fraction():
+    w = {"sol": SOL, "copy": SOL, "excluded_in": 0, "undecided_in": [0], "unexamined_in": 0}
+    a = _piece([w], [SOL_BOX], [("root", True)])
+    bpc = _piece([], [], [], s=(-0.5, -0.25), unexamined=3, unexamined_volume=0.25, holds=False)
+    x = p3.control_summary(("r8", 0), [SOL], [a, bpc])
+    assert abs(x["examined_fraction"] - 0.875) < 1e-12 and x["complete_pieces"] == 1 and x["solution_pieces_complete"] == 1
+
+
+def test_krawczyk_certifies_a_verified_solution_and_rejects_a_box_away_from_it():
+    sol = [float(x) for x in _central_solution()]
+    for h in (1e-6, 1e-10):
+        k = ct.krawczyk(CENTRAL, [(x - h, x + h) for x in sol])
+        assert k["verdict"] == "root" and k["inequalities"]
+        assert all(lo <= x <= hi for (lo, hi), x in zip(k["K"], sol))
+    far = [(sol[0] - 1e-6, sol[0] + 1e-6), (sol[1] + 0.5, sol[1] + 0.5 + 2e-6), (sol[2] - 1e-6, sol[2] + 1e-6)]
+    assert ct.krawczyk(CENTRAL, far)["verdict"] == "none"
+
+
+def test_interval_jacobian_encloses_the_finite_difference_derivatives():
+    with mp.workdps(40):
+        c = ct.inputs(CENTRAL, xm=mp)
+        x = [mp.mpf("-0.41"), mp.mpf("0.2"), mp.mpf("-2.54")]
+        h = mp.mpf(10) ** -12
+        fd = []
+        for j in range(3):
+            xp, xn = list(x), list(x)
+            xp[j] += h
+            xn[j] -= h
+            fp, fn = ct.conditions(*xp, c, xm=mp), ct.conditions(*xn, c, xm=mp)
+            fd.append([(fp[k] - fn[k]) / (2 * h) for k in ("miss", "C", "V")])
+    w = 1e-9
+    with ct.ivprec(53):
+        J, _ = ct.jacobian([(float(v) - w, float(v) + w) for v in x], ct.inputs(CENTRAL))
+    for j in range(3):
+        for i in range(3):
+            assert J[i][j].a - 1e-6 <= fd[j][i] <= J[i][j].b + 1e-6, (i, j)
+
+
+def test_inputs_of_a_direct_line_are_the_decimal_strings():
+    c = ct.inputs({"p0": ("0.5", "0"), "e": ("0", "1"), "v1": "0.5", "B": "0.01", "R": "1e-7"}, xm=mp)
+    assert c["p0"] == (mp.mpf("0.5"), 0) and c["e"] == (0, 1) and c["v1"] == mp.mpf("0.5")
+
+
+def test_watch_does_not_change_the_search():
+    box = ((-0.42, -0.40), (0.1, 0.3), (-2.6, -2.5))
+    a = ct.exclude(CENTRAL, *box, max_boxes=2000)
+    b = ct.exclude(CENTRAL, *box, max_boxes=2000, watch=[tuple(float(v) for v in _central_solution())])
+    assert a["boxes"] == b["boxes"] and a["excluded_by"] == b["excluded_by"] and a["undecided"] == b["undecided"]
+
+
+# reviewer findings of 2026-11-09 (docs/handoffs/2026-11-09-reviewer-para-claude.md)
+
+def test_a_control_case_without_known_solutions_does_not_pass():
+    x = p3.control_summary(("fig7b", "0.005"), [], [_piece([], [], [], holds=False)])
+    assert not x["passed"] and not x["complete_near_solutions"]
+    assert "O controle falhou" in "\n".join(p3._control_lines([x])[0])
+
+
+def test_a_lost_copy_is_not_hidden_by_an_unexamined_copy():
+    sol = (-0.26, 2 * math.pi - 1e-7, -2.6)
+    c0, c1 = [tuple(float(t) for t in q) for q in ct.periodic_copies(sol)]
+    ws = [{"sol": sol, "copy": c0, "excluded_in": 0, "undecided_in": [], "unexamined_in": 1},
+          {"sol": sol, "copy": c1, "excluded_in": 0, "undecided_in": [], "unexamined_in": 0}]   # in no box at all
+    x = p3.control_summary(("fig7b", "0.04"), [sol], [_piece(ws, [], [], unexamined=1)])
+    assert not x["passed"] and x["lost"] == 1
+    assert "fora de toda caixa" in "\n".join(p3._control_lines([x])[0])
+
+
+def test_no_root_in_a_box_that_holds_a_known_solution_fails_the_control():
+    w = {"sol": SOL, "copy": SOL, "excluded_in": 0, "undecided_in": [0], "unexamined_in": 0}
+    x = p3.control_summary(("r8", 0), [SOL], [_piece([w], [SOL_BOX], [("none", True)])])
+    assert not x["passed"] and x["none_in_solution_boxes"] == 1 and x["none"] == 0
+
+
+def test_krawczyk_counts_of_other_boxes_leave_out_the_solution_boxes():
+    w = {"sol": SOL, "copy": SOL, "excluded_in": 0, "undecided_in": [0], "unexamined_in": 0}
+    far = ((-0.9, -0.9 + 1e-9), (3.0, 3.0 + 1e-9), (0.0, 1e-9))
+    x = p3.control_summary(("r8", 0), [SOL], [_piece([w], [SOL_BOX, far], [("undecided", False), ("none", True)])])
+    assert x["kraw_undecided"] == 0 and x["none"] == 1 and x["passed"] and x["certified"] == 0
+
+
+def test_the_certified_root_holds_the_boxes_and_states_the_hypotheses():
+    w = {"sol": SOL, "copy": SOL, "excluded_in": 0, "undecided_in": [0], "unexamined_in": 0}
+    q = p3.control_summary(("r8", 0), [SOL], [_piece([w], [SOL_BOX], [("root", True)])])["sols"][0]["quantity"]
+    assert q.value == (SOL_BOX,)
+    assert "d·n_X < 0, along > 0 e kick > 0" in q.source and "modelo geométrico de billiards.py" in q.source and "é COMPUTED" in q.source
+
+
+def test_the_examined_fraction_is_never_rounded_up_to_100_percent():
+    for v, want in ((0.9999692, "99,997 %"), (0.99999542, "99,9995 %"), (1.0, "100 %"), (0.98305, "98,3 %")):
+        text = "\n".join(p3._control_lines([_summary(examined_fraction=v)])[0])
+        assert f"| {want} |" in text, (v, text)
