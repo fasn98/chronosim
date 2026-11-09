@@ -283,7 +283,7 @@ As demais quantidades conferem. A densidade de Planck de 10⁹⁴ g/cm³ que Haw
 - `ekt_window_grid` = 160: extra collision positions in each refinement window around a known special point
 - `ekt_cert_chunks` = 8: pieces of the s range of the empty case run as separate interval-exclusion tasks (parallelism only)
 - `ekt_cert_control_budget` = 300000: boxes per piece of s in the positive control when the piece holds no known solution (the rest is reported as not examined)
-- `ekt_cert_control_sol_budget` = 10000000: boxes per piece of s in the positive control when the piece holds a known solution (the rest is reported as not examined)
+- `ekt_cert_control_sol_budget` = 20000000: boxes per piece of s in the positive control when the piece holds a known solution (the rest is reported as not examined); 2x the 9,963,011 needed by R8 #3 under the former 10M, as a margin against changes of the method, not a tuning of the result
 - `ekt_refine_factor` = 2: grid refinement factor of the stabilization search (empty case)
 - `kt_series_tol` = 1.0e-30: the eqs. 66-67 series stops when (b xi / 2D)^N is below this
 - `dps` = 80: working precision in decimal digits (mpmath)

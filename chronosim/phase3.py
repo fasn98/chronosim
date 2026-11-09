@@ -288,7 +288,10 @@ def certify_chunk(case_args, i, n):
 
 FIG7B_R, FIG7B_V1, FIG7B_LO = "1e-7", "0.5", "-1.5"   # r4_r5_r6 and symmetric(): R, v1 and the low end of s
 CERT_CONTROL_BUDGET = heuristic("ekt_cert_control_budget", 300_000, "boxes per piece of s in the positive control when the piece holds no known solution (the rest is reported as not examined)")
-CERT_CONTROL_SOL_BUDGET = heuristic("ekt_cert_control_sol_budget", 10_000_000, "boxes per piece of s in the positive control when the piece holds a known solution (the rest is reported as not examined)")
+# 20M: twice the 9,963,011 boxes the solution piece of R8 #3 needed on 2026-11-09 under the former
+# 10M. A safety margin against future changes of the method (user decision of 2026-11-09), not a
+# tuning of the result: with any budget that completes the piece, the outcome is the same.
+CERT_CONTROL_SOL_BUDGET = heuristic("ekt_cert_control_sol_budget", 20_000_000, "boxes per piece of s in the positive control when the piece holds a known solution (the rest is reported as not examined); 2x the 9,963,011 needed by R8 #3 under the former 10M, as a margin against changes of the method, not a tuning of the result")
 
 
 def control_case(spec):
@@ -1020,6 +1023,7 @@ def _control_lines(summaries):
     (n0, n1), (a0, a1) = ct.default_ranges()
     out.append(f"      - **Cópias periódicas:** a caixa cobre ν ∈ [{_f(mp.mpf(n0), 4)}; {_f(mp.mpf(n1), 6)}] e mira ∈ [{_f(mp.mpf(a0), 4)}; {_f(mp.mpf(a1), 4)}], além de [0; 2π) e [−π; π). Uma solução com ν perto de 0 ou de 2π, ou com mira perto de ±π, aparece duas vezes na caixa (quatro, se as duas coisas valem); cada cópia é vigiada e testada, mas a solução é contada uma vez.")
     out.append(f"      - **Rótulo:** cada solução certificada recebe a origem CERTIFIED com o rótulo “{CERT_ROOT_MODEL}”. É raiz de (miss, C, V) com as três desigualdades válidas na caixa, e não “solução física certificada”: a ausência de colisões extras não foi provada em intervalos, e vem do verificador (COMPUTED).")
+    out.append("      - **Origem de s:** no R8, s = 0 é o ponto em que a linha inicial entra na boca 2. Na Fig. 7(b), s é a altura acima da linha dos centros: s = 0 fica a meia distância das bocas. A solução da Fig. 7(b) com |s| < R é a de troca de velocidades da Fig. 6(b) do artigo (p. 1083), longe das bocas (`docs/phase3_borda.md`).")
     out.append("      - **Caixas examinadas** inclui as que foram divididas ao meio; cada uma delas termina excluída, dividida, indecidida na largura mínima ou não examinada.")
     out.append("      - **Krawczyk:** foi aplicado só às caixas indecididas que a máquina examinou. As caixas que ficaram na pilha por orçamento não foram testadas.")
     out.append("      - **Orçamento:** pedaços sem solução conhecida param em `ekt_cert_control_budget` caixas, e pedaços com solução em `ekt_cert_control_sol_budget`.")
