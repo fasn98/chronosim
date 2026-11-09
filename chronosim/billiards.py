@@ -175,17 +175,22 @@ def loop(P, Q, m, angle, k, B, xm):
     return {"miss": cross(w, to_q), "length": length + along, "shift": shift, "dir0": dir0, "dir2": w, "exit": E}
 
 
-def roots_by_bracketing(f, xs, tol):
+def roots_by_bracketing(f, xs, tol, log=None, where=None):
     """Sign changes of f on the grid xs, refined by bisection to width ``tol``. Values of f may be
     None (undefined); a bracket needs both ends defined. A sign change across a jump is rejected:
-    the refined end values must be small compared with the bracket's original end values."""
+    the refined end values must be small compared with the bracket's original end values.
+
+    When ``log`` is given, every bracket dropped is appended to it with its grid interval and the
+    context ``where``: ("bracket_lost", where, a, b) when f became undefined inside the bisection
+    (a root may hide there), ("bracket_jump", where, a, b) when the sign change was rejected as a
+    jump. Grid intervals with an undefined end are not brackets and are not logged."""
     vals = [f(x) for x in xs]
     out = [x for x, v in zip(xs, vals) if v is not None and v == 0]  # zeros on a node, each once
     for i in range(len(xs) - 1):
         fa, fb = vals[i], vals[i + 1]
         if fa is None or fb is None or fa == 0 or fb == 0 or (fa > 0) == (fb > 0):
             continue
-        a, b = xs[i], xs[i + 1]
+        a, b = a0, b0 = xs[i], xs[i + 1]
         scale_ab = max(abs(fa), abs(fb))
         ok = True
         while abs(b - a) > tol:
@@ -204,8 +209,13 @@ def roots_by_bracketing(f, xs, tol):
                 a, fa = mid, fm
             else:
                 b, fb = mid, fm
-        if ok and min(abs(fa), abs(fb)) <= JUMP_RATIO.value * scale_ab:
+        if not ok:
+            if log is not None:
+                log.append(("bracket_lost", where, a0, b0))
+        elif min(abs(fa), abs(fb)) <= JUMP_RATIO.value * scale_ab:
             out.append((a + b) / 2)
+        elif log is not None:
+            log.append(("bracket_jump", where, a0, b0))
     return sorted(out)
 
 
@@ -352,9 +362,12 @@ def _tol(width, xm):
     return width * (BISECT_REL_TOL.value if xm is FLOAT else mp.mpf(10) ** (-mp.mp.dps + 8))
 
 
-def _aim_roots(P, nu, m, k, B, R, windows, xm, grid=None):
+def _aim_roots(P, nu, m, k, B, R, windows, xm, grid=None, log=None):
+    """Aim angles with miss = 0 at (P, nu). Brackets dropped by roots_by_bracketing are appended to
+    ``log`` as ("aim_bracket_lost" or "aim_bracket_jump", P, nu, aim_a, aim_b)."""
     N = grid or THETA_GRID.value
     out = []
+    dropped = [] if log is not None else None
     for lo, hi in windows:
         xs = [lo + (hi - lo) * i / (N - 1) for i in range(N)]
 
@@ -362,7 +375,9 @@ def _aim_roots(P, nu, m, k, B, R, windows, xm, grid=None):
             st = _loop_state(P, nu, m, a, k, B, R, xm)
             return None if st is None else st["miss"]
 
-        out += roots_by_bracketing(miss, xs, _tol(hi - lo, xm))
+        out += roots_by_bracketing(miss, xs, _tol(hi - lo, xm), dropped)
+    if log is not None:
+        log += [("aim_" + kind, P, nu, a, b) for kind, _, a, b in dropped]
     return out
 
 
@@ -375,7 +390,7 @@ def _nu_intervals(P, m, k, B, R, windows, xm, aim_grid, N, log):
     """Pairs of neighbouring nu points with equal aim-root counts. A grid interval whose count
     changes is halved up to MAX_SPLIT times; what still changes is logged as unresolved."""
     def roots(nu):
-        return _aim_roots(P, nu, m, k, B, R, windows, xm, aim_grid)
+        return _aim_roots(P, nu, m, k, B, R, windows, xm, aim_grid, log)
 
     out = []
 
@@ -406,9 +421,9 @@ def refine_nu(P, m, k, B, R, xm, na, nb, depth, aim_grid=None):
     resolved when the exchange condition C has one sign at every aim root at both of its ends: under
     the bracketing criterion of the main search, no C = 0 can then hide in it. A leaf with equal
     counts is resolved when no matched branch changes sign. Returns the leaves still unresolved, as
-    (na, nb, reason)."""
+    (na, nb, reason); an aim bracket dropped during the refinement is returned as (nu, nu, reason)."""
     windows = itinerary_windows(P, m, k, B, xm, aim_grid)
-    left = []
+    left, dropped = [], []
 
     def cvals(nu, roots):
         return [_exchange(P, nu, m, a, k, B, R, xm) for a in roots]
@@ -431,23 +446,26 @@ def refine_nu(P, m, k, B, R, xm, na, nb, depth, aim_grid=None):
         if nm == na or nm == nb:
             left.append((na, nb, "number resolution reached"))
             return
-        rm = _aim_roots(P, nm, m, k, B, R, windows, xm, aim_grid)
+        rm = _aim_roots(P, nm, m, k, B, R, windows, xm, aim_grid, dropped)
         leaf(na, ra, nm, rm, d + 1)
         leaf(nm, rm, nb, rb, d + 1)
 
     if not windows:
         return left
-    roots = lambda nu: _aim_roots(P, nu, m, k, B, R, windows, xm, aim_grid)
+    roots = lambda nu: _aim_roots(P, nu, m, k, B, R, windows, xm, aim_grid, dropped)
     leaf(na, roots(na), nb, roots(nb), 0)
-    return left
+    # drops at the two original ends were already logged by the main search (_nu_intervals)
+    return left + [(d[2], d[2], f"{d[0]}: an aim bracket dropped during the refinement") for d in dropped if d[2] not in (na, nb)]
 
 
 def middle_roots(P, e, m, k, B, R, xm=FLOAT, nu_grid=None, aim_grid=None, log=None):
     """All (nu, aim) with miss = 0 and C = 0 at the collision point P, found by bracketing on a nu
     grid, with the aim roots linked across grid points by sorted order. Each result carries v1
     (the incoming speed this solution needs) and the kick (normal velocity transferred, > 0 for a
-    physical collision). Every interval or bracket the search cannot follow is appended to ``log``
-    (when given) instead of being dropped silently."""
+    physical collision). Every nu-interval, nu-bracket or aim bracket the search cannot follow is
+    appended to ``log`` (when given) instead of being dropped silently. The edges of the itinerary
+    windows (itinerary_windows, used only when k > 1) are found by the same bracketing and are not
+    logged."""
     windows = itinerary_windows(P, m, k, B, xm, aim_grid)
     if not windows:
         return []
@@ -469,7 +487,7 @@ def middle_roots(P, e, m, k, B, R, xm=FLOAT, nu_grid=None, aim_grid=None, log=No
                 mid = (lo + hi) / 2
                 if mid == lo or mid == hi:
                     break
-                roots = _aim_roots(P, mid, m, k, B, R, windows, xm, aim_grid)
+                roots = _aim_roots(P, mid, m, k, B, R, windows, xm, aim_grid, log)
                 if not roots:
                     ok = False
                     break
@@ -556,9 +574,10 @@ def crossings(table, p0, e, v1, m, k, B, R, xm=FLOAT, nu_grid=None, aim_grid=Non
     Returns (candidates, unresolved, rejected). Candidates are (s, nu, aim) float triples.
     Unresolved lists, tagged by kind, everything the search could not follow: s-intervals where the
     number of middle roots changed and could not be linked after ``max_split`` halvings, s-bisections
-    that lost their branch, plus whatever middle_roots logged (``log``, nu-intervals and nu-brackets).
-    Rejected lists crossings found and refused, with the reason (a pole of v1(s), or kick <= 0).
-    Nothing is dropped silently."""
+    that lost their branch, plus whatever middle_roots logged (``log``: nu-intervals, nu-brackets
+    and aim brackets). Rejected lists crossings found and refused, with the reason (a pole of v1(s),
+    or kick <= 0). Apart from the itinerary-window edges (see middle_roots), nothing is dropped
+    silently."""
     cands, rejected = [], []
     unresolved = log if log is not None else []
     max_split = MAX_SPLIT.value if max_split is None else max_split

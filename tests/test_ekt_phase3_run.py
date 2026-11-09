@@ -45,7 +45,7 @@ def test_crossings_reports_a_bisection_that_lost_its_branch_as_s_bisect_lost(mon
 
 
 def _middle_roots_with_a_missing_state(monkeypatch, exchange):
-    monkeypatch.setattr(bl, "_aim_roots", lambda P, nu, m, k, B, R, windows, xm, aim_grid: [0.1])
+    monkeypatch.setattr(bl, "_aim_roots", lambda P, nu, m, k, B, R, windows, xm, aim_grid, log=None: [0.1])
     monkeypatch.setattr(bl, "itinerary_windows", lambda *a, **kw: [(0.0, 1.0)])
     monkeypatch.setattr(bl, "_exchange", exchange)
     log = []
@@ -60,7 +60,7 @@ def test_middle_roots_logs_nu_state_lost_when_the_exchange_is_undefined_at_a_bra
 
 
 def test_middle_roots_without_a_log_still_returns_normally_when_the_state_is_lost(monkeypatch):
-    monkeypatch.setattr(bl, "_aim_roots", lambda P, nu, m, k, B, R, windows, xm, aim_grid: [0.1])
+    monkeypatch.setattr(bl, "_aim_roots", lambda P, nu, m, k, B, R, windows, xm, aim_grid, log=None: [0.1])
     monkeypatch.setattr(bl, "itinerary_windows", lambda *a, **kw: [(0.0, 1.0)])
     monkeypatch.setattr(bl, "_exchange", lambda *a, **kw: None)
     assert bl.middle_roots((0.5, -0.3), (1.0, 0.0), 1, 1, 0.01, 0.001, nu_grid=4) == []

@@ -30,6 +30,49 @@
 4. **Caso (θ, φ) = (0; 0,4), B = 0,3, R/B = 0,45:** entra no mapa como alvo prioritário, incluindo a busca por soluções com duas colisões, se o modelo permitir estender. A redação fica "nenhuma solução encontrada sob [critério]".
 5. **Conferência humana pendente:** a citação da p. 1088 e as duas formas da eq. B20 na p. 1098. As duas ficam pendentes até o usuário confirmar.
 
+## Pedido do usuário, terceira rodada (2026-11-08, item B, branch `feat/fase3-certificacao`)
+
+Registrado aqui a pedido do reviewer (handoff `2026-11-08-reviewer-para-claude-6.md`, B1). O pedido, na conversa, foi:
+
+1. **N-a:** a busca do ângulo de mira registra os descartes.
+2. **Origem CERTIFIED:** implementada como aprovada na segunda rodada, com os dois rótulos e com testes antes de qualquer uso.
+3. **Os 30 intervalos não resolvidos do caso vazio:** "exclusão intervalar ou Krawczyk", relatando quantos foram excluídos, certificados e indecididos. O usuário autorizou assim a exclusão intervalar neste caso antes da etapa 1, que é Krawczyk nas soluções das eqs. 4.2–4.3.
+4. **Se todos forem excluídos, a redação é:** "provado, em aritmética intervalar, que não existe solução de uma colisão para esta condição inicial no modelo de [hipóteses]; soluções com várias colisões não foram examinadas". Para esta forma do enunciado, essa redação substitui "nenhuma solução encontrada sob [critério]" da decisão 4 da segunda rodada.
+5. **Parada** antes do mapa.
+
+Pendentes de decisão do usuário:
+
+- **(a)** O rótulo "exclusão certificada" (`CERT_EXCLUSION`), que é uma proposta deste branch.
+- **(b)** A redação "provado…" apoiada na exclusão de Ω inteiro, na família declarada. Excluir só as caixas dos 30 itens não basta, porque o resto de Ω vem de bracketing (COMPUTED).
+
+### Decisões do usuário sobre os pendentes (2026-11-08)
+
+- **(a) Aprovado:** "exclusão certificada" é um rótulo próprio, distinto de "raiz certificada" e de "solução física certificada". O "pendente" sai do relatório.
+- **(b) Aprovado, sob condição de um controle positivo feito antes:**
+  1. **O que roda:** a mesma máquina de exclusão (mesmo código, mesma precisão, mesmas hipóteses do modelo; só os parâmetros do caso mudam), sobre o espaço de busca equivalente de dois grupos:
+     - os cinco outros casos do R8;
+     - os casos da Fig. 7 com soluções conhecidas no mesmo submodelo (uma travessia, colisão antes da boca 2).
+  2. **Critério:** nenhuma caixa que contenha uma solução conhecida pode ser excluída. Relata-se, por caso:
+     - o número de caixas;
+     - quantas foram excluídas e quantas ficaram indecididas;
+     - em quais caixas caem as soluções conhecidas.
+  3. **Se alguma caixa com solução conhecida for excluída,** a prova do caso vazio é inválida. Nesse caso para-se e relata-se, sem corrigir o código para o controle passar.
+  4. **Se o controle passar,** aplica-se o Krawczyk nas caixas indecididas desses casos, para ver se ele certifica as soluções conhecidas.
+  5. **No relatório,** o resultado do controle positivo vai ao lado da frase "provado".
+
+### Decisões do usuário sobre o relatório do controle positivo (2026-11-09)
+
+1. **Rótulo:** as raízes do modelo geométrico confirmadas pelo Krawczyk recebem CERTIFIED com o rótulo "raiz certificada", sempre nomeando o sistema de equações: "raiz certificada do modelo geométrico (billiards.py)" ou "raiz certificada das eqs. 4.2–4.3".
+   - Sem a prova intervalar de ausência de colisões extras, elas continuam não sendo "solução física certificada".
+   - Um teste recusa "raiz certificada" sem o nome do sistema.
+2. **Tabela por caso:** para cada um dos 9 casos, o relatório mostra:
+   - a parte do espaço de busca examinada até o fim (pedaços de s e fração do volume) e a parte não examinada;
+   - quantas caixas foram excluídas e quantas ficaram indecididas;
+   - onde estão as soluções conhecidas e o resultado do Krawczyk em cada uma;
+   - se, em R8 #0, #3 e #4, só os pedaços com solução foram completados.
+3. **Fig. 7(b):** cada solução é contada uma vez, com as cópias periódicas (ν perto de 0 e de 2π; mira perto de ±π) identificadas e anotadas.
+4. **Cálculos longos em segundo plano:** o estado é verificado periodicamente, sem depender só do aviso de término.
+
 Fonte: Echeverria, F., Klinkhammer, G. & Thorne, K. S. (1991), *Phys. Rev. D* 44, 1077–1099, DOI 10.1103/PhysRevD.44.1077. Volume, número (4), data (15 de agosto de 1991) e páginas foram conferidos no PDF (`papers/ECHprd91.pdf`, 23 páginas, lido inteiro). O PDF é um scan sem texto extraível: tudo foi lido como imagem, a 110 dpi, e as eqs. 3.7, 3.8, 4.7 e 4.8 foram relidas a 250 dpi. A página k do PDF é a p. 1076 + k da revista. Abaixo, "p." é sempre a página da revista.
 
 **Status das citações deste plano:** as citações literais abaixo vêm de **uma única leitura**. Elas entram na transcrição dupla da etapa B, com a segunda passada feita por um subagente sem acesso à primeira, antes de qualquer uso em código ou relatório. Os números de equação foram conferidos. As fórmulas não estão reescritas aqui, de propósito: elas só entram em `docs/equation_transcription.md` depois das duas passadas.
