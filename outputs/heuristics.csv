@@ -16,7 +16,7 @@ ekt_refine_max_split,30,HEURISTIC,further halvings of an unresolved nu- or s-int
 ekt_window_grid,160,HEURISTIC,extra collision positions in each refinement window around a known special point
 ekt_cert_chunks,8,HEURISTIC,pieces of the s range of the empty case run as separate interval-exclusion tasks (parallelism only)
 ekt_cert_control_budget,300000,HEURISTIC,boxes per piece of s in the positive control when the piece holds no known solution (the rest is reported as not examined)
-ekt_cert_control_sol_budget,10000000,HEURISTIC,boxes per piece of s in the positive control when the piece holds a known solution (the rest is reported as not examined)
+ekt_cert_control_sol_budget,20000000,HEURISTIC,"boxes per piece of s in the positive control when the piece holds a known solution (the rest is reported as not examined); 2x the 9,963,011 needed by R8 #3 under the former 10M, as a margin against changes of the method, not a tuning of the result"
 ekt_refine_factor,2,HEURISTIC,grid refinement factor of the stabilization search (empty case)
 kt_series_tol,1.0000000000000000833e-30,HEURISTIC,the eqs. 66-67 series stops when (b xi / 2D)^N is below this
 dps,80,HEURISTIC,working precision in decimal digits (mpmath)
