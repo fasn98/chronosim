@@ -1,12 +1,14 @@
 # Fase 3 · certificação intervalar (exclusão)
 
-Este documento registra o enunciado, a função, a caixa e o critério do teste intervalar, como pede o plano (`docs/phase3_plan.md`, decisão 2 da primeira rodada). O código está em `chronosim/certify.py`, e os testes em `tests/test_certify.py` e `tests/test_certified_origin.py`.
+Este documento registra o enunciado, a função, a caixa e o critério do teste intervalar, como pede o plano (`docs/phase3_plan.md`, decisão 2 da primeira rodada).
+
+**Onde roda.** Desde 2026-11-09, por decisão (d) do usuário, toda a certificação roda num comando à parte: `python -m chronosim.run --certify`, que escreve `outputs/phase3_certify.md`. O `--full` não a roda mais. A faixa junto à boca, com a máquina por direção, a verificação cruzada e o controle dentro da faixa, está em `docs/phase3_borda.md`. O código está em `chronosim/certify.py`, e os testes em `tests/test_certify.py` e `tests/test_certified_origin.py`.
 
 ## Origem CERTIFIED
 
 - **Ordem:** CITED < DERIVED < CERTIFIED < COMPUTED < HEURISTIC, aprovada pelo usuário em 2026-11-07.
 - **Rótulo obrigatório:** toda quantidade CERTIFIED tem um rótulo, e só ela tem.
-  - "raiz certificada", quando só o teste de Krawczyk passou. Leva sempre o nome do sistema: "raiz certificada das eqs. 4.2–4.3" ou "raiz certificada do modelo geométrico (billiards.py)" (decisão de 2026-11-09). Um rótulo "raiz certificada" sem o nome do sistema é recusado, e há teste para isso. Uma raiz certificada não é "solução física certificada".
+  - "raiz certificada", quando só o teste de Krawczyk passou. Leva sempre o nome do sistema: "raiz certificada das eqs. 4.2–4.3" ou "raiz certificada do modelo geométrico (billiards.py)" (decisão de 2026-11-09), ou, para as raízes de controle da faixa junto à boca, que o verificador independente rejeita, "raiz certificada das equações da máquina por direção" (decisão de 2026-11-10). Um rótulo "raiz certificada" sem o nome do sistema é recusado, e há teste para isso. Uma raiz certificada não é "solução física certificada".
   - "solução física certificada": `certified()` recusa o rótulo sem as duas provas intervalares, (a) a, a′, c > 0 e (b) ausência de colisões extras (aprovado). Sem (b), `physical_solution()` devolve COMPUTED, com a lista do que foi e do que não foi provado.
   - "exclusão certificada": nenhuma raiz das equações declaradas na caixa declarada. Aprovado em 2026-11-08 como rótulo próprio, distinto dos outros dois.
 - **Combinação:** `combine()` nunca devolve CERTIFIED. Com COMPUTED dá COMPUTED, como decidido. Com CITED ou DERIVED também dá COMPUTED, porque a aritmética de `combine()` não faz parte de uma prova intervalar. Essa segunda regra é escolha deste branch, mais restritiva que a decisão.
@@ -61,7 +63,7 @@ As três desigualdades são condições necessárias de uma solução do modelo.
 **O que não está coberto:**
 - duas ou mais travessias entre as visitas;
 - colisão depois de uma travessia;
-- s fora do intervalo;
+- s fora do intervalo. A faixa [−R/100; 0) junto à boca é examinada à parte, pela máquina por direção (`docs/phase3_borda.md`); a cobertura depende do resultado em `outputs/phase3_certify.md`;
 - várias colisões.
 
 Para essas famílias vale só a busca por bracketing, cuja origem é COMPUTED.

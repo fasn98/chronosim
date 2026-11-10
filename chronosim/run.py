@@ -4,6 +4,7 @@ Phase 3: Echeverria, Klinkhammer & Thorne (1991), reproduction R1 to R11 (parall
 
     python -m chronosim.run            # phases 1-2 in full, a small phase 3 subset; writes outputs/
     python -m chronosim.run --full     # also R1-R11 in full: outputs/phase3_full.md, ekt_r8.csv, fig5
+    python -m chronosim.run --certify  # only the interval certification of phase 3: outputs/phase3_certify.md
 """
 
 from __future__ import annotations
@@ -971,15 +972,35 @@ def report(out: Path, rows, worst, slope, arb, f1_rows, f1_exact, unruh_rows, f3
     (out / "report.md").write_text("\n".join(lines), encoding="utf-8")
 
 
+def certify(out) -> int:
+    """python -m chronosim.run --certify: the interval certification of phase 3 alone (user decision
+    (d) of 2026-11-09); it writes outputs/phase3_certify.md and leaves report.md alone."""
+    res = phase3.collect(phase3.start(mode="certify"))
+    lines = phase3.certify_section(res)
+    (out / "phase3_certify.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
+    for line in lines:
+        if line.startswith(("- **Provado", "    - **Provado", "- **Resultado", "    - **Ω inteiro", "      - **O controle", "  - **O controle", "- **Verificação cruzada")):
+            print(line.strip()[:400])
+    print("constantes HEURISTIC usadas:")
+    for k, v in reported_heuristics().items():
+        print(f"  {k} = {mp.nstr(v.value, 5)}  ({v.source})")
+    print(f"certificação: {out / 'phase3_certify.md'}")
+    return 0
+
+
 def main(argv=None) -> int:
     p = argparse.ArgumentParser(description="chronosim: phases 1-3 (Misner, Kim & Thorne, Echeverria-Klinkhammer-Thorne)")
     p.add_argument("--out", default="outputs")
     p.add_argument("--no-figures", action="store_true")
-    p.add_argument("--full", action="store_true", help="run R1-R11 of phase 3 in full (~15 min); the default runs a small subset")
+    g = p.add_mutually_exclusive_group()
+    g.add_argument("--full", action="store_true", help="run R1-R11 of phase 3 in full; the default runs a small subset")
+    g.add_argument("--certify", action="store_true", help="run only the interval certification of phase 3 (empty case, positive control, mouth band): outputs/phase3_certify.md")
     args = p.parse_args(argv)
     mp.mp.dps = DPS.value  # all comparisons at full working precision
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
+    if args.certify:
+        return certify(out)
 
     p3_handle = phase3.start(quick=not args.full)  # phase 3 runs in worker processes meanwhile
 

@@ -1,6 +1,13 @@
 # Fase 3 · borda: solução de troca de velocidades da Fig. 7(b) e faixa junto à boca do caso vazio
 
-Registro de 2026-11-09. Seção 1: verificação feita. Seção 2: só plano, **não implementado**; espera decisão do usuário.
+Registro de 2026-11-09.
+
+- **Seção 1:** verificação da solução da Fig. 7(b), feita.
+- **Seção 2:** o plano, aprovado pelo usuário com as decisões (a)–(d) registradas em 2.5.
+- **Seção 3:** a implementação e os resultados.
+- **Seção 4:** análise de 2026-11-10: o item (i) que os controles da faixa violam, e se ele sozinho exclui a faixa. Só análise; nada implementado.
+
+A certificação roda em `python -m chronosim.run --certify` e escreve `outputs/phase3_certify.md`.
 
 ## 0. Uma correção de premissa: o s da Fig. 7(b) não é o s do caso vazio
 
@@ -50,7 +57,7 @@ Todos os valores são COMPUTED.
 - Uma primeira passada, feita com soluções guardadas por um script auxiliar que rodava a 15 dígitos, falhou no verificador por esse motivo, e não por defeito das soluções.
 - `run.py` fixa `mp.dps = 80` no processo pai antes de iniciar a fase 3, então as execuções oficiais não são afetadas.
 
-## 2. Faixa junto à boca do caso vazio: s ∈ [−0,00135; 0) (plano)
+## 2. Faixa junto à boca do caso vazio: s ∈ [−0,00135; 0) (plano, aprovado)
 
 ### 2.1 O que o método atual faz ali
 
@@ -114,3 +121,137 @@ A sondagem rodou em 2026-11-09 com o código de `certify.exclude` sem mudanças,
 - **(b)** Incluir s = 0 na caixa, como superconjunto.
 - **(c)** Escolher se a máquina nova roda só na faixa ou substitui a atual em todo o intervalo, o que muda o custo do controle.
 - **(d)** Definir o orçamento de tempo aceitável a mais no `--full`.
+
+**Decisões do usuário (2026-11-09):**
+- **(a)** Aprovada a parametrização pela direção de partida, como variante da máquina, com controle positivo **dentro** da faixa:
+  - pelo menos três histórias autoconsistentes com a colisão em s ∈ [−0,00135; 0), por exemplo s = −1e-3, −1e-5 e −1e-7;
+  - construídas a partir da história, verificadas pelo verificador independente;
+  - critério: nenhuma excluída, e o Krawczyk a certifica;
+  - se a construção não for possível em algum s, relatar por quê.
+- **(b)** s = 0 incluído na caixa; o sistema-limite é examinado à parte, se sobrarem caixas ali.
+- **(c)** A máquina nova roda na faixa, com verificação cruzada em [−0,01; −0,00135].
+- **(d)** Um comando separado, `--certify`, roda a certificação, que sai do `--full`. O CLAUDE.md foi atualizado.
+
+## 3. Implementação e resultados
+
+Os números abaixo vêm das sondagens de 2026-11-09. O relatório oficial é `outputs/phase3_certify.md`.
+
+### 3.1 A máquina por direção
+
+O código está em `certify.conditions_dir` e `certify._reason_dir`, e a escolha de máquina é o parâmetro `machine="dir"` de `exclude`, `jacobian` e `krawczyk`. As fórmulas são as de 2.2, com duas correções que as sondagens exigiram:
+
+- **Quina da direção tangente em s = 0.** Ali b → 0 e b² − c → 0, e a forma racionalizada de L₀ vira 0/0, com invólucro infinito.
+  - Com ela, o pedaço que contém s = 0 não terminava: 21.900 caixas ficavam indecididas em 200 mil.
+  - Em intervalos, L₀ passou a ser a interseção da forma racionalizada com −b − √(b² − c) e com [0; ∞). Isso vale porque as três envolvem o mesmo valor em todo ponto da família, onde b < 0 e b² ≥ c.
+  - Com essa mudança, [−1e-6; 0] é excluída com 237 caixas.
+- **Ponto exatamente em s = 0 na direção tangente.** A avaliação pontual usa −b − √(b² − c) = 0.
+
+Os testes estão em `tests/test_certify_band.py`. Eles cobrem:
+- a equivalência com `billiards._loop_state` a 10⁻³⁰ em três casos;
+- a continuidade em s = 0;
+- invólucros que contêm os valores pontuais, inclusive na quina tangente;
+- o Krawczyk na raiz de controle;
+- a separação entre `--full` e `--certify`;
+- a frase de prova da faixa, que só sai sob as três condições.
+
+### 3.2 A faixa do caso vazio e a verificação cruzada
+
+- **Faixa:** s ∈ [−0,00135; 0], com s = 0 incluído, em 8 pedaços. A largura mínima é relativa à faixa inteira. São 3.132 subcaixas, todas excluídas, e nenhuma fica indecidida em s = 0. O sistema-limite não precisou ser examinado à parte.
+- **Verificação cruzada** em [−0,01; −0,00135], na resolução da prova do caso vazio:
+
+  | máquina | subcaixas | resultado | tempo |
+  |---|---|---|---|
+  | pela mira | 456.195 | todas excluídas | 171 s |
+  | por direção | 321 (1.295 na sondagem anterior à interseção em L₀) | todas excluídas | 1 s |
+
+  As duas concordam.
+
+### 3.3 Controle positivo dentro da faixa: por que não há história física, e o que se usou
+
+**A construção, a partir da história:**
+1. Fixam-se a linha (θ, φ), B, R e s.
+2. Resolvem-se miss = 0 e C = 0 em (ν, mira).
+3. v₁ sai da equação V e é escrito como λ₁ decimal pela eq. 4.10.
+4. A raiz é polida com esse λ₁ fixo e passa por `billiards.verify`.
+
+**Tentativas de história física:**
+- Foram 2 linhas com B = 0,3, R = 0,135 e mais 32 geometrias, com (θ, φ) entre 8 linhas e (B, R) entre 4 pares, em s = −1e-5.
+- Em toda geometria em que há solução na faixa, as soluções vêm em pares, e nos dois a normal de contato é radial à boca 2. Para R ≪ B, vale |n·n_out| = 1,0000 com 4 algarismos.
+- **Ramo com a bola velha fora da boca:** o impulso é < 0, ou seja, as bolas se afastam, e não há colisão.
+- **Ramo com impulso > 0:** a bola velha e o ponto de contato ficam dentro da boca 2, o que o item (i) da p. 1081 exclui, e a bola velha entra na boca antes da colisão.
+- O verificador independente rejeita todos esses casos.
+
+**Por que acontece.** Com o centro da bola jovem a |s| ≪ R da superfície da boca, a bola jovem entra na boca logo após a colisão. O laço, pela travessia, só fecha com a normal de contato alinhada ao raio da boca em p₀; o ramo em que a bola velha empurra a jovem para dentro, vindo de fora, não aparece. Isso foi observado em todas as geometrias amostradas, e não está provado em geral.
+
+**Não foi possível construir história física com a colisão na faixa**, em nenhum dos s pedidos (−1e-3, −1e-5, −1e-7).
+
+**O que se usou como controle.** O ramo com impulso > 0 é raiz exata das equações da máquina (miss, C, V), com as três desigualdades dela satisfeitas: d·n_X < 0, along > 0 e impulso > 0. A máquina não usa o item (i). Esses casos testam a máquina contra raízes das próprias equações, não contra soluções físicas, e o relatório diz isso. Por decisão de 2026-11-10, as três raízes recebem o rótulo “raiz certificada das equações da máquina por direção”, e não “do modelo geométrico (billiards.py)”, porque o verificador independente as rejeita.
+
+Os três controles usam (θ; φ; B; R) = (0,5; 0,9; 0,3; 0,135), com os B e R do caso vazio. Em cada um, a máquina roda na faixa inteira, e o Krawczyk, nas caixas indecididas.
+
+| s | λ₁ | subcaixas | em caixa excluída | Krawczyk na caixa da raiz | outras caixas indecididas |
+|---|---|---|---|---|---|
+| −1e-3 | 3,5848820852079515833 | 785.491 | 0 | raiz única | 4.090, todas "sem raiz" |
+| −1e-5 | 3,8788614447816208674 | 617.151 | 0 | raiz única | 5.850, todas "sem raiz" |
+| −1e-7 | 3,8821746427593530025 | 519.839 | 0 | raiz única | 3.572, todas "sem raiz" |
+
+Nos três, λ₁ fica fora de [0; 1], o intervalo da eq. 4.10. O v₁ fica acima do intervalo do triângulo perigoso, o que é permitido para um controle da máquina.
+
+**Observação sobre o sistema-limite.** Seguindo a raiz de controle de s = −1e-5 até −1e-7, ela converge suavemente: mira − mira₀ ∝ s, e v₁ → 3,8234. Há, portanto, raiz-limite em s = 0 para esse v₁. No caso vazio (λ₁ = 0,75), a faixa fechada foi excluída por inteiro, então não há raiz ali, nem em s = 0.
+
+### 3.4 Custo
+
+Medido nas sondagens:
+- faixa: segundos;
+- verificação cruzada: cerca de 3 min;
+- controles da faixa: 5 a 7 min cada, em paralelo.
+
+O custo dominante do `--certify` continua sendo o controle positivo do intervalo principal, que leva cerca de 90 min.
+
+## 4. O item (i) e a faixa (análise de 2026-11-10; nada implementado)
+
+### 4.1 O que diz o item (i)
+
+EKT 1991, Sec. II A, p. 1081, lido no PDF: “(i) We shall refuse to consider collisions that occur while the center of the ball is on one side of the wormhole throat and its colliding surface is on the other; thereby we shall avoid worrying about instantaneous tidal deformations of the ball's hard-sphere potential during the traversal.”
+
+O verificador (`billiards.verify`, `chronosim/billiards.py:736`) lê assim: com os centros P (bola jovem) e Q (bola velha) fora das bocas, o ponto de contato M = (P + Q)/2 não pode estar a distância ≤ B do centro de uma boca. Se estiver, a superfície que colide já está do outro lado da garganta.
+
+### 4.2 O que os três controles violam
+
+Medido com os controles polidos (60 dígitos; `tests/test_item_i_band.py` refaz a tabela; linha dos controles, (θ; φ) = (0,5; 0,9); B = 0,3, R = 0,135, n = (cos ν, sin ν) aponta de Q para P, n̂_r é a normal externa da boca 2 em P):
+
+| s | \|P − C₂\| − B | \|M − C₂\| − B | \|Q − C₂\| − B | n·n̂_r | impulso |
+|---|---|---|---|---|---|
+| −1e-3 | +8,78e-4 | −0,1213 | −0,2010 | 0,9456 | 3,04 |
+| −1e-5 | +8,78e-6 | −0,1212 | −0,1981 | 0,9414 | 3,30 |
+| −1e-7 | +8,78e-8 | −0,1212 | −0,1981 | 0,9414 | 3,31 |
+
+O verificador dá, nos três, as mesmas duas falhas:
+1. **Item (i):** “contact point inside a mouth”. O centro da bola jovem está fora da boca 2, por ≈ 0,88|s|, e o ponto de contato está 0,121 para dentro dela.
+2. **Fora do item (i):** “return leg enters a mouth before reaching the collision”. O centro da bola velha está 0,198 a 0,201 para dentro da boca 2, isto é, não é uma posição do espaço exterior; a perna de volta teria entrado na boca 2 antes.
+
+Então sim: é a condição de as bolas estarem fora das bocas na colisão, em duas partes. O item (i) trata do ponto de contato; o centro da bola velha dentro da boca é a outra falha.
+
+### 4.3 A condição sozinha exclui a faixa do caso vazio? Não
+
+A condição fala só de posições, ou seja, de (s, ν). Com ρ = |P − C₂|, o ponto de contato fica fora da boca 2 se e só se
+
+  n·n̂_r < (ρ² + R² − B²)/(2Rρ),
+
+que, na linha do caso vazio (θ = 0, linha radial, ρ = B + |s|), vale 0,225 em s = 0 e 0,234 em s = −0,00135 (R/B = 0,45). O centro da bola velha fica fora se n·n̂_r < (ρ² + 4R² − B²)/(4Rρ), que vale 0,45 a 0,453; essa condição é implicada pela primeira. A boca 1 não interfere: |P − C₁| − B vale 0,432 a 0,433, maior que 2R = 0,27, então nem M nem Q chegam a ela.
+
+O item (i) proíbe, portanto, um arco de ≈ 153° a 154° das 360° de ν, centrado em n = n̂_r, e deixa ≈ 206° em todo s da faixa. Por exemplo, n = −n̂_r põe P, M e Q todos fora das duas bocas. **Uma prova intervalar de que o item (i) sozinho exclui a faixa é impossível, porque a afirmação é falsa:** o conjunto das posições permitidas não é vazio.
+
+Somar ao item (i) as desigualdades da máquina (raio chega à boca 2 à frente, d·n_X < 0, along > 0, impulso > 0) também não basta. Numa grade de 3 valores de s (−0,00135, −1e-5, −1e-9) × 120 de ν × 60 de α (21.600 pontos), 21.120 estão na família, isto é, o raio de partida chega à boca 2 (b < 0 e b² > c); os outros 480 não. Desses, 6.413 satisfazem as desigualdades da máquina, e 1.179 satisfazem também o item (i), por exemplo s = −0,00135, ν = 1,466, α = 0,637, onde miss, C e V valem −0,20, −0,73 e −0,22. Quem exclui a faixa são as equações (miss, C, V), e não as condições de posição. A grade, as contagens e o ponto de exemplo são refeitos por `tests/test_item_i_band.py`.
+
+### 4.4 O que isso diz sobre a prova da faixa que já existe
+
+- **A prova do caso vazio não usa o item (i).** A máquina por direção não tem a condição do ponto de contato nem a do centro da bola velha, e mesmo assim excluiu a faixa fechada inteira (3.132 caixas). A afirmação vale, portanto, também num modelo sem o item (i): no caso vazio não há nem raiz das equações da máquina na faixa, física ou não. O mesmo vale para a máquina pela mira no intervalo principal, que também não usa o item (i).
+- **Os controles da faixa, ao contrário, dependem dessa ausência.** As três raízes de controle violam o item (i). Se o item (i) entrasse na máquina como desigualdade, elas passariam a ser excluídas, corretamente, e o controle positivo da faixa ficaria sem casos. Não há outro controle disponível: nenhuma história física foi construída na faixa (seção 3.3).
+
+### 4.5 Recomendação
+
+1. **Não substituir** a máquina por direção por uma prova pelo item (i): essa prova não existe, pelo motivo de 4.3.
+2. **Não acrescentar** o item (i) à máquina agora. Ela cortaria ≈ 43 % do intervalo de ν na faixa, mas a faixa já custa segundos, e a mudança tornaria a prova dependente de uma hipótese de que ela hoje não precisa, além de deixar o controle da faixa sem raízes.
+3. Se um dia o item (i) entrar na certificação, por exemplo para provar ausência de **soluções físicas** onde há raízes da máquina, como na geometria dos controles, ele entra como desigualdade separada, com o seu próprio motivo de exclusão no relatório (“ponto de contato dentro de uma boca, item (i)”), e com um controle positivo que seja uma história que o verificador aprova.
+

@@ -45,6 +45,7 @@ CERT_MIN_WIDTH = heuristic("ekt_cert_min_width", 1e-9, "relative width below whi
 CERT_MAX_BOXES = heuristic("ekt_cert_max_boxes", 20_000_000, "boxes examined by one exclusion run before the rest is reported as undecided")
 AIM_PAD = heuristic("ekt_cert_aim_pad", 3.15, "aim range [-pad, pad] of the exclusion box (> pi: the circle with margin; any superset is valid)")
 NU_PAD = heuristic("ekt_cert_nu_pad", 0.01, "nu range [-pad, 2 pi + pad] of the exclusion box (any superset is valid)")
+ALPHA_PAD = heuristic("ekt_cert_alpha_pad", 0.01, "margin of the direction range [phi - pi/2 - pad, phi + pi/2 + pad] of the direction machine near mouth 2 (any superset is valid)")
 
 
 @contextmanager
@@ -77,9 +78,10 @@ def case_inputs(theta, phi, lam1, B, R, xm=iv):
     base = xm.cos(th) / xm.cos(ph) * (1 - 2 * B * xm.cos(ph))          # eq. 4.8
     lo, hi = base - 2 * R / xm.cos(ph), base + 2 * R / xm.cos(ph)
     v1 = lo + lam * (hi - lo)                                           # eq. 4.10
-    p0 = (1 - B * xm.cos(ph), -B * xm.sin(ph))
+    pc = (-B * xm.cos(ph), -B * xm.sin(ph))                            # p0 - C2, on mouth 2: |pc| = B
+    p0 = (1 + pc[0], pc[1])
     e = (xm.cos(th + ph), xm.sin(th + ph))
-    return {"p0": p0, "e": e, "v1": v1, "B": B, "R": R}
+    return {"p0": p0, "e": e, "v1": v1, "B": B, "R": R, "pc": pc}
 
 
 def conditions(s, nu, aim, c, xm=iv):
@@ -114,7 +116,10 @@ def conditions(s, nu, aim, c, xm=iv):
 
 def _reason(box, c):
     s, nu, aim = (iv.mpf([lo, hi]) for lo, hi in box)
-    q = conditions(s, nu, aim, c)
+    return _reason_from(conditions(s, nu, aim, c))
+
+
+def _reason_from(q):
     if q["dn"].a >= 0:
         return "entrada na boca 2 impossível (d·n_X ≥ 0)"
     if q["along"].b <= 0:
@@ -126,6 +131,102 @@ def _reason(box, c):
         if f.a > 0 or f.b < 0:
             return {"miss": "miss ≠ 0", "C": "C ≠ 0", "V": "V ≠ 0"}[name]
     return None
+
+
+# Direction machine (docs/phase3_borda.md, user decision (a) of 2026-11-09) -----------------------
+#
+# Near mouth 2 (s -> 0) the aim parametrization divides by L0 = |X - P| >= |s| and loses s at 53 bits.
+# Here the third unknown is the direction alpha of the young ball after the collision,
+# dh = (cos alpha, sin alpha); X is the first point of the ray P + L dh on mouth 2:
+#   L0 = c / (-b + sqrt(b^2 - c)),  b = dh . (P - C2),  c = |P - C2|^2 - B^2 = s (2 e . pc + s),
+# with pc = p0 - C2 and |pc| = B exactly (p0 is on mouth 2), so c has no cancellation and L0 -> 0
+# continuously as s -> 0. There is no division by L0: u = W dh with W = L0 + along. On intervals L0 is
+# the intersection of the quotient and of -b - sqrt(b^2 - c) (equal where b < 0 and b^2 >= c, and
+# L0 >= 0 there): the quotient is 0/0 at the tangent direction at s = 0, the difference is not.
+# The conditions are those of billiards._loop_state, unscaled: miss = cross(w, Q - E),
+# C = (w - dh) . n (= (v2 - u) . n / W), V = cross(u, n) - v1 cross(e, n), with the inequalities
+# b < 0 and b^2 - c >= 0 (the ray reaches mouth 2), dn = dh . n_X < 0, along > 0, kick > 0.
+
+
+def _nonneg(x):
+    """x restricted to x >= 0 (an interval, or the value of a _D): roots need b^2 - c >= 0, and on that
+    part of a box the restricted enclosure still encloses every value."""
+    if isinstance(x, _D):
+        return _D(_nonneg(x.v), x.d)
+    if isinstance(x, iv.mpf):
+        return iv.mpf([max(x.a, 0), max(x.b, 0)])
+    return x
+
+
+def _meet(*xs):
+    """Intersection of intervals that all enclose the same value (or the same set of values)."""
+    lo, hi = max(x.a for x in xs), min(x.b for x in xs)
+    return iv.mpf([lo, hi]) if lo <= hi else iv.mpf([min(x.a for x in xs), max(x.b for x in xs)])
+
+
+def conditions_dir(s, nu, alpha, c, xm=iv):
+    """miss, C, V and the inequality quantities at (s, nu, alpha) for a case on mouth 2 (c needs "pc")."""
+    if "pc" not in c:
+        raise ValueError("the direction machine needs a case whose initial line starts on mouth 2 (theta, phi, lam1, B, R)")
+    pc, e, v1, B, R = c["pc"], c["e"], c["v1"], c["B"], c["R"]
+    p0 = c["p0"]
+    P = (p0[0] + s * e[0], p0[1] + s * e[1])
+    n = (xm.cos(nu), xm.sin(nu))
+    Q = (P[0] - 2 * R * n[0], P[1] - 2 * R * n[1])
+    dh = (xm.cos(alpha), xm.sin(alpha))
+    pcs = (pc[0] + s * e[0], pc[1] + s * e[1])                          # P - C2
+    b = dh[0] * pcs[0] + dh[1] * pcs[1]
+    cc = s * (2 * (e[0] * pc[0] + e[1] * pc[1]) + s)                    # |P - C2|^2 - B^2
+    disc = b ** 2 - cc
+    root = xm.sqrt(_nonneg(disc))
+    den = -b + root
+    if xm is mp and den == 0:  # point value at the tangent direction at s = 0: L0 = -b - root = 0
+        L0 = -b - root
+    else:
+        L0 = cc / den                                                    # no cancellation for b << 0
+    if xm is iv:  # near the tangent direction at s = 0 the quotient is 0/0; -b - root stays bounded there
+        L0 = _meet(L0, -b - root, *([iv.mpf([0, mp.inf])] if cc.a >= 0 else []))  # L0 >= 0 needs P outside mouth 2 (c >= 0)
+    nx = ((pcs[0] + L0 * dh[0]) / B, (pcs[1] + L0 * dh[1]) / B)        # (X - C2) / B
+    dn = dh[0] * nx[0] + dh[1] * nx[1]
+    r = (dh[0] - 2 * dn * nx[0], dh[1] - 2 * dn * nx[1])                 # reflected in the tangent at X
+    w = (-r[0], r[1])                                                    # then mirrored x -> 1 - x
+    E = (-B * nx[0], B * nx[1])                                          # exit point on mouth 1
+    tq = (Q[0] - E[0], Q[1] - E[1])
+    along = tq[0] * w[0] + tq[1] * w[1]
+    miss = w[0] * tq[1] - w[1] * tq[0]
+    Cn = (w[0] - dh[0]) * n[0] + (w[1] - dh[1]) * n[1]
+    W = L0 + along
+    V = W * (dh[0] * n[1] - dh[1] * n[0]) - v1 * (e[0] * n[1] - e[1] * n[0])
+    kick = W * (dh[0] * n[0] + dh[1] * n[1]) - v1 * (e[0] * n[0] + e[1] * n[1])
+    return {"miss": miss, "C": Cn, "V": V, "dn": dn, "along": along, "kick": kick, "b": b, "disc": disc, "cc": cc}
+
+
+def _reason_dir(box, c):
+    s, nu, alpha = (iv.mpf([lo, hi]) for lo, hi in box)
+    pc, e = c["pc"], c["e"]
+    pcs = (pc[0] + s * e[0], pc[1] + s * e[1])
+    dh = (iv.cos(alpha), iv.sin(alpha))
+    b = dh[0] * pcs[0] + dh[1] * pcs[1]
+    cc = s * (2 * (e[0] * pc[0] + e[1] * pc[1]) + s)
+    if cc.b < 0:
+        return "P dentro da boca 2 (fora da família)"
+    if b.a >= 0:
+        return "raio não vai para a boca 2 (b ≥ 0)"
+    if (b ** 2 - cc).b < 0:
+        return "raio não atinge a boca 2"
+    return _reason_from(conditions_dir(s, nu, alpha, c))
+
+
+def alpha_range(case):
+    """Directions that can reach mouth 2 from a point of the line near p0: within pi/2 (plus a pad) of
+    the direction from p0 to C2, which is phi."""
+    if isinstance(case, dict):
+        raise ValueError("the direction machine needs a case (theta, phi, lam1, B, R) whose line starts on mouth 2")
+    ph = float(case[1])
+    return (ph - math.pi / 2 - ALPHA_PAD.value, ph + math.pi / 2 + ALPHA_PAD.value)
+
+
+MACHINES = {"aim": (conditions, lambda box, c: _reason(box, c)), "dir": (conditions_dir, lambda box, c: _reason_dir(box, c))}
 
 
 def normalize(point):
@@ -159,7 +260,7 @@ def periodic_copies(point, nu_range=None, aim_range=None):
     return out
 
 
-def exclude(case, s_range, nu_range=None, aim_range=None, max_boxes=None, watch=(), scale=None):
+def exclude(case, s_range, nu_range=None, aim_range=None, max_boxes=None, watch=(), scale=None, machine="aim"):
     """Branch and bound over the box s_range x nu_range x aim_range (floats). ``case`` is a case of
     inputs(). Returns {"boxes", "excluded_by", "undecided", "complete", "watch"}: ``complete`` is True
     when every box was excluded.
@@ -173,8 +274,14 @@ def exclude(case, s_range, nu_range=None, aim_range=None, max_boxes=None, watch=
     ``scale`` (three widths, default: the sides of the root box) is what the sides are measured
     against when the widest side is chosen and when a box is small enough to stop
     (ekt_cert_min_width). A run on a piece of a larger box passes the scale of that box, so that the
-    piece is resolved as finely as the whole, no more and no less."""
+    piece is resolved as finely as the whole, no more and no less.
+
+    ``machine`` "dir" uses conditions_dir: the third coordinate is then the direction alpha, its
+    default range is alpha_range(case), and the watched points are not normalized."""
     dnu, daim = default_ranges()
+    if machine == "dir":
+        daim = alpha_range(case)
+    reason = MACHINES[machine][1]
     nu_range, aim_range = nu_range or dnu, aim_range or daim
     root = (tuple(s_range), tuple(nu_range), tuple(aim_range))
     if min(hi - lo for lo, hi in root) <= 0:
@@ -186,7 +293,7 @@ def exclude(case, s_range, nu_range=None, aim_range=None, max_boxes=None, watch=
         raise ValueError(f"every scale width must be positive: {widths}")
     max_boxes = max_boxes or CERT_MAX_BOXES.value
     points = [tuple(mp.mpf(x) for x in p) for p in watch]
-    points = [p if _inside(p[1:], root[1:]) else normalize(p) for p in points]
+    points = [p if machine == "dir" or _inside(p[1:], root[1:]) else normalize(p) for p in points]
     hits = [{"excluded_in": [], "undecided_in": []} for _ in points]
     with ivprec(CERT_PREC.value):
         c = inputs(case)
@@ -198,7 +305,7 @@ def exclude(case, s_range, nu_range=None, aim_range=None, max_boxes=None, watch=
                 break
             box = stack.pop()
             n += 1
-            why = _reason(box, c)
+            why = reason(box, c)
             if why:
                 by[why] = by.get(why, 0) + 1
                 for p, h in zip(points, hits):
@@ -234,11 +341,15 @@ HYPOTHESES = ("uma colisão; a bola jovem colide na linha inicial (Fig. 11) ante
               "modelo geométrico de billiards.py (EKT 1991, Sec. II A, p. 1081); mpmath.iv a {prec} bits, arredondamento para fora")
 
 
-def exclusion_quantity(result, case, s_range, what):
+HYPOTHESES_DIR = HYPOTHESES + ("; máquina por direção de partida (certify.conditions_dir), com s = 0 incluído na caixa como superconjunto "
+                               "(em s = 0 a bola jovem já está na boca, fora do modelo); entrada na boca 2 pela primeira interseção do raio")
+
+
+def exclusion_quantity(result, case, s_range, what, hypotheses=None):
     """CERT_EXCLUSION when the run is complete: the value is the number of solutions in the box, 0,
     and the source states the box, the equations, the hypotheses and the number of sub-boxes.
     Otherwise a COMPUTED count of the undecided boxes, with no claim about solutions."""
-    hyp = HYPOTHESES.format(s=f"[{s_range[0]!r}; {s_range[1]!r}]", prec=CERT_PREC.value)
+    hyp = (hypotheses or HYPOTHESES).format(s=f"[{s_range[0]!r}; {s_range[1]!r}]", prec=CERT_PREC.value)
     if result["complete"]:
         src = (f"{what}: nenhuma solução de (miss, C, V) = 0 na caixa, para (θ, φ, λ₁, B, R) = {case}; "
                f"{result['boxes']} subcaixas, todas excluídas; hipóteses: {hyp}")
@@ -321,15 +432,16 @@ class _DX:
         return _D(r, (a / (2 * r) for a in x.d))
 
 
-def jacobian(box, c):
+def jacobian(box, c, machine="aim"):
     """Interval enclosure of the Jacobian of (miss, C, V) over the box, and the inequality values."""
     xs = [_D(iv.mpf([lo, hi]), tuple(1 if j == i else 0 for j in range(3))) for i, (lo, hi) in enumerate(box)]
     cd = {k: (tuple(_D(x) for x in v) if isinstance(v, tuple) else _D(v)) for k, v in c.items()}  # iv cannot add a _D
-    q = conditions(*xs, cd, xm=_DX)
-    return [list(q[k].d) for k in ("miss", "C", "V")], {k: q[k].v for k in ("dn", "along", "kick")}
+    q = MACHINES[machine][0](*xs, cd, xm=_DX)
+    ineq = {k: q[k].v for k in ("dn", "along", "kick", "b", "disc") if k in q}
+    return [list(q[k].d) for k in ("miss", "C", "V")], ineq
 
 
-def krawczyk(case, box):
+def krawczyk(case, box, machine="aim"):
     """Krawczyk test of (miss, C, V) = 0 on a box (three (lo, hi) float pairs). Returns
     {"verdict": "root" | "none" | "undecided", "K": the K(X) intervals as (lo, hi), "inequalities":
     True when d.n_X < 0, along > 0 and kick > 0 hold on the whole box}."""
@@ -337,9 +449,9 @@ def krawczyk(case, box):
         c = inputs(case)
         X = [iv.mpf([lo, hi]) for lo, hi in box]
         mid = [(lo + hi) / 2 for lo, hi in box]
-        Fm = conditions(*(iv.mpf(m) for m in mid), c)
+        Fm = MACHINES[machine][0](*(iv.mpf(m) for m in mid), c)
         F = [Fm[k] for k in ("miss", "C", "V")]
-        J, ineq = jacobian(box, c)
+        J, ineq = jacobian(box, c, machine)
         Jmid = mp.matrix([[float(J[i][j].mid) for j in range(3)] for i in range(3)])
         try:
             Yf = Jmid ** -1
@@ -354,6 +466,8 @@ def krawczyk(case, box):
                 k = k + m * (X[j] - mid[j])
             K.append(k)
         ok_ineq = ineq["dn"].b < 0 and ineq["along"].a > 0 and ineq["kick"].a > 0
+        if machine == "dir":  # the first point of the ray on mouth 2, ahead of P: b < 0 and b^2 - c > 0 on the whole box
+            ok_ineq = ok_ineq and ineq["b"].b < 0 and ineq["disc"].a > 0
         if all(lo < k.a and k.b < hi for k, (lo, hi) in zip(K, box)):
             verdict = "root"
         elif any(k.b < lo or k.a > hi for k, (lo, hi) in zip(K, box)):

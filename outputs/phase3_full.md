@@ -2,7 +2,7 @@
 
 ## Fase 3 · Bolas de bilhar (Echeverria, Klinkhammer & Thorne, 1991): reprodução R1–R11
 
-Todas as grandezas desta seção são **COMPUTED**, exceto as marcadas como CERTIFIED: a exclusão intervalar do caso vazio e as raízes do controle positivo certificadas pelo Krawczyk (R8, caso vazio), cada uma com o seu rótulo.
+Todas as grandezas desta seção são **COMPUTED**. A certificação intervalar (exclusão do caso vazio, controle positivo, faixa junto à boca), única fonte de grandezas CERTIFIED nesta fase, roda à parte: `python -m chronosim.run --certify`, em `outputs/phase3_certify.md`.
 
 - **Modelo independente** (`chronosim/billiards.py`): o modelo exato que o artigo descreve em palavras e figuras.
   - Bocas de raio B identificadas por reflexão no plano x = ½ (Fig. 2).
@@ -102,56 +102,7 @@ As raízes das eqs. 4.2–4.3 são procuradas só no domínio 0 < α < π, |β| 
   - **Refinamento adaptativo** (até `ekt_refine_max_split` = 30 halvings a mais em cada intervalo): de 263 intervalos não resolvidos (mira, colchete perdido (f indefinida na bisseção): 3; ν, contagem mudou: 256; s, contagem mudou: 4), cobrindo 30,1% pela medida conservadora, sobram 424 (mira, colchete perdido (f indefinida na bisseção): 394; ν, contagem mudou: 22; s, contagem mudou: 8); 145 deles estão fora da grade de s e não entram na medida fina. Motivos dos que sobram: 391: aim_bracket_lost: an aim bracket dropped during the refinement; 21: a matched branch changes sign: a middle root the main search did not follow; 8: the middle-root search at a refined end of this leaf logged unresolved nu-intervals; 3: aim_bracket_lost; 1: aim-root count changes and C takes both signs at the ends.
   - Critério de resolvido: num trecho em que a contagem de raízes muda, a grandeza que decide a solução (a troca normal C, em ν; v₁ menos o alvo, em s) tem um único sinal em todas as raízes das duas pontas. É o critério de bracketing da busca principal, não uma prova.
   - Intervalos com bisseção perdida não são refinados e continuam contados. 0 soluções verificadas nesta busca; 1 candidatos rejeitados.
-  - **Certificação intervalar** (`certify.py`, mpmath.iv a 53 bits, arredondamento para fora; enunciado e hipóteses em `docs/phase3_certification.md`).
-    - **Itens não resolvidos depois do refinamento:** 424, sendo 30 do mesmo tipo dos que já eram contados e 394 colchetes da busca da mira descartados (registrados a partir desta versão). Resultado: 424 excluídos (30 dos 30; 394 dos 394), 0 indecididos; o teste de Krawczyk não foi aplicado a esses itens.
-    - Caixa de cada item: o intervalo em s que ele pode estragar (o da medida conservadora, arredondado para fora) × ν e mira inteiros. 27 caixas distintas, 165343 subcaixas examinadas.
-    - **Ω inteiro, com uma travessia:** 656220 subcaixas em 8 pedaços de s, todas excluídas (miss ≠ 0: 142943; C ≠ 0: 84835; impulso ≤ 0: 68222; V ≠ 0: 24706; bola velha ainda não saiu da boca 1 (along ≤ 0): 4490; entrada na boca 2 impossível (d·n_X ≥ 0): 2918).
-    - **Provado, em aritmética intervalar, que não existe solução de uma colisão para esta condição inicial no modelo de [uma colisão; a bola jovem colide na linha inicial (Fig. 11) antes da boca 2, em s ∈ [-3,0; -0,00135]; exatamente 1 travessia entre as duas visitas (entra na boca 2 e sai da boca 1 uma unidade de tempo antes); entrada transversal na boca 2; a bola velha já fora da boca 1 no instante da colisão; impulso normal > 0; modelo geométrico de billiards.py (EKT 1991, Sec. II A, p. 1081); mpmath.iv a 53 bits, arredondamento para fora]; soluções com várias colisões não foram examinadas.** Origem: CERTIFIED, rótulo “exclusão certificada”; soluções na caixa: 0.
-    - **Controle positivo** (a mesma máquina, com o mesmo código, a mesma precisão e as mesmas hipóteses, só com os parâmetros do caso; o espaço de busca de cada caso é dividido em pedaços de s; critério: nenhuma caixa que contenha uma solução conhecida, ou uma cópia periódica dela, pode ser excluída):
-
-      | caso | pedaços de s examinados até o fim | com solução: examinados até o fim | volume examinado | caixas examinadas | excluídas | indecididas (largura mínima) | não examinadas (orçamento) | soluções conhecidas | em caixa excluída | Krawczyk: raiz única | Krawczyk nas caixas sem solução conhecida: sem raiz / indecidido / raiz sem solução conhecida |
-      |---|---|---|---|---|---|---|---|---|---|---|---|
-      | R8 (0,2; 0,6; 0,5; 0,01; 0,001) | 13 de 19 | 2 de 2 | 99,997 % | 3423709 | 1704329 | 7496 | 78 | 3 | 0 | 3 de 3 | 7493 / 0 / 0 |
-      | R8 (0,2; 0,6; 0,25; 0,2; 0,05) | 11 de 13 | 1 de 1 | 99,9995 % | 1501059 | 748985 | 1538 | 26 | 1 | 0 | 1 de 1 | 1537 / 0 / 0 |
-      | R8 (0,05; 0,1; 0,5; 0,01; 0,001) | 9 de 19 | 1 de 1 | 98,3 % | 14056719 | 6953329 | 74958 | 164 | 1 | 0 | 1 de 1 | 74956 / 0 / 0 |
-      | R8 (1,0; 1,05; 0,5; 0,01; 0,001) | 10 de 19 | 1 de 1 | 99,97 % | 3414084 | 1704065 | 2913 | 147 | 2 | 0 | 2 de 2 | 2911 / 0 / 0 |
-      | R8 (-0,78; 0,9; 0,5; 0,1; 0,02) | 14 de 14 | 1 de 1 | 100 % | 544920 | 272317 | 150 | 0 | 1 | 0 | 1 de 1 | 149 / 0 / 0 |
-      | Fig. 7(b), B = 0,04, R = 1e-7, v₁ = 0,5 | 28 de 28 | 2 de 2 | 100 % | 134600 | 66781 | 533 | 0 | 2 | 0 | 2 de 2 | 529 / 0 / 0 |
-      | Fig. 7(b), B = 0,02, R = 1e-7, v₁ = 0,5 | 28 de 28 | 2 de 2 | 100 % | 125104 | 62084 | 482 | 0 | 2 | 0 | 2 de 2 | 478 / 0 / 0 |
-      | Fig. 7(b), B = 0,01, R = 1e-7, v₁ = 0,5 | 28 de 28 | 2 de 2 | 100 % | 114802 | 56962 | 453 | 0 | 2 | 0 | 2 de 2 | 449 / 0 / 0 |
-      | Fig. 7(b), B = 0,005, R = 1e-7, v₁ = 0,5 | 28 de 28 | 2 de 2 | 100 % | 114604 | 56866 | 450 | 0 | 2 | 0 | 2 de 2 | 446 / 0 / 0 |
-
-      Onde estão as soluções conhecidas (cada solução contada uma vez):
-
-      | caso | solução (s; ν; mira) | pedaço de s | cópias periódicas na caixa | em caixa excluída | caixa indecidida (maior lado em ν, mira) | Krawczyk |
-      |---|---|---|---|---|---|---|
-      | R8 (0,2; 0,6; 0,5; 0,01; 0,001) | -0,41364649; 0,19755483; -2,5392041 | [-0,75; -0,375] | 1 | 0 | 5,9e-9 | raiz única em cada cópia, raiz certificada do modelo geométrico (billiards.py) (CERTIFIED) |
-      | R8 (0,2; 0,6; 0,5; 0,01; 0,001) | -0,40816375; 3,3440408; -2,5439834 | [-0,75; -0,375] | 1 | 0 | 5,9e-9 | raiz única em cada cópia, raiz certificada do modelo geométrico (billiards.py) (CERTIFIED) |
-      | R8 (0,2; 0,6; 0,5; 0,01; 0,001) | -0,020857865; 3,5689055; -2,6983111 | [-0,02344; -0,01172] | 1 | 0 | 5,9e-9 | raiz única em cada cópia, raiz certificada do modelo geométrico (billiards.py) (CERTIFIED) |
-      | R8 (0,2; 0,6; 0,25; 0,2; 0,05) | -0,37394705; 0,036956525; -2,4352158 | [-0,375; -0,1875] | 1 | 0 | 5,9e-9 | raiz única em cada cópia, raiz certificada do modelo geométrico (billiards.py) (CERTIFIED) |
-      | R8 (0,05; 0,1; 0,5; 0,01; 0,001) | -0,52569286; 6,2733988; -2,9829218 | [-0,75; -0,375] | 2 | 0 | 5,9e-9 | raiz única em cada cópia, raiz certificada do modelo geométrico (billiards.py) (CERTIFIED) |
-      | R8 (1,0; 1,05; 0,5; 0,01; 0,001) | -0,058025721; 0,99880141; -2,0904963 | [-0,09375; -0,04688] | 1 | 0 | 5,9e-9 | raiz única em cada cópia, raiz certificada do modelo geométrico (billiards.py) (CERTIFIED) |
-      | R8 (1,0; 1,05; 0,5; 0,01; 0,001) | -0,056618444; 4,142793; -2,0926885 | [-0,09375; -0,04688] | 1 | 0 | 5,9e-9 | raiz única em cada cópia, raiz certificada do modelo geométrico (billiards.py) (CERTIFIED) |
-      | R8 (-0,78; 0,9; 0,5; 0,1; 0,02) | -0,91676232; 5,2823579; -2,034807 | [-1,5; -0,75] | 1 | 0 | 5,9e-9 | raiz única em cada cópia, raiz certificada do modelo geométrico (billiards.py) (CERTIFIED) |
-      | Fig. 7(b), B = 0,04, R = 1e-7, v₁ = 0,5 | -0,26894858; 6,2831852; -2,6480888 | [-0,375; -0,1875] | 2 | 0 | 5,9e-9 | raiz única em cada cópia, raiz certificada do modelo geométrico (billiards.py) (CERTIFIED) |
-      | Fig. 7(b), B = 0,04, R = 1e-7, v₁ = 0,5 | -4,7751341e-8; 5,785363; -3,1415927 | [-8,941e-8; -4,47e-8] | 2 | 0 | 5,9e-9 | raiz única em cada cópia, raiz certificada do modelo geométrico (billiards.py) (CERTIFIED) |
-      | Fig. 7(b), B = 0,02, R = 1e-7, v₁ = 0,5 | -0,25920482; 6,2831852; -2,663326 | [-0,375; -0,1875] | 2 | 0 | 5,9e-9 | raiz única em cada cópia, raiz certificada do modelo geométrico (billiards.py) (CERTIFIED) |
-      | Fig. 7(b), B = 0,02, R = 1e-7, v₁ = 0,5 | -4,619345e-8; 5,8030103; -3,1415927 | [-8,941e-8; -4,47e-8] | 2 | 0 | 5,9e-9 | raiz única em cada cópia, raiz certificada do modelo geométrico (billiards.py) (CERTIFIED) |
-      | Fig. 7(b), B = 0,01, R = 1e-7, v₁ = 0,5 | -0,25453671; 6,2831852; -2,6707126 | [-0,375; -0,1875] | 2 | 0 | 5,9e-9 | raiz única em cada cópia, raiz certificada do modelo geométrico (billiards.py) (CERTIFIED) |
-      | Fig. 7(b), B = 0,01, R = 1e-7, v₁ = 0,5 | -4,5447042e-8; 5,8114078; -3,1415927 | [-8,941e-8; -4,47e-8] | 2 | 0 | 5,9e-9 | raiz única em cada cópia, raiz certificada do modelo geométrico (billiards.py) (CERTIFIED) |
-      | Fig. 7(b), B = 0,005, R = 1e-7, v₁ = 0,5 | -0,25225214; 6,2831852; -2,674348 | [-0,375; -0,1875] | 2 | 0 | 5,9e-9 | raiz única em cada cópia, raiz certificada do modelo geométrico (billiards.py) (CERTIFIED) |
-      | Fig. 7(b), B = 0,005, R = 1e-7, v₁ = 0,5 | -4,5081657e-8; 5,8155055; -3,1415927 | [-8,941e-8; -4,47e-8] | 2 | 0 | 5,9e-9 | raiz única em cada cópia, raiz certificada do modelo geométrico (billiards.py) (CERTIFIED) |
-
-      - **O controle passou:** nenhuma das 16 soluções conhecidas (25 pontos, contando as cópias periódicas) caiu em caixa excluída; todas ficaram em caixas indecididas de largura mínima, e o Krawczyk provou raiz única em 16 delas, em todas as cópias.
-      - **Só os pedaços com solução foram examinados até o fim** em: R8 (0,2; 0,6; 0,5; 0,01; 0,001); R8 (0,2; 0,6; 0,25; 0,2; 0,05); R8 (0,05; 0,1; 0,5; 0,01; 0,001); R8 (1,0; 1,05; 0,5; 0,01; 0,001). Nos outros pedaços desses casos, o orçamento acabou antes, e o que sobrou está na coluna “não examinadas”; ali nada é afirmado, nem exclusão nem raiz.
-      - **Cópias periódicas:** a caixa cobre ν ∈ [-0,01; 6,29319] e mira ∈ [-3,15; 3,15], além de [0; 2π) e [−π; π). Uma solução com ν perto de 0 ou de 2π, ou com mira perto de ±π, aparece duas vezes na caixa (quatro, se as duas coisas valem); cada cópia é vigiada e testada, mas a solução é contada uma vez.
-      - **Rótulo:** cada solução certificada recebe a origem CERTIFIED com o rótulo “raiz certificada do modelo geométrico (billiards.py)”. É raiz de (miss, C, V) com as três desigualdades válidas na caixa, e não “solução física certificada”: a ausência de colisões extras não foi provada em intervalos, e vem do verificador (COMPUTED).
-      - **Origem de s:** no R8, s = 0 é o ponto em que a linha inicial entra na boca 2. Na Fig. 7(b), s é a altura acima da linha dos centros: s = 0 fica a meia distância das bocas. A solução da Fig. 7(b) com |s| < R é a de troca de velocidades da Fig. 6(b) do artigo (p. 1083), longe das bocas (`docs/phase3_borda.md`).
-      - **Caixas examinadas** inclui as que foram divididas ao meio; cada uma delas termina excluída, dividida, indecidida na largura mínima ou não examinada.
-      - **Krawczyk:** foi aplicado só às caixas indecididas que a máquina examinou. As caixas que ficaram na pilha por orçamento não foram testadas.
-      - **Orçamento:** pedaços sem solução conhecida param em `ekt_cert_control_budget` caixas, e pedaços com solução em `ekt_cert_control_sol_budget`.
-    - **Não coberto pela prova:** duas ou mais travessias entre as visitas, colisão depois de uma travessia, e posições de colisão fora desse intervalo de s. Para esses vale o que a busca por bracketing diz acima e nas variações abaixo (COMPUTED).
-    - Nenhuma caixa ficou indecidida, então nenhuma raiz precisou do teste de Krawczyk neste caso; o Krawczyk aparece no controle positivo acima.
+  - **Certificação intervalar:** não roda nesta execução. Ela está em `outputs/phase3_certify.md`, escrito por `python -m chronosim.run --certify`.
   - Posição da colisão s (distância com sinal ao longo da linha, a partir da entrada na boca 2; s < 0 antes dela) em [-3; -0,00135] antes da travessia, e em [1,0e-6; 3] depois dela. A grade de s tem `ekt_s_grid` pontos uniformes mais aproximações geométricas às pontas; ν e a mira usam `ekt_nu_grid` e `ekt_theta_grid`.
   - Mesma busca, antes do refinamento: 0 raízes físicas das eqs. 4.2–4.3, 1 candidatos geométricos rejeitados (v1(s) crosses the target across a pole, not a root), 263 intervalos não resolvidos (mira, colchete perdido (f indefinida na bisseção): 3; ν, contagem mudou: 256; s, contagem mudou: 4), cobrindo 30,1% do espaço de busca pela medida conservadora (0,000558% pela medida fina).
   - Variações, sem refinamento:

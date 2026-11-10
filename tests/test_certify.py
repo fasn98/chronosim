@@ -200,16 +200,19 @@ def test_no_proof_wording_when_a_piece_is_missing_or_belongs_to_another_case(chu
     assert "Provado" not in text and "Nada é afirmado" in text
 
 
-def test_full_run_has_the_exclusion_chunks_of_the_empty_case():
-    tasks = p3.full_tasks()
+def test_certify_run_has_the_exclusion_chunks_of_the_empty_case():
+    """Since 2026-11-09 (user decision (d)) the certification runs in --certify, not in --full."""
+    tasks = p3.certify_tasks()
     assert [a for n, a in tasks if n == "r8c"] == [(i, p3.CERT_CHUNKS.value) for i in range(p3.CERT_CHUNKS.value)]
+    assert not [a for n, a in p3.full_tasks() if n == "r8c"]
 
 
-def test_the_section_header_does_not_deny_the_certified_line():
+def test_the_section_header_points_to_the_certification_run():
+    """--full has no CERTIFIED quantity any more; its header says where they are."""
     import inspect
     src = inspect.getsource(p3.report_section)
-    assert "Todas as grandezas desta seção são **COMPUTED**." not in src
-    assert "exceto as marcadas como CERTIFIED: a exclusão intervalar do caso vazio e as raízes do controle positivo" in src
+    assert "única fonte de grandezas CERTIFIED nesta fase, roda à parte: `python -m chronosim.run --certify`" in src
+    assert "outputs/phase3_certify.md" in src
 
 
 
