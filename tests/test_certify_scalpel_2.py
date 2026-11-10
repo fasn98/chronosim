@@ -7,7 +7,7 @@ import pytest
 
 from chronosim import certify as ct
 from chronosim import phase3 as p3
-from chronosim.provenance import CERT_LABELS, CERT_ROOT, CERT_ROOT_MODEL, CERT_ROOT_PREFIX, Origin, Quantity, certified
+from chronosim.provenance import CERT_LABELS, CERT_ROOT, CERT_ROOT_DIR, CERT_ROOT_MODEL, CERT_ROOT_PREFIX, Origin, Quantity, certified
 
 CENTRAL = p3.R8_CASES[0]
 EMPTY = p3.R8_CASES[2]
@@ -210,7 +210,7 @@ def test_every_unnamed_or_misspelled_root_label_is_refused(label):
         Quantity(1, Origin.CERTIFIED, "Krawczyk", label=label)
 
 
-@pytest.mark.parametrize("label", [CERT_ROOT, CERT_ROOT_MODEL])
+@pytest.mark.parametrize("label", [CERT_ROOT, CERT_ROOT_MODEL, CERT_ROOT_DIR])
 def test_a_root_label_on_a_non_certified_origin_is_refused(label):
     for origin in (Origin.COMPUTED, Origin.HEURISTIC, Origin.DERIVED, Origin.CITED):
         with pytest.raises(ValueError):
@@ -224,9 +224,9 @@ def test_a_degraded_quantity_cannot_be_given_a_bare_label_back(label):
         Quantity(q.value, Origin.CERTIFIED, "x", label=label)
 
 
-def test_exactly_the_two_root_labels_start_with_the_prefix_and_both_name_a_system():
+def test_exactly_the_root_labels_start_with_the_prefix_and_each_names_a_system():
     roots = [lab for lab in CERT_LABELS if lab.startswith(CERT_ROOT_PREFIX)]
-    assert sorted(roots) == sorted([CERT_ROOT, CERT_ROOT_MODEL])
+    assert sorted(roots) == sorted([CERT_ROOT, CERT_ROOT_MODEL, CERT_ROOT_DIR])
     assert all(lab != CERT_ROOT_PREFIX and lab[len(CERT_ROOT_PREFIX):].startswith(" d") for lab in roots)
 
 

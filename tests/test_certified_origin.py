@@ -12,7 +12,7 @@ These tests come before any use of the label.
 
 import pytest
 
-from chronosim.provenance import (CERT_EXCLUSION, CERT_LABELS, CERT_PHYSICAL, CERT_ROOT, CERT_ROOT_MODEL, PHYSICAL_PROOFS, Origin, Quantity,
+from chronosim.provenance import (CERT_EXCLUSION, CERT_LABELS, CERT_PHYSICAL, CERT_ROOT, CERT_ROOT_DIR, CERT_ROOT_MODEL, PHYSICAL_PROOFS, Origin, Quantity,
                                   certified, combine, physical_solution)
 
 
@@ -20,11 +20,12 @@ def test_order_is_cited_derived_certified_computed_heuristic():
     assert [o.name for o in sorted(Origin)] == ["CITED", "DERIVED", "CERTIFIED", "COMPUTED", "HEURISTIC"]
 
 
-def test_the_two_approved_labels_are_spelled_as_approved():
+def test_the_approved_labels_are_spelled_as_approved():
     assert CERT_ROOT == "raiz certificada das eqs. 4.2–4.3"
     assert CERT_PHYSICAL == "solução física certificada"
     assert CERT_ROOT_MODEL == "raiz certificada do modelo geométrico (billiards.py)"
-    assert set(CERT_LABELS) == {CERT_ROOT, CERT_ROOT_MODEL, CERT_PHYSICAL, CERT_EXCLUSION}
+    assert CERT_ROOT_DIR == "raiz certificada das equações da máquina por direção"
+    assert set(CERT_LABELS) == {CERT_ROOT, CERT_ROOT_MODEL, CERT_ROOT_DIR, CERT_PHYSICAL, CERT_EXCLUSION}
 
 
 @pytest.mark.parametrize("label", ["raiz certificada", "raiz certificada ", "Raiz certificada das eqs. 4.2–4.3",

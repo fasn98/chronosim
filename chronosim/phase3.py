@@ -1209,7 +1209,7 @@ def _band_lines(res, main_proved=False):
     """Report lines of the mouth band (direction machine), its cross-check and its positive control,
     and whether the band proof sentence was used."""
     from . import certify as ct
-    from .provenance import CERT_ROOT_MODEL, certified
+    from .provenance import CERT_ROOT_DIR, certified
     arg = R8_CASES[2]
     out = ["", "### Faixa junto à boca do caso vazio (máquina por direção)", ""]
     chunks = sorted((r for _, r in res.get("r8b", [])), key=lambda r: r["i"])
@@ -1248,7 +1248,8 @@ def _band_lines(res, main_proved=False):
     ctl = [r for _, r in sorted(res.get("r8bp", []), key=lambda t: t[0])]
     ok_ctl = bool(ctl) and all(r["sol"] is not None and r["in_excluded"] == 0 and r["lost"] == 0 and r["certified"] for r in ctl)
     out += ["", "- **Controle positivo dentro da faixa** (decisão (a)): raízes construídas a partir da história (colisão em s fixo na faixa; v₁ obtido da história e escrito como λ₁ decimal), com B e R do caso vazio e outra linha, (θ; φ) = (0,5; 0,9), com λ₁ fora de [0; 1] (v₁ acima do intervalo da eq. 4.10); mesma máquina e mesma construção de caixa da faixa (s e ν iguais, α em torno do φ do caso). "
-            "Critério: nenhuma caixa que contenha a raiz pode ser excluída, e o Krawczyk a certifica.", "",
+            "Critério: nenhuma caixa que contenha a raiz pode ser excluída, e o Krawczyk a certifica. "
+            "**Este controle testa a máquina contra raízes das próprias equações, não contra soluções físicas.**", "",
             "  | controle (θ; φ; λ₁; B; R) | s | verificador independente | d·n_X; along; impulso | subcaixas | em caixa excluída | Krawczyk na caixa da raiz | outras caixas: sem raiz / indecidido / raiz |",
             "  |---|---|---|---|---|---|---|---|"]
     for r in ctl:
@@ -1259,12 +1260,12 @@ def _band_lines(res, main_proved=False):
         ok, fails = r["verify"]
         ver = "passa" if ok else "rejeita: " + "; ".join(fails)
         ineq = "; ".join(_f(mp.mpf(r["inequalities"][k]), 4) for k in ("dn", "along", "kick"))
-        kr = f"raiz única, {CERT_ROOT_MODEL} (CERTIFIED)" if r["certified"] else "não certificada"
+        kr = f"raiz única, {CERT_ROOT_DIR} (CERTIFIED)" if r["certified"] else "não certificada"
         o = r["other"]
         out.append(f"  | {label} | {_f(mp.mpf(r['sol'][0]), 4)} | {ver} | {ineq} | {r['boxes']} | {r['in_excluded']} | {kr} | {o['none']} / {o['undecided']} / {o['root']} |")
     out.append("")
     if ctl:
-        quantities = [certified(tuple(r["solution_boxes"]), CERT_ROOT_MODEL, f"Krawczyk (máquina por direção) nas caixas {r['solution_boxes']}; controle da faixa {r['case']}; "
+        quantities = [certified(tuple(r["solution_boxes"]), CERT_ROOT_DIR, f"Krawczyk (máquina por direção) nas caixas {r['solution_boxes']}; controle da faixa {r['case']}; "
                                 f"raiz das equações do laço de billiards.py com d·n_X < 0, along > 0 e impulso > 0, não história física: o verificador independente "
                                 + (f"a rejeita ({'; '.join(r['verify'][1])})" if not r["verify"][0] else "a aprova") + "; hipóteses: "
                                 + ct.HYPOTHESES_DIR.format(s=f"[{lo!r}; 0]", prec=ct.CERT_PREC.value)) for r in ctl if r["certified"]]

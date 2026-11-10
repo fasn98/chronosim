@@ -164,7 +164,9 @@ def test_band_proof_sentence_needs_exclusion_cross_check_and_control():
 def test_band_controls_are_labelled_as_machine_roots_not_physical_histories():
     lines, _ = p3._band_lines(_band_res())
     text = "\n".join(lines)
-    assert "Não são histórias físicas" in text and "raiz certificada do modelo geométrico (billiards.py)" in text
+    assert "Não são histórias físicas" in text and "raiz certificada das equações da máquina por direção" in text
+    assert "raiz certificada do modelo geométrico" not in text                 # not the model label: the verifier rejects them
+    assert "testa a máquina contra raízes das próprias equações, não contra soluções físicas" in text
     assert "contact point inside a mouth" in text                              # the reasons come from the run
 
 
