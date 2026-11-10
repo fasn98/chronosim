@@ -427,6 +427,102 @@ def control_summary(spec, known, pieces):
             "sols": sols}
 
 
+# Mouth band of the empty case (docs/phase3_borda.md, user decisions (a)-(d) of 2026-11-09): the
+# direction machine (certify.conditions_dir) on the closed range s in [-R ekt_s_near_over_R; 0], with
+# s = 0 included as a superset; a cross-check against the aim machine on a piece both can prove; and
+# a positive control inside the band. No physical history (verifier passing) could be constructed
+# with the collision in the band (docs/phase3_borda.md, section 3); the controls are roots of the
+# machine's equations with its three inequalities, which the verifier rejects by item (i) of p. 1081.
+
+CROSS_LO = "-0.01"   # low end of the cross-check piece [-0.01; -R ekt_s_near_over_R] (decision (c))
+BAND_CONTROLS = (    # (theta, phi, lam1, B, R) and a start (s, nu, aim) for the polish; built from the history
+    (("0.5", "0.9", "3.5848820852079515833", "0.3", "0.135"), ("-1e-3", "4.3745545121305858778", "-2.2482096424624863325")),
+    (("0.5", "0.9", "3.8788614447816208674", "0.3", "0.135"), ("-1e-5", "4.3855229800557026016", "-2.2416629445342053759")),
+    (("0.5", "0.9", "3.8821746427593530025", "0.3", "0.135"), ("-1e-7", "4.3856383056372466422", "-2.241593356951892202")),
+)
+
+
+def band_range(case_args):
+    """The closed band [-R ekt_s_near_over_R (rounded outward); 0] of a case on mouth 2."""
+    from . import certify as ct
+    lo, _ = ct.s_range_outward(-mp.mpf(case_args[4]) * mp.mpf(S_NEAR_OVER_R.value), 0)
+    return lo, 0.0
+
+
+def band_scale(case_args):
+    from . import certify as ct
+    lo, hi = band_range(case_args)
+    nu, _ = ct.default_ranges()
+    al = ct.alpha_range(case_args)
+    return (hi - lo, nu[1] - nu[0], al[1] - al[0])
+
+
+def band_chunk(case_args, i, n):
+    """The direction machine on the i-th of n equal pieces of the band, at the resolution of the whole band."""
+    from . import certify as ct
+    lo, hi = band_range(case_args)
+    a, b = lo + (hi - lo) * i / n, (lo + (hi - lo) * (i + 1) / n if i < n - 1 else hi)
+    r = ct.exclude(case_args, (a, b), scale=band_scale(case_args), machine="dir")
+    at_zero = sum(1 for bx in r["undecided"] if bx[0][1] >= 0)
+    return {"case": tuple(case_args), "i": i, "n": n, "s": (a, b), "boxes": r["boxes"], "excluded_by": r["excluded_by"],
+            "undecided": r["undecided"][:20], "n_undecided": len(r["undecided"]), "at_zero": at_zero, "complete": r["complete"],
+            "unexamined": r["unexamined"], "range": (lo, hi)}
+
+
+def cross_check(case_args, machine):
+    """One machine on the piece [CROSS_LO; -R ekt_s_near_over_R] that the aim machine also proves."""
+    from . import certify as ct
+    a, b = ct.s_range_outward(CROSS_LO, -mp.mpf(case_args[4]) * mp.mpf(S_NEAR_OVER_R.value))
+    lo, hi = ct.s_range_outward(-S_FAR.value, -mp.mpf(case_args[4]) * mp.mpf(S_NEAR_OVER_R.value))
+    nu, aim = ct.default_ranges()
+    third = aim if machine == "aim" else ct.alpha_range(case_args)
+    # the resolution of the empty-case proof (certify_chunk): 1/CERT_CHUNKS of its s range, nu and the third range whole
+    scale = ((hi - lo) / CERT_CHUNKS.value, nu[1] - nu[0], third[1] - third[0])
+    r = ct.exclude(case_args, (a, b), machine=machine, scale=scale)
+    return {"machine": machine, "s": (a, b), "boxes": r["boxes"], "complete": r["complete"], "n_undecided": len(r["undecided"]),
+            "unexamined": r["unexamined"]}
+
+
+def _alpha_of(case_args, sol):
+    from . import certify as ct
+    c = ct.inputs(case_args, xm=mp)
+    P = bl.add(c["p0"], c["e"], sol[0])
+    B = c["B"]
+    return mp.atan2(B * mp.sin(sol[2]) - P[1], 1 + B * mp.cos(sol[2]) - P[0])
+
+
+def band_control(i):
+    """Positive control inside the band: polish the root of control i, verify it (the verifier is
+    expected to reject it by item (i), which the machine does not use), run the direction machine on
+    the band with the root (and its nu +- 2 pi copies in the box) watched, then Krawczyk on every
+    undecided box."""
+    from . import certify as ct
+    case, (s0, nu0, aim0) = BAND_CONTROLS[i]
+    with mp.workdps(bl.POLISH_DPS.value):
+        c = ct.inputs(case, xm=mp)
+        sol = bl.solve_mp(c["p0"], c["e"], mp.mpf(s0), mp.mpf(nu0), mp.mpf(aim0), c["v1"], 1, 1, c["B"], c["R"])
+        if sol is None:
+            return {"i": i, "case": case, "sol": None}
+        ok, fails = bl.verify(c["p0"], c["e"], c["v1"], *sol, 1, 1, case[3], case[4])
+        alpha = _alpha_of(case, sol)
+        point = (sol[0], sol[1], alpha)
+        q = ct.conditions_dir(*point, c, xm=mp)
+    nu_r, _ = ct.default_ranges()
+    copies = [(point[0], point[1] + k * 2 * mp.pi, point[2]) for k in (-1, 0, 1) if nu_r[0] <= point[1] + k * 2 * mp.pi <= nu_r[1]]
+    lo, hi = band_range(case)
+    r = ct.exclude(case, (lo, hi), scale=band_scale(case), machine="dir", watch=copies)
+    kraw = [ct.krawczyk(case, bx, machine="dir") for bx in r["undecided"][:len(r["undecided"]) - r["unexamined"]]]
+    holding = {j for h in r["watch"] for j in h["undecided_in"]}
+    return {"i": i, "case": case, "sol": tuple(float(x) for x in point), "verify": (ok, fails),
+            "inequalities": {k: float(q[k]) for k in ("dn", "along", "kick")}, "boxes": r["boxes"], "complete_search": r["unexamined"] == 0,
+            "undecided": len(r["undecided"]), "unexamined": r["unexamined"],
+            "in_excluded": sum(len(h["excluded_in"]) for h in r["watch"]), "lost": sum(1 for h in r["watch"] if not h["excluded_in"] and not h["undecided_in"]),
+            "copies": len(copies),
+            "certified": bool(r["watch"]) and all(any(j < len(kraw) and kraw[j]["verdict"] == "root" and kraw[j]["inequalities"] for j in h["undecided_in"]) for h in r["watch"]),
+            "solution_boxes": [r["undecided"][j] for h in r["watch"] for j in h["undecided_in"]],
+            "other": {v: sum(1 for j, k in enumerate(kraw) if j not in holding and k["verdict"] == v) for v in ("root", "none", "undecided")}}
+
+
 # R1 --------------------------------------------------------------------------------------------
 
 def r1_traversal_rule(n=25):
@@ -822,10 +918,11 @@ def _task(name, arg):
                 "negative": [(a, b, s, d) for a, b, s, d in neg], "rejected": [s["fails"] for s in case["sols"] if not s["ok"]],
                 "unresolved": len(case["unresolved"]), "unresolved_kinds": unresolved_by_kind(case["unresolved"]), "s_range": case["s_range"],
                 "fraction": unresolved_fraction(case["unresolved"], case["s_grid"], tuple(float(x) for x in case["p0"]), tuple(float(x) for x in case["e"]))}
-    if name == "r8r":
+    if name in ("r8r", "r8rc"):  # r8rc (--certify) also runs the interval test on the items left
         case = dangerous(*arg)
         ref = refine_unresolved(case)
-        cert = certify_items(arg, ref["items_after"], case["s_grid"], tuple(float(x) for x in case["p0"]), tuple(float(x) for x in case["e"]))
+        cert = (certify_items(arg, ref["items_after"], case["s_grid"], tuple(float(x) for x in case["p0"]), tuple(float(x) for x in case["e"]))
+                if name == "r8rc" else None)
         ref.pop("items_after")
         return {"case": arg, "ok": len([x for x in case["sols"] if x["ok"]]), "rejected": [x["fails"] for x in case["sols"] if not x["ok"]],
                 **ref, "cert_items": cert}
@@ -835,6 +932,12 @@ def _task(name, arg):
         return control_known(arg)
     if name == "r8p":
         return control_piece(*arg)
+    if name == "r8b":
+        return band_chunk(R8_CASES[2], *arg)
+    if name == "r8bx":
+        return cross_check(R8_CASES[2], arg)
+    if name == "r8bp":
+        return band_control(arg)
     if name == "r9":
         return r9_central(Bs=(arg,))
     if name == "r10":
@@ -871,8 +974,6 @@ def full_tasks():
     tasks += [("r8x", ("before", k, True, None)) for k in (1, 2, 3)]
     tasks += [("r8x", ("before", 1, False, lam)) for lam in ("0.1", "0.25", "0.5", "0.9")]
     tasks += [("r8r", R8_CASES[2])]
-    tasks += [("r8c", (i, CERT_CHUNKS.value)) for i in range(CERT_CHUNKS.value)]
-    tasks += [("r8pk", spec) for spec in CONTROL_CASES]   # each one submits its r8p pieces when done (start)
     tasks += [("r9", B) for B in R9_BS]
     tasks += [("r10", ph) for ph in R10_PHIS]
     tasks += [("r10x", ph) for ph in ("0.3", "0.9", "1.1")]
@@ -880,13 +981,27 @@ def full_tasks():
     return tasks
 
 
-def start(quick=False, workers=None):
+def certify_tasks():
+    """The interval certification (python -m chronosim.run --certify; user decision (d) of 2026-11-09):
+    the empty case (items left by the refinement, Omega with one traversal in CERT_CHUNKS pieces), the
+    positive control, the mouth band, its cross-check and its positive control."""
+    tasks = [("r8rc", R8_CASES[2])]
+    tasks += [("r8c", (i, CERT_CHUNKS.value)) for i in range(CERT_CHUNKS.value)]
+    tasks += [("r8pk", spec) for spec in CONTROL_CASES]   # each one submits its r8p pieces when done (start)
+    tasks += [("r8b", (i, CERT_CHUNKS.value)) for i in range(CERT_CHUNKS.value)]
+    tasks += [("r8bx", m) for m in ("aim", "dir")]
+    tasks += [("r8bp", i) for i in range(len(BAND_CONTROLS))]
+    return tasks
+
+
+def start(quick=False, workers=None, mode=None):
     """Submit the phase 3 tasks (QUICK_TASKS, or R1-R11 in full) to worker processes and return a
     handle for collect(); the caller can do other work meanwhile. Deterministic grids only; each
     task is a pure function of its arguments."""
     from concurrent.futures import ProcessPoolExecutor
     import threading
-    tasks = list(QUICK_TASKS) if quick else full_tasks()
+    mode = mode or ("quick" if quick else "full")
+    tasks = {"quick": lambda: list(QUICK_TASKS), "full": full_tasks, "certify": certify_tasks}[mode]()
     ex = ProcessPoolExecutor(max_workers=workers, initializer=_init_worker)
     follow, lock, submitted = [], threading.Lock(), []
 
@@ -1030,6 +1145,19 @@ def _control_lines(summaries):
     return out, passed and refined
 
 
+def _certification_proved(arg, ref, chunks, control=None):
+    """Whether _certification_lines uses the proof sentence (complete exclusion and passing control)."""
+    from . import certify as ct
+    if not chunks:
+        return False
+    rs = sorted((r for _, r in chunks), key=lambda r: r["i"])
+    n = rs[0]["n"]
+    lo, hi = rs[0]["range"]
+    whole = ([r["i"] for r in rs] == list(range(n)) and all(r["n"] == n and r["range"] == (lo, hi) and tuple(r["case"]) == tuple(arg) for r in rs)
+             and rs[0]["s"][0] == lo and rs[-1]["s"][1] == hi and all(a["s"][1] == b["s"][0] for a, b in zip(rs, rs[1:])))
+    return whole and sum(r["n_undecided"] for r in rs) == 0 and _control_lines(control or [])[1]
+
+
 def _certification_lines(arg, ref, chunks, control=None):
     """Report lines of the interval exclusion of the empty case (certify.py). The proof sentence is
     used only when the exclusion is complete and the positive control passed."""
@@ -1077,6 +1205,105 @@ def _certification_lines(arg, ref, chunks, control=None):
     return out
 
 
+def _band_lines(res, main_proved=False):
+    """Report lines of the mouth band (direction machine), its cross-check and its positive control,
+    and whether the band proof sentence was used."""
+    from . import certify as ct
+    from .provenance import CERT_ROOT_MODEL, certified
+    arg = R8_CASES[2]
+    out = ["", "### Faixa junto à boca do caso vazio (máquina por direção)", ""]
+    chunks = sorted((r for _, r in res.get("r8b", [])), key=lambda r: r["i"])
+    if not chunks:
+        return out + ["- Não rodada nesta execução."], False
+    n = chunks[0]["n"]
+    lo, hi = chunks[0]["range"]
+    whole = ([r["i"] for r in chunks] == list(range(n)) and all(r["n"] == n and r["range"] == (lo, hi) and tuple(r["case"]) == tuple(arg) for r in chunks)
+             and chunks[0]["s"][0] == lo and chunks[-1]["s"][1] == hi and all(a["s"][1] == b["s"][0] for a, b in zip(chunks, chunks[1:])))
+    boxes = sum(r["boxes"] for r in chunks)
+    left = sum(r["n_undecided"] for r in chunks)
+    at_zero = sum(r["at_zero"] for r in chunks)
+    by = {}
+    for r in chunks:
+        for k, m in r["excluded_by"].items():
+            by[k] = by.get(k, 0) + m
+    reasons = "; ".join(f"{k}: {m}" for k, m in sorted(by.items(), key=lambda t: -t[1]))
+    q = ct.exclusion_quantity({"complete": whole and left == 0, "boxes": boxes, "undecided": [None] * left}, tuple(arg), (lo, hi),
+                              "caso vazio, faixa junto à boca", hypotheses=ct.HYPOTHESES_DIR)
+    out.append(f"- **Caixa:** s ∈ [{_f(mp.mpf(lo), 6)}; 0], com s = 0 incluído como superconjunto; ν inteiro; direção de partida α ∈ [φ − π/2 − pad; φ + π/2 + pad] (`ekt_cert_alpha_pad`). "
+               f"Mesma precisão ({ct.CERT_PREC.value} bits) e mesma largura mínima relativa (`ekt_cert_min_width`), medida contra a faixa inteira; {n} pedaços de s, só para paralelizar. Enunciado em `docs/phase3_borda.md`.")
+    if not whole:
+        out.append(f"- **Resultado:** os pedaços não cobrem a faixa ({len(chunks)} de {n}). Nada é afirmado.")
+    elif q.origin is Origin.CERTIFIED:
+        out.append(f"- **Resultado:** {boxes} subcaixas, todas excluídas ({reasons}).")
+    else:
+        out.append(f"- **Resultado:** {boxes} subcaixas; {left} indecididas, {at_zero} delas em s = 0 ({q.origin.name}). A exclusão não está completa, e nada é afirmado além da contagem."
+                   + (" As caixas em s = 0 pedem o exame à parte do sistema-limite (decisão (b))." if at_zero else ""))
+    xs = {r["machine"]: r for _, r in res.get("r8bx", [])}
+    agree = set(xs) == {"aim", "dir"} and all(x["complete"] for x in xs.values())
+    if xs:
+        a_, b_ = next(iter(xs.values()))["s"]
+        desc = "; ".join(f"máquina {'pela mira' if m == 'aim' else 'por direção'}: {x['boxes']} subcaixas, {'todas excluídas' if x['complete'] else str(x['n_undecided']) + ' indecididas'}" for m, x in sorted(xs.items()))
+        out.append(f"- **Verificação cruzada** em s ∈ [{_f(mp.mpf(a_), 4)}; {_f(mp.mpf(b_), 6)}], pedaço que a máquina atual já prova: {desc}. "
+                   + ("**As duas concordam:** nenhuma solução." if agree else "**As duas não concordam, ou uma não terminou;** a frase de prova da faixa não é usada."))
+    ctl = [r for _, r in sorted(res.get("r8bp", []), key=lambda t: t[0])]
+    ok_ctl = bool(ctl) and all(r["sol"] is not None and r["in_excluded"] == 0 and r["lost"] == 0 and r["certified"] for r in ctl)
+    out += ["", "- **Controle positivo dentro da faixa** (decisão (a)): raízes construídas a partir da história (colisão em s fixo na faixa; v₁ obtido da história e escrito como λ₁ decimal), com B e R do caso vazio e outra linha, (θ; φ) = (0,5; 0,9), com λ₁ fora de [0; 1] (v₁ acima do intervalo da eq. 4.10); mesma máquina e mesma construção de caixa da faixa (s e ν iguais, α em torno do φ do caso). "
+            "Critério: nenhuma caixa que contenha a raiz pode ser excluída, e o Krawczyk a certifica.", "",
+            "  | controle (θ; φ; λ₁; B; R) | s | verificador independente | d·n_X; along; impulso | subcaixas | em caixa excluída | Krawczyk na caixa da raiz | outras caixas: sem raiz / indecidido / raiz |",
+            "  |---|---|---|---|---|---|---|---|"]
+    for r in ctl:
+        label = "; ".join(x.replace(".", ",") for x in r["case"])
+        if r["sol"] is None:
+            out.append(f"  | {label} | — | o polimento não convergiu | — | — | — | — | — |")
+            continue
+        ok, fails = r["verify"]
+        ver = "passa" if ok else "rejeita: " + "; ".join(fails)
+        ineq = "; ".join(_f(mp.mpf(r["inequalities"][k]), 4) for k in ("dn", "along", "kick"))
+        kr = f"raiz única, {CERT_ROOT_MODEL} (CERTIFIED)" if r["certified"] else "não certificada"
+        o = r["other"]
+        out.append(f"  | {label} | {_f(mp.mpf(r['sol'][0]), 4)} | {ver} | {ineq} | {r['boxes']} | {r['in_excluded']} | {kr} | {o['none']} / {o['undecided']} / {o['root']} |")
+    out.append("")
+    if ctl:
+        quantities = [certified(tuple(r["solution_boxes"]), CERT_ROOT_MODEL, f"Krawczyk (máquina por direção) nas caixas {r['solution_boxes']}; controle da faixa {r['case']}; "
+                                f"raiz das equações do laço de billiards.py com d·n_X < 0, along > 0 e impulso > 0, não história física: o verificador independente "
+                                + (f"a rejeita ({'; '.join(r['verify'][1])})" if not r["verify"][0] else "a aprova") + "; hipóteses: "
+                                + ct.HYPOTHESES_DIR.format(s=f"[{lo!r}; 0]", prec=ct.CERT_PREC.value)) for r in ctl if r["certified"]]
+        out.append(f"  - **{'O controle passou' if ok_ctl else 'O controle não passou'}:** {sum(1 for r in ctl if r['sol'] is not None and r['in_excluded'] == 0 and r['lost'] == 0)} de {len(ctl)} raízes fora de caixas excluídas; "
+                   f"{len(quantities)} de {len(ctl)} certificadas pelo Krawczyk ({', '.join(x.origin.name for x in quantities) or 'nenhuma'}).")
+        rejected = [r for r in ctl if r["sol"] is not None and not r["verify"][0]]
+        passed_v = [r for r in ctl if r["sol"] is not None and r["verify"][0]]
+        reasons = sorted({f for r in rejected for f in r["verify"][1]})
+        if rejected and not passed_v:
+            out.append(f"  - **Não são histórias físicas:** o verificador independente rejeita {'as ' + str(len(rejected)) + ' raízes polidas' if len(rejected) > 1 else 'a raiz polida'} ({'; '.join(reasons)}). "
+                       "Os motivos são condições do modelo que a máquina não usa (o item (i) da p. 1081 entre elas). São raízes das equações da máquina com as suas três desigualdades, e testam a máquina, não a física. "
+                       "Nenhuma história física com a colisão na faixa foi construída; o porquê está em `docs/phase3_borda.md`, seção 3.")
+        elif passed_v:
+            out.append(f"  - O verificador independente aprova {len(passed_v)} de {len(ctl)} controles e rejeita {len(rejected)}" + (f" ({'; '.join(reasons)})" if reasons else "") + ".")
+    proved = q.origin is Origin.CERTIFIED and agree and ok_ctl
+    if proved:
+        out.append(f"- **Provado, em aritmética intervalar, que não existe solução de uma colisão para esta condição inicial com a colisão em s ∈ [{_f(mp.mpf(lo), 6)}; 0), no modelo de ["
+                   + ct.HYPOTHESES_DIR.format(s=f"[{_f(mp.mpf(lo), 6)}; 0]", prec=ct.CERT_PREC.value) + f"].** Origem: {q.origin.name}, rótulo “{q.label}”."
+                   + (" Com a prova do intervalo principal acima, cobre s ∈ [−3; 0) para uma travessia e colisão antes da boca 2." if main_proved else
+                      " A prova do intervalo principal não foi dada nesta execução, e a cobertura de [−3; 0) não é afirmada."))
+    elif q.origin is Origin.CERTIFIED:
+        out.append("- A exclusão da faixa está completa, mas a frase de prova não é usada: a verificação cruzada ou o controle positivo da faixa não passou.")
+    return out, proved
+
+
+def certify_section(res):
+    """outputs/phase3_certify.md (python -m chronosim.run --certify): the empty case of R8, its
+    positive control, the mouth band, its cross-check and its control."""
+    arg = R8_CASES[2]
+    ref = next((x for _, x in res.get("r8rc", []) if tuple(x["case"]) == tuple(arg)), {})
+    L = ["# chronosim · fase 3, certificação intervalar (`python -m chronosim.run --certify`)", "",
+         "Grandezas CERTIFIED desta fase; tudo o mais é COMPUTED. Enunciados em `docs/phase3_certification.md` e `docs/phase3_borda.md`.", "",
+         f"## Caso vazio do R8 ({'; '.join(a.replace('.', ',') for a in arg)}), intervalo principal (máquina pela mira)", ""]
+    ctl = control_summaries(res)
+    L += _certification_lines(arg, ref, res.get("r8c", []), ctl)
+    band, _ = _band_lines(res, main_proved=_certification_proved(arg, ref, res.get("r8c", []), ctl))
+    return L + band
+
+
 def report_section(res):
     """Markdown lines for outputs/report.md. Every number here is COMPUTED."""
     L = []
@@ -1084,7 +1311,7 @@ def report_section(res):
     add("")
     add("## Fase 3 · Bolas de bilhar (Echeverria, Klinkhammer & Thorne, 1991): reprodução R1–R11")
     add("")
-    add("Todas as grandezas desta seção são **COMPUTED**, exceto as marcadas como CERTIFIED: a exclusão intervalar do caso vazio e as raízes do controle positivo certificadas pelo Krawczyk (R8, caso vazio), cada uma com o seu rótulo.")
+    add("Todas as grandezas desta seção são **COMPUTED**. A certificação intervalar (exclusão do caso vazio, controle positivo, faixa junto à boca), única fonte de grandezas CERTIFIED nesta fase, roda à parte: `python -m chronosim.run --certify`, em `outputs/phase3_certify.md`.")
     add("")
     add("- **Modelo independente** (`chronosim/billiards.py`): o modelo exato que o artigo descreve em palavras e figuras.")
     add("  - Bocas de raio B identificadas por reflexão no plano x = ½ (Fig. 2).")
@@ -1233,8 +1460,11 @@ def report_section(res):
                 f"cobrindo {pct(ref['fraction_before']['conservative'])} pela medida conservadora, sobram {ref['after']} ({kinds(ref['after_kinds'])}); {ref['fraction_after']['off_grid']} deles estão fora da grade de s e não entram na medida fina. Motivos dos que sobram: {reasons}.")
             add("  - Critério de resolvido: num trecho em que a contagem de raízes muda, a grandeza que decide a solução (a troca normal C, em ν; v₁ menos o alvo, em s) tem um único sinal em todas as raízes das duas pontas. É o critério de bracketing da busca principal, não uma prova.")
             add(f"  - Intervalos com bisseção perdida não são refinados e continuam contados. {ref['ok']} soluções verificadas nesta busca; {len(ref['rejected'])} candidatos rejeitados.")
-            for line in _certification_lines(arg, ref, res.get("r8c", []), control_summaries(res)):
-                add(line)
+            if res.get("r8c"):
+                for line in _certification_lines(arg, ref, res.get("r8c", []), control_summaries(res)):
+                    add(line)
+            else:
+                add("  - **Certificação intervalar:** não roda nesta execução. Ela está em `outputs/phase3_certify.md`, escrito por `python -m chronosim.run --certify`.")
         add(f"  - Posição da colisão s (distância com sinal ao longo da linha, a partir da entrada na boca 2; s < 0 antes dela) em [{_f(lo, 3)}; {_f(hi, 3)}] antes da travessia, e em [{_f(mp.mpf(S_NEAR_AFTER.value), 3)}; {_f(S_FAR.value, 3)}] depois dela. A grade de s tem `ekt_s_grid` pontos uniformes mais aproximações geométricas às pontas; ν e a mira usam `ekt_nu_grid` e `ekt_theta_grid`.")
         add(f"  - Mesma busca, antes do refinamento: {len(r['physical'])} raízes físicas das eqs. 4.2–4.3, "
             f"{len(r['rejected'])} candidatos geométricos rejeitados{(' (' + '; '.join(sorted(set(f[0] for f in r['rejected'] if f))) + ')') if r['rejected'] else ''}, "

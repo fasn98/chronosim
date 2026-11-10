@@ -1,6 +1,12 @@
 # Fase 3 · borda: solução de troca de velocidades da Fig. 7(b) e faixa junto à boca do caso vazio
 
-Registro de 2026-11-09. Seção 1: verificação feita. Seção 2: só plano, **não implementado**; espera decisão do usuário.
+Registro de 2026-11-09.
+
+- **Seção 1:** verificação da solução da Fig. 7(b), feita.
+- **Seção 2:** o plano, aprovado pelo usuário com as decisões (a)–(d) registradas em 2.5.
+- **Seção 3:** a implementação e os resultados.
+
+A certificação roda em `python -m chronosim.run --certify` e escreve `outputs/phase3_certify.md`.
 
 ## 0. Uma correção de premissa: o s da Fig. 7(b) não é o s do caso vazio
 
@@ -50,7 +56,7 @@ Todos os valores são COMPUTED.
 - Uma primeira passada, feita com soluções guardadas por um script auxiliar que rodava a 15 dígitos, falhou no verificador por esse motivo, e não por defeito das soluções.
 - `run.py` fixa `mp.dps = 80` no processo pai antes de iniciar a fase 3, então as execuções oficiais não são afetadas.
 
-## 2. Faixa junto à boca do caso vazio: s ∈ [−0,00135; 0) (plano)
+## 2. Faixa junto à boca do caso vazio: s ∈ [−0,00135; 0) (plano, aprovado)
 
 ### 2.1 O que o método atual faz ali
 
@@ -114,3 +120,89 @@ A sondagem rodou em 2026-11-09 com o código de `certify.exclude` sem mudanças,
 - **(b)** Incluir s = 0 na caixa, como superconjunto.
 - **(c)** Escolher se a máquina nova roda só na faixa ou substitui a atual em todo o intervalo, o que muda o custo do controle.
 - **(d)** Definir o orçamento de tempo aceitável a mais no `--full`.
+
+**Decisões do usuário (2026-11-09):**
+- **(a)** Aprovada a parametrização pela direção de partida, como variante da máquina, com controle positivo **dentro** da faixa:
+  - pelo menos três histórias autoconsistentes com a colisão em s ∈ [−0,00135; 0), por exemplo s = −1e-3, −1e-5 e −1e-7;
+  - construídas a partir da história, verificadas pelo verificador independente;
+  - critério: nenhuma excluída, e o Krawczyk a certifica;
+  - se a construção não for possível em algum s, relatar por quê.
+- **(b)** s = 0 incluído na caixa; o sistema-limite é examinado à parte, se sobrarem caixas ali.
+- **(c)** A máquina nova roda na faixa, com verificação cruzada em [−0,01; −0,00135].
+- **(d)** Um comando separado, `--certify`, roda a certificação, que sai do `--full`. O CLAUDE.md foi atualizado.
+
+## 3. Implementação e resultados
+
+Os números abaixo vêm das sondagens de 2026-11-09. O relatório oficial é `outputs/phase3_certify.md`.
+
+### 3.1 A máquina por direção
+
+O código está em `certify.conditions_dir` e `certify._reason_dir`, e a escolha de máquina é o parâmetro `machine="dir"` de `exclude`, `jacobian` e `krawczyk`. As fórmulas são as de 2.2, com duas correções que as sondagens exigiram:
+
+- **Quina da direção tangente em s = 0.** Ali b → 0 e b² − c → 0, e a forma racionalizada de L₀ vira 0/0, com invólucro infinito.
+  - Com ela, o pedaço que contém s = 0 não terminava: 21.900 caixas ficavam indecididas em 200 mil.
+  - Em intervalos, L₀ passou a ser a interseção da forma racionalizada com −b − √(b² − c) e com [0; ∞). Isso vale porque as três envolvem o mesmo valor em todo ponto da família, onde b < 0 e b² ≥ c.
+  - Com essa mudança, [−1e-6; 0] é excluída com 237 caixas.
+- **Ponto exatamente em s = 0 na direção tangente.** A avaliação pontual usa −b − √(b² − c) = 0.
+
+Os testes estão em `tests/test_certify_band.py`. Eles cobrem:
+- a equivalência com `billiards._loop_state` a 10⁻³⁰ em três casos;
+- a continuidade em s = 0;
+- invólucros que contêm os valores pontuais, inclusive na quina tangente;
+- o Krawczyk na raiz de controle;
+- a separação entre `--full` e `--certify`;
+- a frase de prova da faixa, que só sai sob as três condições.
+
+### 3.2 A faixa do caso vazio e a verificação cruzada
+
+- **Faixa:** s ∈ [−0,00135; 0], com s = 0 incluído, em 8 pedaços. A largura mínima é relativa à faixa inteira. São 3.132 subcaixas, todas excluídas, e nenhuma fica indecidida em s = 0. O sistema-limite não precisou ser examinado à parte.
+- **Verificação cruzada** em [−0,01; −0,00135], na resolução da prova do caso vazio:
+
+  | máquina | subcaixas | resultado | tempo |
+  |---|---|---|---|
+  | pela mira | 456.195 | todas excluídas | 171 s |
+  | por direção | 321 (1.295 na sondagem anterior à interseção em L₀) | todas excluídas | 1 s |
+
+  As duas concordam.
+
+### 3.3 Controle positivo dentro da faixa: por que não há história física, e o que se usou
+
+**A construção, a partir da história:**
+1. Fixam-se a linha (θ, φ), B, R e s.
+2. Resolvem-se miss = 0 e C = 0 em (ν, mira).
+3. v₁ sai da equação V e é escrito como λ₁ decimal pela eq. 4.10.
+4. A raiz é polida com esse λ₁ fixo e passa por `billiards.verify`.
+
+**Tentativas de história física:**
+- Foram 2 linhas com B = 0,3, R = 0,135 e mais 32 geometrias, com (θ, φ) entre 8 linhas e (B, R) entre 4 pares, em s = −1e-5.
+- Em toda geometria em que há solução na faixa, as soluções vêm em pares, e nos dois a normal de contato é radial à boca 2. Para R ≪ B, vale |n·n_out| = 1,0000 com 4 algarismos.
+- **Ramo com a bola velha fora da boca:** o impulso é < 0, ou seja, as bolas se afastam, e não há colisão.
+- **Ramo com impulso > 0:** a bola velha e o ponto de contato ficam dentro da boca 2, o que o item (i) da p. 1081 exclui, e a bola velha entra na boca antes da colisão.
+- O verificador independente rejeita todos esses casos.
+
+**Por que acontece.** Com o centro da bola jovem a |s| ≪ R da superfície da boca, a bola jovem entra na boca logo após a colisão. O laço, pela travessia, só fecha com a normal de contato alinhada ao raio da boca em p₀; o ramo em que a bola velha empurra a jovem para dentro, vindo de fora, não aparece. Isso foi observado em todas as geometrias amostradas, e não está provado em geral.
+
+**Não foi possível construir história física com a colisão na faixa**, em nenhum dos s pedidos (−1e-3, −1e-5, −1e-7).
+
+**O que se usou como controle.** O ramo com impulso > 0 é raiz exata das equações da máquina (miss, C, V), com as três desigualdades dela satisfeitas: d·n_X < 0, along > 0 e impulso > 0. A máquina não usa o item (i). Esses casos testam a máquina, não a física, e o relatório diz isso.
+
+Os três controles usam (θ; φ; B; R) = (0,5; 0,9; 0,3; 0,135), com os B e R do caso vazio. Em cada um, a máquina roda na faixa inteira, e o Krawczyk, nas caixas indecididas.
+
+| s | λ₁ | subcaixas | em caixa excluída | Krawczyk na caixa da raiz | outras caixas indecididas |
+|---|---|---|---|---|---|
+| −1e-3 | 3,5848820852079515833 | 785.491 | 0 | raiz única | 4.090, todas "sem raiz" |
+| −1e-5 | 3,8788614447816208674 | 617.151 | 0 | raiz única | 5.850, todas "sem raiz" |
+| −1e-7 | 3,8821746427593530025 | 519.839 | 0 | raiz única | 3.572, todas "sem raiz" |
+
+Nos três, λ₁ fica fora de [0; 1], o intervalo da eq. 4.10. O v₁ fica acima do intervalo do triângulo perigoso, o que é permitido para um controle da máquina.
+
+**Observação sobre o sistema-limite.** Seguindo a raiz de controle de s = −1e-5 até −1e-7, ela converge suavemente: mira − mira₀ ∝ s, e v₁ → 3,8234. Há, portanto, raiz-limite em s = 0 para esse v₁. No caso vazio (λ₁ = 0,75), a faixa fechada foi excluída por inteiro, então não há raiz ali, nem em s = 0.
+
+### 3.4 Custo
+
+Medido nas sondagens:
+- faixa: segundos;
+- verificação cruzada: cerca de 3 min;
+- controles da faixa: 5 a 7 min cada, em paralelo.
+
+O custo dominante do `--certify` continua sendo o controle positivo do intervalo principal, que leva cerca de 90 min.

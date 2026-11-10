@@ -1,6 +1,8 @@
 # Fase 3 · certificação intervalar (exclusão)
 
-Este documento registra o enunciado, a função, a caixa e o critério do teste intervalar, como pede o plano (`docs/phase3_plan.md`, decisão 2 da primeira rodada). O código está em `chronosim/certify.py`, e os testes em `tests/test_certify.py` e `tests/test_certified_origin.py`.
+Este documento registra o enunciado, a função, a caixa e o critério do teste intervalar, como pede o plano (`docs/phase3_plan.md`, decisão 2 da primeira rodada).
+
+**Onde roda.** Desde 2026-11-09, por decisão (d) do usuário, toda a certificação roda num comando à parte: `python -m chronosim.run --certify`, que escreve `outputs/phase3_certify.md`. O `--full` não a roda mais. A faixa junto à boca, com a máquina por direção, a verificação cruzada e o controle dentro da faixa, está em `docs/phase3_borda.md`. O código está em `chronosim/certify.py`, e os testes em `tests/test_certify.py` e `tests/test_certified_origin.py`.
 
 ## Origem CERTIFIED
 
@@ -61,7 +63,7 @@ As três desigualdades são condições necessárias de uma solução do modelo.
 **O que não está coberto:**
 - duas ou mais travessias entre as visitas;
 - colisão depois de uma travessia;
-- s fora do intervalo;
+- s fora do intervalo. A faixa [−R/100; 0) junto à boca é examinada à parte, pela máquina por direção (`docs/phase3_borda.md`); a cobertura depende do resultado em `outputs/phase3_certify.md`;
 - várias colisões.
 
 Para essas famílias vale só a busca por bracketing, cuja origem é COMPUTED.
