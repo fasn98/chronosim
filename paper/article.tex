@@ -1,0 +1,17 @@
+% Main file of the article. Same as article.tex of the ReScience C template
+% (commit pinned in Makefile), plus booktabs (tables) and emergencystretch
+% (avoids lines running into the margin).
+\documentclass{rescience}
+\usepackage{booktabs}
+\setlength{\emergencystretch}{2em}
+
+\begin{document}
+\input{header.tex}
+\input{content.tex}
+
+\hypersetup{linkcolor=black,urlcolor=darkgray}
+\renewcommand\emph[1]{{\bfseries #1}}
+\setlength\bibitemsep{0pt}
+\printbibliography
+
+\end{document}

@@ -1,0 +1,25 @@
+# Template files fetched by the Makefile (not redistributed here)
+.template/
+rescience.cls
+header.tex
+yaml-to-latex.py
+article.py
+__pycache__/
+roboto/
+source-serif-pro/
+source-sans-pro/
+source-code-pro/
+metadata.tex
+# LaTeX build products
+*.aux
+*.bbl
+*.bcf
+*.blg
+*.fdb_latexmk
+*.fls
+*.log
+*.out
+*.run.xml
+*.xdv
+# The PDF is attached to the submission and the release, not committed
+article.pdf
