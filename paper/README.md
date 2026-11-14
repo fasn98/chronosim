@@ -18,9 +18,11 @@ Rascunho de "[Re] Do vacuum fluctuations prevent the creation of closed timelike
 .venv/bin/python paper/build_tables.py # paper/generated/
 ```
 
-**PDF:** ainda não foi gerado. Faltam duas coisas:
+**PDF:** `make -C paper` gera `paper/article.pdf`.
 
-- **Arquivos do template** (https://github.com/ReScience/template): `article.tex`, `rescience.cls`, `yaml-to-latex.py`, `Makefile` e as pastas de fontes. Eles ainda não foram copiados para cá; o template é GPL-3+, e as fontes são OFL.
-- **Ferramentas:** XeLaTeX, latexmk e biber, que não estão instalados na máquina em que o rascunho foi escrito.
+- O `Makefile` baixa o template oficial (https://github.com/ReScience/template) fixado no commit `0978d0e`, e copia para `paper/` só o que a compilação usa: `rescience.cls`, `header.tex`, `yaml-to-latex.py`, `article.py` e as pastas de fontes. Esses arquivos não entram no repositório (`paper/.gitignore`): o template é GPL-3+, e as fontes são OFL.
+- `article.tex` é o do template, com dois acréscimos: `booktabs`, para as tabelas, e `\emergencystretch`, para evitar linhas que invadem a margem.
+- **Ferramentas:** XeLaTeX, latexmk, biber, Python 3 com PyYAML e o locale `en_US.UTF-8`, que o `yaml-to-latex.py` do template exige. No Debian/Ubuntu: `apt-get install texlive-xetex texlive-latex-extra texlive-bibtex-extra biber latexmk texlive-fonts-recommended locales`.
+- O PDF não é versionado. Ele acompanha a submissão e a release.
 
 **Figuras:** vêm de `outputs/`, nas versões em inglês (`*_en.png`). Elas são desenhadas a partir dos mesmos dados das versões em português, e `tests/test_figures_lang.py` confere isso.

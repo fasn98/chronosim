@@ -1,0 +1,18 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: "chronosim"
+abstract: "Independent re-implementations, with verifiable provenance, of the published results behind Hawking's chronology protection conjecture."
+type: software
+authors:
+  - family-names: "Nogueira"
+    given-names: "Fabio Augusto Sales"
+    orcid: "https://orcid.org/0009-0001-9303-8707"
+license: MIT
+repository-code: "https://github.com/fasn98/chronosim"
+# Concept DOI: resolves to the latest version on Zenodo.
+# "version" and "date-released" are set at the next release.
+doi: 10.5281/zenodo.24059843
+identifiers:
+  - type: doi
+    value: 10.5281/zenodo.24059843
+    description: "Concept DOI (all versions)"

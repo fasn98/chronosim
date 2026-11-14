@@ -81,7 +81,7 @@ Combining quantities yields the worst origin among the inputs, and no code path 
 
 The PDF of the original is a scan without extractable text.
 \begin{itemize}
-\item \textbf{Two passes.} Every equation used was transcribed twice, in separate passes from enlarged crops. The second pass was done by a separate model instance with no access to the first. All \TranscribedEquations{} equations agree between the passes (record in \texttt{docs/equation\_transcription.md}).
+\item \textbf{Two passes.} Every equation used was transcribed twice, in separate passes from enlarged crops. The second pass was done by a separate model instance with no access to the first. All \TranscribedEquations{} equations agree between the passes (record in \path{docs/equation_transcription.md}).
 \item \textbf{Limitation.} Both passes come from the same kind of model, so they are not two independent human readers. A reading error common to both would not be detected by this comparison. This is one reason why the derivations of F3 and F4 below also act as a check.
 \item \textbf{Third, human reading.} The author checked the following against the scan:
   \begin{itemize}
@@ -100,7 +100,7 @@ The operator is anchored by references that do not depend on Kim and Thorne.
 \begin{itemize}
 \item \textbf{Primary arbiter: a thermal state in Minkowski space.}
   \begin{itemize}
-  \item The Hadamard function is the image sum in imaginary time, derived from the KMS condition (written out in \texttt{docs/thermal\_images.md}), with the Minkowski-vacuum term removed.
+  \item The Hadamard function is the image sum in imaginary time, derived from the KMS condition (written out in \path{docs/thermal_images.md}), with the Minkowski-vacuum term removed.
   \item The reference is the Stefan--Boltzmann density of a massless scalar, $\pi^2T^4/30$, cross-checked against the Bose integral.
   \item The image sum was also compared with the mode integral with Bose occupation numbers, at separated points: the largest relative difference is $\ModesMaxDiff$, and it comes from truncating the image sum.
   \end{itemize}
@@ -129,7 +129,7 @@ Figure~\ref{fig:phase1} shows the horizon divergence.
 
 Table~\ref{tab:results} summarizes items F1--F7. The points below it give the context a table cannot.
 
-\begin{table}[t]
+\begin{table}[!tbp]
 \centering\small
 \begin{tabular}{p{0.07\linewidth}p{0.36\linewidth}p{0.47\linewidth}}
 \toprule
@@ -196,7 +196,7 @@ For each discrepancy, the subsection gives what is printed, what the computation
 \item \textbf{What the printed results carry.} Eqs.~51 and 67 are reproduced \emph{by the operator as printed} (F3, F4). The normalization of eq.~4a is therefore carried consistently through to the final results, and the printed stress-energy values lie a factor of two above the convention that matches the arbiters.
 \end{itemize}
 
-\begin{table}[t]
+\begin{table}[!tbp]
 \centering\small
 \input{generated/tab_arbiters.tex}
 \caption{The operator against references that do not depend on Kim and Thorne. Ratios of the computed density to the reference. The thermal reference is the Stefan--Boltzmann law, checked against a numerical Bose integral; the image sum it is compared with comes from a derivation written out in the repository. The Unruh reference is \textsc{heuristic} because its source was not read.}
@@ -236,7 +236,7 @@ For each discrepancy, the subsection gives what is printed, what the computation
 \item \textbf{What depends on it.} This is an order-of-magnitude estimate, and no conclusion of the article depends on it.
 \end{itemize}
 
-\begin{table}[t]
+\begin{table}[!tbp]
 \centering\small
 \input{generated/tab_f7.tex}
 \caption{F7: estimates printed in Kim and Thorne, with page, against the arithmetic of the inputs printed with them. A dash means the value is not printed in Kim and Thorne; only the recomputation is shown. \FSevenNotInKT{}; it is used only as a cross-check of the arithmetic.}
@@ -283,7 +283,7 @@ Eq.~31 is not used later. Eq.~52 must be read with $\sqrt{Y^2+Z^2}$ for eq.~51 t
 \item \textbf{The question.} Has anyone reported the factor of two, or issued an erratum?
 \item \textbf{Errata.} No erratum was found in Crossref (no update relation on DOI 10.1103/PhysRevD.43.3929) or on the article's page at APS.
 \item \textbf{Citing works.} INSPIRE lists $\LitCiting$ works citing Kim and Thorne. The $\LitArxiv$ with an arXiv version were downloaded as text, and $\LitMention$ of them mention Kim and Thorne. None has ``factor of 2'', ``factor of two'', ``twice'' or ``half'' near Kim and Thorne in a stress-energy context. None speaks of an error or a missing factor next to them.
-\item \textbf{Further searches.} References to eqs.~4, 51 or 67 were searched in the same set; general web searches are listed in \texttt{docs/literature\_check\_factor2.md}.
+\item \textbf{Further searches.} References to eqs.~4, 51 or 67 were searched in the same set; general web searches are listed in \path{docs/literature_check_factor2.md}.
 \item \textbf{What the search does not cover.}
   \begin{itemize}
   \item the $\LitMissing$ citing works without arXiv text;
@@ -322,7 +322,7 @@ The extent of that assistance is auditable rather than asserted. In the history 
 \section{Reproducibility}
 
 \begin{itemize}
-\item \textbf{Repository:} the code, the tests and the generated outputs are at \url{https://github.com/fasn98/chronosim}. Code release: \CodeRelease. The numbers of this paper are generated from the outputs of that release; the generator refuses to run on any other commit once the tag exists. Zenodo DOI: PENDING, until the release.
+\item \textbf{Repository:} the code, the tests and the generated outputs are at \url{https://github.com/fasn98/chronosim}. Code release: \CodeRelease. The numbers and the PDF of this paper are built from that tag; the generator refuses to run on any other commit once the tag exists. Archived on Zenodo, concept DOI \href{https://doi.org/10.5281/zenodo.24059843}{10.5281/zenodo.24059843}, which resolves to the latest version.
 \item \textbf{Environment:} Python \VersionPython{}, with the exact versions of \texttt{requirements.txt} (mpmath \VersionMpmath, NumPy \VersionNumpy, Matplotlib \VersionMatplotlib). The pins matter: another mpmath version changes the formatting of the generated report, and a test checks the installed versions.
 \end{itemize}
 To reproduce:
@@ -330,10 +330,11 @@ To reproduce:
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 python -m pytest              # test suite
-python -m chronosim.run       # regenerates outputs/ (phases 1-2 in full)
-python paper/build_tables.py  # regenerates every number and table of this paper
+python -m chronosim.run       # regenerates outputs/
+python paper/build_tables.py  # numbers and tables
+make -C paper                 # PDF (paper/README.md)
 \end{verbatim}
 \begin{itemize}
 \item \textbf{Running time:} it is not quoted here; it will be measured on stated hardware at the release.
-\item \textbf{Not in the repository:} the scanned article, which is not redistributable. It must be obtained from the publisher. The transcriptions, with page and equation, are in \texttt{docs/equation\_transcription.md}.
+\item \textbf{Not in the repository:} the scanned article, which is not redistributable. It must be obtained from the publisher. The transcriptions, with page and equation, are in \path{docs/equation_transcription.md}.
 \end{itemize}
