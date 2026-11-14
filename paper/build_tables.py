@@ -131,7 +131,7 @@ def transcribed_equations():
     return len(table)
 
 
-RELEASE_TAG = "v0.2.0"
+RELEASE_TAG = "v0.2.1"  # v0.2.0 predates the PDF build (Makefile, article.tex)
 
 
 def git(*args):

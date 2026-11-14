@@ -34,7 +34,10 @@ keywords: semiclassical gravity, closed timelike curves, wormholes, vacuum polar
 #   see https://guides.github.com/activities/citable-code/
 code:
   - url: https://github.com/fasn98/chronosim
-  - doi:      # PENDING: Zenodo DOI of release v0.2.0
+  # Concept DOI of the Zenodo record: it resolves to the latest version. As the
+  # template says ("doi after acceptance"), the DOI of the specific version is
+  # fixed here after acceptance.
+  - doi: 10.5281/zenodo.24059843
   - swh:
 
 # Data URL and DOI (optional if no data)
