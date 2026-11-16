@@ -511,7 +511,7 @@ def figures_phase2(out: Path):
         ax.set_xlabel(T["x4"], color=ink)
         ax.set_ylabel(T["y4"], color=ink)
         ax.set_title(T["t4"], color=ink, fontsize=10)
-        ax.legend(fontsize=8, frameon=False, loc="upper right")
+        ax.legend(fontsize=8, loc="lower left", frameon=True, framealpha=1, edgecolor="none")  # opaque: the Hawking cutoff line passes behind it
         ax.grid(alpha=0.25, which="both")
         fig.savefig(out / f"fig4_kt_cutoffs{suffix}.png", dpi=130)
         plotted.setdefault("fig4", {})[lang] = _plotted(ax)
