@@ -26,4 +26,15 @@ Rascunho de "[Re] Do vacuum fluctuations prevent the creation of closed timelike
 - **Ferramentas:** XeLaTeX, latexmk, biber, Python 3 com PyYAML e o locale `en_US.UTF-8`, que o `yaml-to-latex.py` do template exige. No Debian/Ubuntu: `apt-get install texlive-xetex texlive-latex-extra texlive-bibtex-extra biber latexmk texlive-fonts-recommended locales`.
 - O PDF não é versionado. Ele acompanha a submissão e a release.
 
+**Tempos (seção Reproducibility):** medidos na máquina que gera o PDF da release, antes da tag:
+
+```bash
+python paper/measure_timings.py   # roda pytest, chronosim.run, build_tables.py e make -C paper; grava generated/timings.json e timings.tex
+make -C paper                     # de novo, para o PDF incluir os tempos
+git add paper/generated/timings.json paper/generated/timings.tex outputs/
+git commit -m "Timings measured on the release machine" -m "run: padrão (via paper/measure_timings.py)"
+```
+
+O script registra CPU, número de CPUs lógicas, RAM, sistema, kernel e a versão exata do Python que rodou. Se um dos comandos falhar, ele para e não grava nada.
+
 **Figuras:** vêm de `outputs/`, nas versões em inglês (`*_en.png`). Elas são desenhadas a partir dos mesmos dados das versões em português, e `tests/test_figures_lang.py` confere isso.

@@ -17,6 +17,7 @@ Baixada para `papers/Klinkhammer_g_1992.pdf`. A URL indicada (`thesis.library.ca
 - **Resultado (eqs. 3.7 e 3.8, pp. 31–32):** ⟨T_ab⟩ = −1/[12π²(δt)³] Σ_(n≥1) (Δ_n^(1/2)/ζ_n)(1 + 4e^(nh) + e^(2nh))/(e^(nh) − 1)³ k_a k_b.
 - **Comparação:** com Δ_n^(1/2)/ζ_n da eq. 64 de Kim & Thorne e e^h = 1/ξ (eq. 33), a eq. 3.8 dá **exatamente metade** da eq. 67 de Kim & Thorne. É uma identidade algébrica, e o mesmo teste a verifica. O cálculo numérico com o operador com ½ concorda com a eq. 3.8 até o termo de ordem Δ/X que a eq. 67 também despreza.
 - **O que a tese diz:** "their results for the scalar vacuum polarization, when specialized to the vicinity of the closed null geodesics of their spacetimes, are in perfect agreement with ours" (seção 4, p. 38 da tese, p. 44 do PDF). **A tese não comenta o fator 2.** A concordância declarada vale na forma (δt⁻³, estrutura de fluido nulo, dependência em h), não no coeficiente.
+- **Conferência humana (2026-11-16):** o autor conferiu a citação da p. 38 contra a tese. Ela está correta, e o parágrafo compara a forma do resultado de Klinkhammer com os de Kim & Thorne e de Frolov: a potência da divergência e a estrutura tensorial. Não diz se o coeficiente global foi comparado e não comenta o fator. As equações das pp. 29–32 continuam em leitura única. Das 72 páginas da tese, só as pp. 29–32 e 38 foram lidas.
 - **Versão publicada:** Visser cita a versão publicada como G. Klinkhammer, Phys. Rev. D 46, 3388 (1992). Não a li.
 
 ### Visser, arXiv:hep-th/9303023
