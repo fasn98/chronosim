@@ -18,8 +18,8 @@ template: .template
 metadata.tex: metadata.yaml | template
 	LC_ALL=en_US.UTF-8 python3 ./yaml-to-latex.py -i $< -o $@
 
-article.pdf: article.tex content.tex bibliography.bib metadata.tex generated/numbers.tex | template
-	latexmk -pdf -pdflatex="xelatex -interaction=nonstopmode -halt-on-error" article.tex
+article.pdf: article.tex content.tex bibliography.bib metadata.tex $(wildcard generated/*.tex) | template
+	latexmk -g -pdf -pdflatex="xelatex -interaction=nonstopmode -halt-on-error" article.tex
 
 clean:
 	-latexmk -CA

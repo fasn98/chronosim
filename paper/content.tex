@@ -3,6 +3,7 @@
 % docs; nothing numerical is typed by hand. Citations of the original give page and equation of
 % Kim & Thorne (1991) [kim1991]. The scan of the original is not in the repository.
 \input{generated/numbers.tex}
+\IfFileExists{generated/timings.tex}{\input{generated/timings.tex}}{\newcommand{\TimeDate}{(not yet measured)}\newcommand{\TimePytest}{?}\newcommand{\TimeRun}{?}\newcommand{\TimeTables}{?}\newcommand{\TimePdf}{?}\newcommand{\TimeCPU}{?}\newcommand{\TimeCores}{?}\newcommand{\TimeRAM}{?}\newcommand{\TimeOS}{?}\newcommand{\TimeKernel}{?}\newcommand{\TimePython}{?}}
 
 \section{Introduction}
 
@@ -129,9 +130,9 @@ Figure~\ref{fig:phase1} shows the horizon divergence.
 
 Table~\ref{tab:results} summarizes items F1--F7. The points below it give the context a table cannot.
 
-\begin{table}[!tbp]
+\begin{table}[!htbp]
 \centering\small
-\begin{tabular}{p{0.07\linewidth}p{0.36\linewidth}p{0.47\linewidth}}
+\begin{tabular}{>{\raggedright\arraybackslash}p{0.07\linewidth}>{\raggedright\arraybackslash}p{0.36\linewidth}>{\raggedright\arraybackslash}p{0.47\linewidth}}
 \toprule
 Item & Claim of the original (page, equation) & Independent computation and measured agreement (all \textsc{computed}) \\
 \midrule
@@ -335,6 +336,6 @@ python paper/build_tables.py  # numbers and tables
 make -C paper                 # PDF (paper/README.md)
 \end{verbatim}
 \begin{itemize}
-\item \textbf{Running time:} it is not quoted here; it will be measured on stated hardware at the release.
+\item \textbf{Running time} (wall clock, measured by \texttt{paper/measure\_timings.py} on \TimeDate): test suite \TimePytest, default run \TimeRun, \texttt{build\_tables.py} \TimeTables, PDF \TimePdf. Machine: \TimeCPU, \TimeCores{} logical CPUs, \TimeRAM\,GiB of RAM; \TimeOS, Linux kernel \TimeKernel, Python \TimePython. The default run uses several processes, so its time depends on the number of CPUs.
 \item \textbf{Not in the repository:} the scanned article, which is not redistributable. It must be obtained from the publisher. The transcriptions, with page and equation, are in \path{docs/equation_transcription.md}.
 \end{itemize}

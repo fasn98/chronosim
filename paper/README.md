@@ -10,6 +10,7 @@ Rascunho de "[Re] Do vacuum fluctuations prevent the creation of closed timelike
 | `content.tex` | Corpo do artigo, que o `article.tex` do template inclui |
 | `bibliography.bib` | Referências, conforme `chronosim/sources.py` |
 | `build_tables.py` | Gera `generated/numbers.tex` e `generated/tab_*.tex` a partir de `outputs/` |
+| `measure_timings.py` | Mede os tempos da seção Reproducibility (pytest, execução padrão, `build_tables.py`, `make -C paper`) e grava `generated/timings.json` e `generated/timings.tex`, com CPU, RAM e sistema |
 
 **Nenhum número é digitado à mão:** todos vêm de `generated/numbers.tex`. Para regenerá-los:
 
