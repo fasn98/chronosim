@@ -131,7 +131,7 @@ def transcribed_equations():
     return len(table)
 
 
-RELEASE_TAG = "v0.2.2"  # the release the paper cites; v0.2.0 and v0.2.1 predate this version of the PDF
+RELEASE_TAG = "v0.2.3"  # the release the paper cites; v0.2.0-v0.2.2 predate the preprint build
 # Sources printed outside Kim & Thorne, as (author, year) in outputs/kim_thorne_f7.csv -> key in bibliography.bib
 CITE_KEYS = {("Hawking", "1992"): "hawking1992"}
 # Left-aligned paragraph column of the given width (needs the array package)
