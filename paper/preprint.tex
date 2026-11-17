@@ -1,0 +1,56 @@
+% Neutral preprint of the same paper (Zenodo "preprint", arXiv gr-qc).
+% It reuses content.tex, generated/numbers.tex and bibliography.bib without copying text, and carries
+% no ReScience C identity (no logo, "UNDER REVIEW", editor, dates, running footer or "[Re]" prefix):
+% the paper is not under review at ReScience C. Build: make -C paper preprint (pdflatex + BibTeX).
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage[numbers,sort&compress]{natbib}
+\usepackage{url}
+\usepackage[hidelinks]{hyperref}
+\setlength{\emergencystretch}{2em}
+% Same float limits as article.tex: Table 1 may share a page with text
+\renewcommand{\topfraction}{0.9}
+\renewcommand{\bottomfraction}{0.9}
+\renewcommand{\textfraction}{0.07}
+\renewcommand{\floatpagefraction}{0.8}
+
+% content.tex includes the figures as ../outputs/<name>. In the arXiv archive there is no parent
+% directory, so the figures sit in figures/<name>: if ../outputs/<name> does not exist, the same
+% file is taken from figures/.
+\makeatletter
+\let\preprint@includegraphics\includegraphics
+\def\preprint@strip../outputs/#1\@nil{figures/#1}
+\renewcommand{\includegraphics}[2][]{%
+  \IfFileExists{#2}{\preprint@includegraphics[#1]{#2}}%
+    {\edef\preprint@fig{\preprint@strip#2\@nil}\preprint@includegraphics[#1]{\preprint@fig}}}
+\makeatother
+
+\title{Do vacuum fluctuations prevent the creation of closed timelike curves?\\
+A provenance-carrying replication of Kim and Thorne (1991)}
+\author{Fabio Augusto Sales Nogueira\\
+\small Independent researcher, S\~ao Paulo, Brazil\\
+\small ORCID \href{https://orcid.org/0009-0001-9303-8707}{0009-0001-9303-8707}}
+\date{}
+
+\begin{document}
+\maketitle
+% \PreprintAbstract: the abstract of metadata.yaml, written by the Makefile to generated/abstract.tex
+\input{generated/abstract.tex}
+\begin{abstract}
+\PreprintAbstract
+
+\medskip\noindent Preprint. Code and data: \url{https://github.com/fasn98/chronosim}, Zenodo concept DOI \href{https://doi.org/10.5281/zenodo.24059843}{10.5281/zenodo.24059843}.
+\end{abstract}
+
+\input{content.tex}
+
+\bibliographystyle{unsrturl}
+\bibliography{bibliography}
+\end{document}
