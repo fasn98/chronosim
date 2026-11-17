@@ -23,3 +23,7 @@ metadata.tex
 *.xdv
 # The PDF is attached to the submission and the release, not committed
 article.pdf
+# Preprint (make preprint / make arxiv)
+preprint.pdf
+arxiv.tar.gz
+.arxiv/
