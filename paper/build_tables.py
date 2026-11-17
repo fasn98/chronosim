@@ -342,6 +342,7 @@ def _main(argv=None):
         lines.append(f"{names[r['quantity']]} & {pg} & {printed} & ${tex(r['recomputed'])}${unit} \\\\")
     lines += ["\\bottomrule", "\\end{tabular}"]
     (GEN / "tab_f7.tex").write_text("\n".join(lines) + "\n", encoding="utf-8")
+    # Used in the caption of Table 3 (content.tex): the F7 rows whose printed value is not in Kim & Thorne
     M["FSevenNotInKT"] = "; ".join(not_in_kt).replace("&", "\\&")
     M.write(GEN / "numbers.tex")
 

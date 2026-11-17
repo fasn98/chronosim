@@ -12,7 +12,12 @@ Rascunho de "[Re] Do vacuum fluctuations prevent the creation of closed timelike
 | `build_tables.py` | Gera `generated/numbers.tex` e `generated/tab_*.tex` a partir de `outputs/` |
 | `measure_timings.py` | Mede os tempos da seção Reproducibility (pytest, execução padrão, `build_tables.py`, `make -C paper`) e grava `generated/timings.json` e `generated/timings.tex`, com CPU, RAM e sistema |
 
-**Nenhum número é digitado à mão:** todos vêm de `generated/numbers.tex`. Para regenerá-los:
+**Nenhum número é digitado à mão.** Há dois tipos:
+
+- **Números calculados** (resultados, desvios, contagens, versões fixadas): vêm de `generated/numbers.tex` e `generated/tab_*.tex`, gerados por `build_tables.py` a partir de `outputs/`.
+- **Tempos de execução** (seção Reproducibility): vêm de `generated/timings.tex`, gerado por `measure_timings.py`. Dependem da máquina, não dos resultados.
+
+Para regenerar os números calculados:
 
 ```bash
 .venv/bin/python -m chronosim.run      # outputs/
@@ -34,6 +39,8 @@ make -C paper                     # de novo, para o PDF incluir os tempos
 git add paper/generated/timings.json paper/generated/timings.tex outputs/
 git commit -m "Timings measured on the release machine" -m "run: padrão (via paper/measure_timings.py)"
 ```
+
+**Não rode `measure_timings.py` em paralelo com `chronosim.run`** (nem com outra execução do pacote): os dois escrevem em `outputs/` e disputam as CPUs, o que invalida os tempos.
 
 O script registra CPU, número de CPUs lógicas, RAM, sistema, kernel e a versão exata do Python que rodou. Se um dos comandos falhar, ele para e não grava nada.
 
