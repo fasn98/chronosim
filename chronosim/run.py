@@ -471,18 +471,18 @@ def figures_phase2(out: Path):
     dt = np.logspace(-40, 3, 300)
     hawking = float(estimates.hawking_cutoff_dt().value)
     text = {
-        "pt": {"l67": "eq. 67 impressa, série truncada (COMPUTED)", "l4a": "eq. 4a impressa, sem ½ (COMPUTED)",
-               "lhalf": "com ½, convenção do árbitro térmico (COMPUTED)", "x3": "Δ  (distância a H₁, unidades de D)",
-               "t3": "Kim & Thorne: divergência Δ⁻³; os dois operadores diferem por 2",
-               "kt": "corte de Kim & Thorne\nΔt ~ l_P", "hk": "corte de Hawking\nDΔt ~ l_P²",
-               "x4": "Δt / l_P  (tempo próprio até H₁)", "y4": "δg^VP  (ordem de grandeza)",
-               "t4": "D = 1 m: δg^VP ~ 10⁻³⁵ no corte de Kim & Thorne, ~ 1 no de Hawking"},
-        "en": {"l67": "eq. 67 as printed, truncated series (COMPUTED)", "l4a": "eq. 4a as printed, without ½ (COMPUTED)",
-               "lhalf": "with ½, thermal-arbiter convention (COMPUTED)", "x3": "Δ  (distance to H₁, units of D)",
-               "t3": "Kim & Thorne: Δ⁻³ divergence; the two operators differ by 2",
-               "kt": "Kim & Thorne cutoff\nΔt ~ l_P", "hk": "Hawking cutoff\nDΔt ~ l_P²",
-               "x4": "Δt / l_P  (proper time to H₁)", "y4": "δg^VP  (order of magnitude)",
-               "t4": "D = 1 m: δg^VP ~ 10⁻³⁵ at the Kim & Thorne cutoff, ~ 1 at Hawking's"},
+        "pt": {"l67": "eq. 67 impressa, série truncada (COMPUTED)", "l4a": r"eq. 4a impressa, sem $\frac{1}{2}$ (COMPUTED)",
+               "lhalf": r"com $\frac{1}{2}$, convenção do árbitro térmico (COMPUTED)", "x3": r"$\Delta$  (distância a $H_1$, unidades de $D$)",
+               "t3": r"Kim & Thorne: divergência $\Delta^{-3}$; os dois operadores diferem por 2",
+               "kt": "corte de Kim & Thorne\n" r"$\Delta t \sim l_P$", "hk": "corte de Hawking\n" r"$D\,\Delta t \sim l_P^2$",
+               "x4": r"$\Delta t / l_P$  (tempo próprio até $H_1$)", "y4": r"$\delta g^{VP}$  (ordem de grandeza)",
+               "t4": r"$D = 1$ m: $\delta g^{VP} \sim 10^{-35}$ no corte de Kim & Thorne, $\sim 1$ no de Hawking"},
+        "en": {"l67": "eq. 67 as printed, truncated series (COMPUTED)", "l4a": r"eq. 4a as printed, without $\frac{1}{2}$ (COMPUTED)",
+               "lhalf": r"with $\frac{1}{2}$, thermal-arbiter convention (COMPUTED)", "x3": r"$\Delta$  (distance to $H_1$, units of $D$)",
+               "t3": r"Kim & Thorne: $\Delta^{-3}$ divergence; the two operators differ by 2",
+               "kt": "Kim & Thorne cutoff\n" r"$\Delta t \sim l_P$", "hk": "Hawking cutoff\n" r"$D\,\Delta t \sim l_P^2$",
+               "x4": r"$\Delta t / l_P$  (proper time to $H_1$)", "y4": r"$\delta g^{VP}$  (order of magnitude)",
+               "t4": r"$D = 1$ m: $\delta g^{VP} \sim 10^{-35}$ at the Kim & Thorne cutoff, $\sim 1$ at Hawking's"},
     }
     for lang, suffix in LANGS.items():
         T = text[lang]
@@ -492,7 +492,7 @@ def figures_phase2(out: Path):
         ax.loglog(dx, y4a, "o", color=blue, ms=8, mfc="none", mew=2, label=T["l4a"])
         ax.loglog(dx, yhalf, "s", color=orange, ms=8, mfc="none", mew=2, label=T["lhalf"])
         ax.set_xlabel(T["x3"], color=ink)
-        ax.set_ylabel("|T^TT|", color=ink)
+        ax.set_ylabel(r"$|T^{TT}|$", color=ink)
         ax.set_title(T["t3"], color=ink, fontsize=10)
         ax.legend(fontsize=8, frameon=False)
         ax.grid(alpha=0.25, which="both")
@@ -502,7 +502,7 @@ def figures_phase2(out: Path):
 
         # 4. Metric perturbation, eq. 9c with N - 1 = 0 and D = 1 m, and the two cutoffs.
         fig, ax = plt.subplots(figsize=(6.4, 4.6), constrained_layout=True)
-        ax.loglog(dt, lpD / dt, color=blue, lw=2, label="δg^VP ~ (l_P/D)(l_P/Δt), eq. 9c")
+        ax.loglog(dt, lpD / dt, color=blue, lw=2, label=r"$\delta g^{VP} \sim (l_P/D)(l_P/\Delta t)$, eq. 9c")
         ax.axvline(1, color=ink, lw=1.2, ls="--")
         ax.text(0.3, 1e-15, T["kt"], color=ink, fontsize=8, ha="right")
         ax.axvline(hawking, color=ink, lw=1.2, ls=":")
@@ -511,7 +511,7 @@ def figures_phase2(out: Path):
         ax.set_xlabel(T["x4"], color=ink)
         ax.set_ylabel(T["y4"], color=ink)
         ax.set_title(T["t4"], color=ink, fontsize=10)
-        ax.legend(fontsize=8, frameon=False, loc="upper right")
+        ax.legend(fontsize=8, loc="lower left", frameon=True, framealpha=1, edgecolor="none")  # opaque: the Hawking cutoff line passes behind it
         ax.grid(alpha=0.25, which="both")
         fig.savefig(out / f"fig4_kt_cutoffs{suffix}.png", dpi=130)
         plotted.setdefault("fig4", {})[lang] = _plotted(ax)
@@ -593,21 +593,21 @@ def figures(out: Path):
     vals2 = [float(misner_stress(1, p)["rho"].value) for p in pts2]
     b_sc = float(self_consistent_b().value)
     text = {
-        "pt": {"images": "soma de imagens (COMPUTED)", "x1": "ξ  (distância ao horizonte da cronologia)",
-               "y1": "|ρ|  densidade de energia do vácuo", "t1": "Espaço de Misner: |ρ| ∝ ξ⁻⁴ perto do horizonte",
-               "images2": "soma de imagens, ξ = 1 (COMPUTED)", "x2": "b  (rapidez do boost que identifica os pontos)",
-               "t2": "A energia do vácuo se anula em b = 2π"},
-        "en": {"images": "image sum (COMPUTED)", "x1": "ξ  (distance to the chronology horizon)",
-               "y1": "|ρ|  vacuum energy density", "t1": "Misner space: |ρ| ∝ ξ⁻⁴ near the horizon",
-               "images2": "image sum, ξ = 1 (COMPUTED)", "x2": "b  (rapidity of the boost that identifies points)",
-               "t2": "The vacuum energy vanishes at b = 2π"},
+        "pt": {"images": "soma de imagens (COMPUTED)", "x1": r"$\xi$  (distância ao horizonte da cronologia)",
+               "y1": r"$|\rho|$  densidade de energia do vácuo", "t1": r"Espaço de Misner: $|\rho| \propto \xi^{-4}$ perto do horizonte",
+               "images2": r"soma de imagens, $\xi = 1$ (COMPUTED)", "x2": r"$b$  (rapidez do boost que identifica os pontos)",
+               "t2": r"A energia do vácuo se anula em $b = 2\pi$"},
+        "en": {"images": "image sum (COMPUTED)", "x1": r"$\xi$  (distance to the chronology horizon)",
+               "y1": r"$|\rho|$  vacuum energy density", "t1": r"Misner space: $|\rho| \propto \xi^{-4}$ near the horizon",
+               "images2": r"image sum, $\xi = 1$ (COMPUTED)", "x2": r"$b$  (rapidity of the boost that identifies points)",
+               "t2": r"The vacuum energy vanishes at $b = 2\pi$"},
     }
     for lang, suffix in LANGS.items():
         T = text[lang]
         # 1. Divergence at the chronology horizon
         fig, ax = plt.subplots(figsize=(6.4, 4.6), constrained_layout=True)
         for bs, color, curve, vals in series1:
-            ax.loglog(xs, curve, color=color, lw=1.4, label=f"b = {bs}  (eq. 12, DERIVED)")
+            ax.loglog(xs, curve, color=color, lw=1.4, label=f"$b = {bs}$  (eq. 12, DERIVED)")
             ax.loglog([float(p) for p in pts1], vals, "o", color=color, mfc="none", ms=7)
         ax.plot([], [], "o", color="gray", mfc="none", label=T["images"])
         ax.set_xlabel(T["x1"])
@@ -621,13 +621,13 @@ def figures(out: Path):
 
         # 2. The self-consistent value b = 2 pi
         fig, ax = plt.subplots(figsize=(6.4, 4.6), constrained_layout=True)
-        ax.plot(bb, curve2, color="#1f4e79", lw=1.4, label="ξ⁴ρ, eq. 12 (DERIVED)")
+        ax.plot(bb, curve2, color="#1f4e79", lw=1.4, label=r"$\xi^4\rho$, eq. 12 (DERIVED)")
         ax.plot([float(p) for p in pts2], vals2, "o", color="#c0392b", mfc="none", ms=7, label=T["images2"])
         ax.axhline(0, color="black", lw=0.8)
-        ax.axvline(b_sc, color="#27ae60", ls="--", lw=1, label="b = 2π (Li & Gott)")
+        ax.axvline(b_sc, color="#27ae60", ls="--", lw=1, label=r"$b = 2\pi$ (Li & Gott)")
         ax.set_yscale("symlog", linthresh=1e-6)
         ax.set_xlabel(T["x2"])
-        ax.set_ylabel("ξ⁴ ρ")
+        ax.set_ylabel(r"$\xi^4 \rho$")
         ax.set_title(T["t2"])
         ax.legend(fontsize=8)
         ax.grid(alpha=0.3)

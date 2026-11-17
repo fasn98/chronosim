@@ -1,12 +1,23 @@
 % Main file of the article. Same as article.tex of the ReScience C template
-% (commit pinned in Makefile), plus booktabs (tables) and emergencystretch
-% (avoids lines running into the margin).
+% (commit pinned in Makefile), plus booktabs and array (tables), emergencystretch
+% (avoids lines running into the margin), and a local \doi around header.tex:
+% the template's header.tex (line 69) ends the code DOI with "." and then adds
+% another "." when the SWH field is empty, so the DOI ended in "..". The local
+% \doi swallows the period that follows it; the SWH branch supplies the final one.
 \documentclass{rescience}
 \usepackage{booktabs}
+\usepackage{array}
 \setlength{\emergencystretch}{2em}
+% Let a tall float (Table 1) share a page with text instead of taking a page alone
+\renewcommand{\topfraction}{0.9}
+\renewcommand{\bottomfraction}{0.9}
+\renewcommand{\textfraction}{0.07}
+\renewcommand{\floatpagefraction}{0.8}
 
 \begin{document}
-\input{header.tex}
+{\let\chronosimdoi\doi
+ \renewcommand{\doi}[2]{\chronosimdoi{#1}}%
+ \input{header.tex}}
 \input{content.tex}
 
 \hypersetup{linkcolor=black,urlcolor=darkgray}
