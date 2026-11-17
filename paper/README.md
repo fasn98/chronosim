@@ -24,7 +24,24 @@ Para regenerar os números calculados:
 .venv/bin/python paper/build_tables.py # paper/generated/
 ```
 
-**PDF:** `make -C paper` gera `paper/article.pdf`.
+**Dois builds do mesmo texto.** Os dois usam o mesmo `content.tex`, os mesmos `generated/*.tex` e o mesmo `bibliography.bib`; nenhum texto é copiado.
+
+| Comando | Saída | Para quê |
+|---|---|---|
+| `make -C paper` | `paper/article.pdf` | Submissão à ReScience C: template oficial, XeLaTeX + biber |
+| `make -C paper preprint` | `paper/preprint.pdf` | Preprint neutro (Zenodo, arXiv gr-qc): classe `article` 11pt A4, pdflatex + BibTeX (`unsrturl`) |
+| `make -C paper arxiv` | `paper/arxiv.tar.gz` | Pacote para o arXiv: `preprint.tex`, `content.tex`, `generated/*.tex`, `preprint.bbl` e as figuras usadas, em `figures/` |
+
+**Preprint (`preprint.tex`):**
+
+- Não tem nenhuma identidade da ReScience C: sem faixa ou logotipo, sem "UNDER REVIEW", editor, datas, rodapé corrente nem "[Re]" no título. O artigo não está em revisão na ReScience C, e um preprint com essa marca seria enganoso.
+- O resumo vem do `metadata.yaml`: o Makefile o grava em `generated/abstract.tex` (macro `\PreprintAbstract`).
+- `content.tex` inclui as figuras como `../outputs/<nome>`. O pacote do arXiv não tem diretório pai, então `preprint.tex` usa `figures/<nome>` quando `../outputs/<nome>` não existe.
+- O pacote do arXiv foi testado extraído numa pasta vazia, só com `pdflatex` (duas passadas, sem BibTeX): compila sem erros nem referências indefinidas, e o texto sai idêntico ao do build local.
+- Usa só pacotes do TeX Live comum: `amsmath`, `graphicx`, `booktabs`, `array`, `natbib`, `url`, `hyperref`, `geometry`, `lmodern`, além do estilo `unsrturl` (urlbst), que imprime DOI e identificador arXiv.
+- **Ferramentas:** pdflatex e bibtex (TeX Live), Python 3 com PyYAML.
+
+**PDF da ReScience C:** `make -C paper` gera `paper/article.pdf`.
 
 - O `Makefile` baixa o template oficial (https://github.com/ReScience/template) fixado no commit `0978d0e`, e copia para `paper/` só o que a compilação usa: `rescience.cls`, `header.tex`, `yaml-to-latex.py`, `article.py` e as pastas de fontes. Esses arquivos não entram no repositório (`paper/.gitignore`): o template é GPL-3+, e as fontes são OFL.
 - `article.tex` é o do template, com dois acréscimos: `booktabs`, para as tabelas, e `\emergencystretch`, para evitar linhas que invadem a margem.
